@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <sys/time.h>
 
 namespace hobbes {
@@ -74,9 +75,7 @@ inline std::string describeNanoTime(long x) {
 struct probe {
   std::string msg;
   long t0;
-  probe(const std::string& msg) : msg(msg) {
-    t0 = tick();
-  }
+  explicit probe(std::string msg) : msg(std::move(msg)), t0(tick()) {}
 
   void report() const {
     long dt = tick() - this->t0;

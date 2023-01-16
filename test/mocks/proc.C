@@ -1,6 +1,8 @@
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 #include <unistd.h>
 
 namespace {
@@ -34,10 +36,10 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  std::signal(SIGTERM, exitApp);
+  (void)std::signal(SIGTERM, exitApp);
 
   for (int i = 0; i < o.timeout; ++i) {
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
   const int success = 1;

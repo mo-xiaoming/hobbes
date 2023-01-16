@@ -5379,8 +5379,13 @@ yyreturnlab:
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
   if (yyss != yyssa)
     YYSTACK_FREE (yyss);
+  #pragma GCC diagnostic pop
+#endif
 #endif
   if (yymsg != yymsgbuf)
     YYSTACK_FREE (yymsg);

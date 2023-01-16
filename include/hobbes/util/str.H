@@ -2,14 +2,13 @@
 #ifndef HOBBES_UTIL_STR_HPP_INCLUDED
 #define HOBBES_UTIL_STR_HPP_INCLUDED
 
-#include <cstdlib>
-#include <cxxabi.h>
-#include <hobbes/util/array.H>
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <hobbes/util/array.H>
 
 namespace hobbes { namespace str {
 
@@ -72,7 +71,7 @@ template <typename T>
     std::istringstream ss(x);
     T dummy;
     ss >> dummy;
-    return bool(ss);
+    return ss.good();
   }
 
 template <typename T>
@@ -87,21 +86,33 @@ template <typename T>
   bool to(const std::string& x, T& out) {
     std::istringstream ss(x);
     ss >> out;
-    return bool(ss);
+    return ss.good();
   }
 
 template <typename T>
   bool to(const char* b, const char* e, T* out) {
     std::istringstream ss(std::string(b, e));
     ss >> *out;
-    return bool(ss);
+    return ss.good();
   }
 
 template <typename T>
   std::string from(const T& x) {
     std::ostringstream ss;
     ss << x;
-    return ss.str();
+    return std::move(ss).str();
+  }
+
+template <typename I, typename D>
+  std::string join(I begin, I end, D&& delimiter) {
+    std::ostringstream oss;
+    if (begin != end) {
+      oss << from(*begin);
+    }
+    for (auto i = begin+1; i != end; ++i) {
+      oss << std::forward<D>(delimiter) << from(*i);
+    }
+    return std::move(oss).str();
   }
 
 std::string demangle(const char* tn);
@@ -220,7 +231,7 @@ bool endsWith(const std::string& s, const std::string& sfx);
 using pair = std::pair<std::string, std::string>;
 
 inline pair trim(const pair& p) {
-  return pair(trim(p.first), trim(p.second));
+  return {trim(p.first), trim(p.second)};
 }
 
 pair splitAt(const std::string& s, unsigned int i);
@@ -344,7 +355,7 @@ inline std::string slurp(std::istream& in) {
 }
 
 // generate?
-inline seq strings() { return seq(); }
+inline seq strings() { return {}; }
 inline seq strings(const std::string& a0) { seq r; r.push_back(a0); return r; }
 inline seq strings(const std::string& a0, const std::string& a1) { seq r; r.push_back(a0); r.push_back(a1); return r; }
 inline seq strings(const std::string& a0, const std::string& a1, const std::string& a2) { seq r; r.push_back(a0); r.push_back(a1); r.push_back(a2); return r; }
@@ -413,6 +424,7 @@ std::string mustEndWith(const std::string&, const std::string&);
 // get a set of filesystem objects matching a pattern
 str::seq paths(const std::string& p);
 
-}}
+}  // namespace str
+}  // namespace hobbes
 
 #endif

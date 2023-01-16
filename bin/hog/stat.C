@@ -23,5 +23,4 @@ size_t createSessionHash(const hobbes::datetimeT& timestamp, const hobbes::stora
   return hashed;
 }
 
-}
-
+}  // namespace hog

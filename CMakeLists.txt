@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.4.1)
 project(hobbes)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(ZLIB REQUIRED)
@@ -60,7 +62,7 @@ file(GLOB_RECURSE lib_source lib/*.C)
 set(lib_files ${lib_headers} ${lib_source})
 include_directories(include)
 
-file(GLOB test_files test/*.C)
+file(GLOB test_files test/*.C test/unittests/*.C)
 file(GLOB hi_files bin/hi/*.C)
 file(GLOB_RECURSE hog_files bin/hog/*.C)
 
@@ -81,7 +83,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${cxx_flags}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
-option(USE_ASAN_UBSAN "Use address,undefined sanitizers" OFF)
+if (CMAKE_BUILD_TYPE STREQUAL "")
+  set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+option(USE_ASAN_AND_UBSAN "Use address,undefined sanitizers" OFF)
 if(USE_ASAN_AND_UBSAN)
   # _FORTIFY_SOURCE doesn't play well with asan
   # https://github.com/google/sanitizers/issues/247
@@ -91,8 +97,13 @@ if(USE_ASAN_AND_UBSAN)
   add_compile_options("$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fsanitize=local-bounds,float-divide-by-zero,nullability,signed-integer-overflow,shift,integer-divide-by-zero>")
   add_link_options("$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fsanitize=local-bounds,float-divide-by-zero,nullability,signed-integer-overflow,shift,integer-divide-by-zero>")
   add_compile_options("$<$<CXX_COMPILER_ID:GNU>:--param=max-vartrack-size=60000000>")
-  message(STATUS "address and undefined sanitizers enabled")
+  message(STATUS "Address and Undefined Sanitizers Enabled")
 endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT USE_ASAN_AND_UBSAN)
+  add_compile_options("$<$<CXX_COMPILER_ID:GNU>:-D_GLIBCXX_ASSERTIONS>")
+endif()
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
 add_library(hobbes STATIC ${lib_files})
 target_link_libraries(hobbes PUBLIC ${llvm_ldflags} ${llvm_libs} ${ZLIB_LIBRARIES} ${CURSES_LIBRARIES} ${sys_libs})
@@ -104,6 +115,8 @@ add_executable(hi ${hi_files})
 target_link_libraries(hi PUBLIC "-rdynamic" PRIVATE hobbes ${Readline_LIBRARIES})
 add_executable(hog ${hog_files})
 target_link_libraries(hog PRIVATE hobbes)
+add_executable(producer bin/producer.C)
+target_link_libraries(producer PRIVATE hobbes)
 
 enable_testing()
 add_executable(mock-proc test/mocks/proc.C)
@@ -114,7 +127,6 @@ find_package(PythonInterp 2.7 REQUIRED)
 set_property(TARGET hobbes-test PROPERTY COMPILE_FLAGS "-DPYTHON_EXECUTABLE=\"${PYTHON_EXECUTABLE}\" -DSCRIPT_DIR=\"${CMAKE_SOURCE_DIR}/scripts/\"")
 
 install(TARGETS hobbes hobbes-pic DESTINATION "lib")
-install(TARGETS hi hog hobbes-test DESTINATION "bin")
+install(TARGETS hi hog producer hobbes-test DESTINATION "bin")
 install(DIRECTORY "include/hobbes" DESTINATION "include")
 install(DIRECTORY "scripts" DESTINATION "scripts")
-

@@ -74,6 +74,11 @@ class StatFile {
 public:
   static StatFile& instance();
 
+  StatFile(const StatFile&) = delete;
+  StatFile& operator=(const StatFile&) = delete;
+  StatFile(StatFile&&) = delete;
+  StatFile& operator=(StatFile&&) = delete;
+
   template <typename T>
   void log(T&& value) {
     std::lock_guard<decltype(mutex)> _{mutex};
@@ -94,8 +99,6 @@ public:
 private:
   StatFile();
   ~StatFile() = default;
-  StatFile(const StatFile&) = delete;
-  StatFile& operator=(const StatFile&) = delete;
 
   hobbes::fregion::writer statFile;
   std::mutex mutex;
@@ -103,7 +106,7 @@ private:
 
 size_t createSessionHash(const hobbes::datetimeT& timestamp, const hobbes::storage::ProcThread& pt);
 
-}
+}  // namespace hog
 
 #endif
 

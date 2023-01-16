@@ -1,30 +1,31 @@
 
 #include <hobbes/util/str.H>
+
+#include <algorithm>
 #include <memory>
+
 #include <wordexp.h>
 #include <glob.h>
+#include <cxxabi.h>
 
 namespace hobbes { namespace str {
 
 std::string env(const std::string& varname) {
-  char* gv = getenv(varname.c_str());
+  const char* gv = ::getenv(varname.c_str());
   return gv != nullptr ? std::string(gv) : std::string("");
 }
 
 void env(const std::string& varname, const std::string& value) {
-  setenv(varname.c_str(), value.c_str(), 1);
+  ::setenv(varname.c_str(), value.c_str(), 1);
 }
 
 void repeat(unsigned int n, const std::string& s, seq* out) {
-  for (unsigned int i = 0; i < n; ++i) {
-    out->push_back(s);
-  }
+  out->reserve(n);
+  out->insert(out->end(), n, s);
 }
 
 seq repeat(unsigned int n, const std::string& s) {
-  seq r;
-  repeat(n, s, &r);
-  return r;
+  return {n, s};
 }
 
 unsigned int tableCols(const seqs& tbl) {
@@ -41,14 +42,15 @@ unsigned int maxStrLen(const seq& col) {
 
 lengths maxStrLen(const seqs& tbl) {
   lengths r;
-  for (const auto &c : tbl) {
-    r.push_back(maxStrLen(c));
-  }
+  r.reserve(tbl.size());
+  std::transform(tbl.cbegin(), tbl.cend(), std::back_inserter(r), [](const auto& c) {
+    return maxStrLen(c);
+  });
   return r;
 }
 
 std::string pad(size_t n) {
-  return std::string(n, ' ');
+  return std::string(n, ' '); // NOLINT
 }
 
 std::string leftAlign(size_t w, const std::string& x) {
@@ -189,14 +191,12 @@ std::string demangle(const char* tn) {
   }
 
   int   s   = 0;
-  char* dmn = abi::__cxa_demangle(tn, nullptr, nullptr, &s);
+  const auto dmn = std::unique_ptr<char, void(*)(void*)>(abi::__cxa_demangle(tn, nullptr, nullptr, &s), ::free);
 
   if (dmn == nullptr) {
-    return std::string(tn);
+    return {tn};
   } else {
-    std::string r(dmn);
-    free(dmn);
-    return r;
+    return {dmn.get()};
   }
 }
 
@@ -206,27 +206,27 @@ std::string demangle(const std::type_info& ti) {
 
 pair splitAt(const std::string& s, unsigned int i) {
   if (i >= s.size()) {
-    return pair(s, "");
+    return {s, ""};
   } else {
-    return pair(s.substr(0, i), s.substr(i, s.size()));
+    return {s.substr(0, i), s.substr(i, s.size())};
   }
 }
 
 pair lsplit(const std::string& s, const std::string& ss) {
   size_t p = s.find(ss);
   if (p == std::string::npos) {
-    return pair(s, "");
+    return {s, ""};
   } else {
-    return pair(s.substr(0, p), s.substr(p + ss.size(), s.size()));
+    return {s.substr(0, p), s.substr(p + ss.size(), s.size())};
   }
 }
 
 pair rsplit(const std::string& s, const std::string& ss) {
   size_t p = s.rfind(ss);
   if (p == std::string::npos) {
-    return pair("", s);
+    return {"", s};
   } else {
-    return pair(s.substr(0, p), s.substr(p + ss.size(), s.size()));
+    return {s.substr(0, p), s.substr(p + ss.size(), s.size())};
   }
 }
 
@@ -512,7 +512,7 @@ std::string expandVars(const std::string& x) {
 
 std::string expandPath(const std::string& x) {
   wordexp_t we;
-  if (wordexp(x.c_str(), &we, 0) == 0) {
+  if (::wordexp(x.c_str(), &we, 0) == 0) {
     std::string result(we.we_wordv[0]);
     wordfree(&we);
     return result;
@@ -546,9 +546,6 @@ std::string showDataSize(size_t bytes) {
  ******/
 class ptnode {
 public:
-  ptnode() : terminal(false) {
-  }
-
   void insert(const std::string& x) {
     ptnode* n = this;
     for (char c : x) {
@@ -585,7 +582,7 @@ private:
   Children children;
 
   // does this node complete a valid word?
-  bool terminal;
+  bool terminal = false;
 
   // search for sub-words within the maximum edit distance of an input string
   void findRankedMatches(const std::string& pfx, const std::string& x, size_t xi, size_t edits, size_t maxDist, std::map<size_t, seq>* r, std::set<const ptnode*>* inserted) const {
@@ -707,11 +704,11 @@ std::string mustEndWith(const std::string& x, const std::string& sfx) {
 // get a set of filesystem objects matching a pattern
 str::seq paths(const std::string& p) {
   glob_t g;
-  if (glob(p.c_str(), 0, nullptr, &g) != 0) {
-    return str::seq();
+  if (::glob(p.c_str(), 0, nullptr, &g) != 0) {
+    return {};
   } else if (g.gl_pathc == 0) {
     globfree(&g);
-    return str::seq();
+    return {};
   } else {
     str::seq r;
     for (size_t i = 0; i < g.gl_pathc; ++i) {
@@ -722,5 +719,5 @@ str::seq paths(const std::string& p) {
   }
 }
 
-}}
-
+}  // namespace str
+}  // namespace hobbes

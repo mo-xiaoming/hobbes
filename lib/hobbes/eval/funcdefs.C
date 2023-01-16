@@ -412,7 +412,7 @@ const CTM* mkCTM(int usec, const tm& xtm) {
 const CTM* hlocaltime(datetimeT x) {
   static const size_t USECS = 1000*1000;
   time_t xt = x.value / USECS;
-  struct tm xtm;
+  struct tm xtm{};
   localtime_r(&xt, &xtm);
   return mkCTM(x.value % USECS, xtm);
 }
@@ -420,16 +420,16 @@ const CTM* hlocaltime(datetimeT x) {
 const CTM* hgmtime(datetimeT x) {
   static const size_t USECS = 1000*1000;
   time_t xt = x.value / USECS;
-  struct tm xtm;
+  struct tm xtm{};
   gmtime_r(&xt, &xtm);
   return mkCTM(x.value % USECS, xtm);
 }
 
 timespanT gmtoffset(datetimeT x) {
   time_t xt = x.value / (1000*1000);
-  struct tm xtm;
+  struct tm xtm{};
   localtime_r(&xt, &xtm);
-  return xtm.tm_gmtoff * (1000*1000);
+  return {xtm.tm_gmtoff * (1000*1000)};
 }
 
 std::ostringstream& stdoutBuffer() {

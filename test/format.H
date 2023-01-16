@@ -2,9 +2,11 @@
 #define HOBBES_TEST_FORMAT_H_INCLUDED
 
 #include <hobbes/util/perf.H>
+#include <vector>
 
-struct Result;
+#include "test.H"
 
+namespace test_detail {
 struct null {};
 
 template <typename T>
@@ -74,6 +76,6 @@ inline void showJSON(const std::vector<T>& xs, std::ostream& os) {
   }
   os << "]";
 }
+}  // namespace test_detail
 
 #endif
-

@@ -125,7 +125,7 @@ TEST(Compiler, liftStdArray) {
 using ctimespanT = std::chrono::duration<int64_t, std::micro>;
 
 std::ostream& operator<<(std::ostream& out, ctimespanT dt) {
-  out << *reinterpret_cast<int64_t*>(&dt) << "us";
+  out << dt.count() << "us";
   return out;
 }
 
@@ -140,4 +140,3 @@ TEST(Compiler, liftWithoutRVO) {
 
   EXPECT_EQ(c().compileFn<strref(int)>("x", "unsafeCast(42L)")(0).index, strref(42UL).index);
 }
-

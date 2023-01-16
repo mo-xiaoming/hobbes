@@ -144,8 +144,7 @@ void spawn(const std::string& cmd, proc* p, const FailToKillCallback& fn) {
       FD_ZERO(&fds);
       FD_SET(c2p[0], &fds);
 
-      struct timeval tmout;
-      memset(&tmout, 0, sizeof(tmout));
+      struct timeval tmout{};
       tmout.tv_sec = getLoadingTimeoutInSecs(1800);
 
       select(FD_SETSIZE, &fds, nullptr, nullptr, &tmout);
@@ -214,7 +213,7 @@ void dbglog(const std::string& msg) {
   if (machineREPLLogFD > 0) {
     char buf[256];
     time_t t = ::time(nullptr);
-    strftime(buf, sizeof(buf), "%H:%M:%S", localtime(reinterpret_cast<time_t*>(&t)));
+    std::strftime(buf, sizeof(buf), "%H:%M:%S", localtime(reinterpret_cast<time_t*>(&t)));
 
     std::string logmsg = std::string(buf) + ": " + msg + "\n";
     auto rc = write(machineREPLLogFD, logmsg.c_str(), logmsg.size());
@@ -418,7 +417,8 @@ void runMachineREPLStep(cc* c) {
     }
     case CMD_REPL_TENV: {
       // can we print out the local type environment?
-      str::seq vns, vtys;
+      str::seq vns;
+      str::seq vtys;
       c->dumpTypeEnv(&vns, &vtys);
 
       for (size_t i = 0; i < std::min(vns.size(), vtys.size()); ++i) {
@@ -465,7 +465,8 @@ void runMachineREPLStep(cc* c) {
     }
     case CMD_REPL_SEARCH: {
       // search for paths from a source expression to a destination type
-      std::string expr, ty;
+      std::string expr;
+      std::string ty;
       fdread(STDIN_FILENO, &expr);
       fdread(STDIN_FILENO, &ty);
 
@@ -545,14 +546,13 @@ void runMachineREPL(cc* c) {
   
   // for now, create a log for all processes run in machine mode
   // this will help us to diagnose errors that cause the process to die
-  machineREPLLogFD = open(("./.hproc." + str::from(getpid()) + ".log").c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  machineREPLLogFD = ::open(("./.hproc." + str::from(getpid()) + ".log").c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   dbglog("Started machine-controlled process");
 
 #ifdef BUILD_LINUX
   // log deadly signals
-  struct sigaction act;
-  memset(&act, 0, sizeof(act));
-  act.sa_sigaction = deadlySignal;
+  struct sigaction act{};
+  act.sa_sigaction = deadlySignal; // NOLINT(cppcoreguidelines-pro-type-union-access)
   act.sa_flags     = SA_SIGINFO;
 # define WSIG(s) rsignames[s] = #s; sigaction(s, &act, 0)
   WSIG(SIGSEGV);
@@ -688,7 +688,7 @@ PrepProcExpr procPrepareExpr(const proc& p, const ExprPtr& e) {
     std::vector<uint8_t> tb;
     fdread(p.read_fd, &tb);
 
-    return PrepProcExpr(eid, decode(tb));
+    return {eid, decode(tb)};
   } else if (result == 0) {
     std::string msg;
     fdread(p.read_fd, &msg);
@@ -704,5 +704,4 @@ int invocationID(const proc& p, const std::string& fname, const MonoTypePtr& has
   return procPrepareExpr(p, let(".in", fncall(var("readFrom", la), list(var("stdin", la)), la), fncall(assume(var(fname, la), hasty, la), list(var(".in", la)), la), la)).first;
 }
 
-}
-
+}  // namespace hobbes

@@ -2,6 +2,11 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <unordered_map>
+
 #include <hobbes/lang/constraints.H>
 #include <hobbes/lang/expr.H>
 #include <hobbes/lang/tylift.H>
@@ -11,10 +16,6 @@
 #include <hobbes/util/codec.H>
 #include <hobbes/util/perf.H>
 #include <hobbes/util/str.H>
-#include <memory>
-#include <sstream>
-#include <stdexcept>
-#include <unordered_map>
 
 namespace hobbes {
 
@@ -41,18 +42,10 @@ std::string show(const MonoTypePtr& e)   { return show(*e); }
 
 template <typename T>
   std::string show(const std::set<T>& ts) {
-    if (ts.size() == 0) {
+    if (ts.empty()) {
       return "{}";
     } else {
-      using TCIter = typename std::set<T>::const_iterator;
-      TCIter t = ts.begin();
-      std::string r = "{" + str::from(*t);
-      ++t;
-      for (; t != ts.end(); ++t) {
-        r += ", ";
-        r += str::from(*t);
-      }
-      return r + "}";
+      return "{" + str::join(ts.cbegin(), ts.cend(), ", ") + "}";
     }
   }
 

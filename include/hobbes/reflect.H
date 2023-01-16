@@ -22,6 +22,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -66,13 +67,13 @@ namespace string {
   using seq = std::vector<std::string>;
   inline seq csplit(const std::string& str, const std::string& pivot) {
     using size_type = std::string::size_type;
-  
+
     seq       ret;
     size_type mp = 0;
-  
+
     while (mp != std::string::npos) {
       size_type nmp = str.find(pivot, mp);
-  
+
       if (nmp == std::string::npos) {
         ret.push_back(str.substr(mp, str.size() - mp));
         mp = nmp;
@@ -81,7 +82,7 @@ namespace string {
         mp = nmp + pivot.size();
       }
     }
-  
+
     return ret;
   }
 
@@ -158,33 +159,37 @@ using int128_t = __int128;
 #define PRIV_HPPF_SMAPLP() PRIV_HPPF_MAPLP
 
 // basic compile-time strings
-template <size_t N>
-  constexpr char at(size_t i, const char (&s)[N]) {
+template <size_t N> constexpr char at(size_t i, const char (&s)[N]) {
     return (i < N) ? s[i] : '\0';
-  }
-template <size_t N>
-  constexpr size_t at8S(size_t i, size_t k, const char (&s)[N]) {
-    return (k==8) ? 0 : ((static_cast<size_t>(at(i+k,s))<<(8*k))|at8S(i,k+1,s));
-  }
-template <size_t N>
-  constexpr size_t at8(size_t i, const char (&s)[N]) {
-    return at8S(i, 0, s);
-  }
-template <size_t... pcs>
-  struct strpack {
+}
+template <size_t N> constexpr size_t at8S(size_t i, size_t k, const char (&s)[N]) {
+    return (k == 8) ? 0 : ((static_cast<size_t>(at(i + k, s)) << (8 * k)) | at8S(i, k + 1, s));
+}
+template <size_t N> constexpr size_t at8(size_t i, const char (&s)[N]) { return at8S(i, 0, s); }
+
+template <size_t... pcs> struct strpack {
     static const char* str() {
       constexpr size_t msg[] = {pcs...};
-      static_assert(msg[(sizeof(msg)/sizeof(msg[0]))-1] == 0, "compile-time string larger than internal max limit (this limit can be bumped in storage.H)");
+      static_assert(msg[(sizeof(msg) / sizeof(msg[0])) - 1] == 0,
+                    "compile-time string larger than internal max limit");
 
       static const size_t smsg[] = {pcs...};
       return reinterpret_cast<const char*>(smsg);
     }
-  };
-#define PRIV_HPPF_TSTR32(i,s)   ::hobbes::at8(i+(8*0),s),::hobbes::at8(i+(8*1),s),::hobbes::at8(i+(8*2),s),::hobbes::at8(i+(8*3),s)
-#define PRIV_HPPF_TSTR128(i,s)  PRIV_HPPF_TSTR32(i+(32*0),s),PRIV_HPPF_TSTR32(i+(32*1),s),PRIV_HPPF_TSTR32(i+(32*2),s),PRIV_HPPF_TSTR32(i+(32*3),s)
-#define PRIV_HPPF_TSTR512(i,s)  PRIV_HPPF_TSTR128(i+(128*0),s),PRIV_HPPF_TSTR128(i+(128*1),s),PRIV_HPPF_TSTR128(i+(128*2),s),PRIV_HPPF_TSTR128(i+(128*3),s)
-#define PRIV_HPPF_TSTR1024(i,s) PRIV_HPPF_TSTR512(i+(512*0),s),PRIV_HPPF_TSTR512(i+(512*1),s)
-#define PRIV_HPPF_TSTR(s)       ::hobbes::strpack<PRIV_HPPF_TSTR1024(0,s)>
+};
+
+#define PRIV_HPPF_TSTR32(i, s) \
+  ::hobbes::at8(i + (8 * 0), s), ::hobbes::at8(i + (8 * 1), s), ::hobbes::at8(i + (8 * 2), s), \
+      ::hobbes::at8(i + (8 * 3), s)
+#define PRIV_HPPF_TSTR128(i, s) \
+  PRIV_HPPF_TSTR32(i + (32 * 0), s), PRIV_HPPF_TSTR32(i + (32 * 1), s), \
+      PRIV_HPPF_TSTR32(i + (32 * 2), s), PRIV_HPPF_TSTR32(i + (32 * 3), s)
+#define PRIV_HPPF_TSTR512(i, s) \
+  PRIV_HPPF_TSTR128(i + (128 * 0), s), PRIV_HPPF_TSTR128(i + (128 * 1), s), \
+      PRIV_HPPF_TSTR128(i + (128 * 2), s), PRIV_HPPF_TSTR128(i + (128 * 3), s)
+#define PRIV_HPPF_TSTR1024(i, s) \
+  PRIV_HPPF_TSTR512(i + (512 * 0), s), PRIV_HPPF_TSTR512(i + (512 * 1), s)
+#define PRIV_HPPF_TSTR(s) ::hobbes::strpack<PRIV_HPPF_TSTR1024(0, s)>
 
 // value-level bool -> type-level bool
 template <bool f> struct tbool { };
@@ -339,7 +344,7 @@ template <typename ... Ts>
 template <typename ... Ts1, typename ... Ts2, typename ... Rest>
   struct concatT<tuple<Ts1...>, tuple<Ts2...>, Rest...> {
     using type = typename concatT<tuple<Ts1..., Ts2...>, Rest...>::type;
-  }; 
+  };
 template <typename ... Ts>
   struct concatT<tuple<Ts...>> {
     using type = tuple<Ts...>;
@@ -350,7 +355,7 @@ template <template <typename T> class F, typename X>
 template <template <typename T> class F, typename H, typename ... Rest>
   struct fmap<F, tuple<H, Rest...>> {
     using type = typename concatT<tuple<typename F<H>::type>, typename fmap<F, tuple<Rest...>>::type>::type;
-  }; 
+  };
 template <template <typename T> class F, typename H>
   struct fmap<F, tuple<H>> {
     using type = tuple<typename F<H>::type>;
@@ -384,16 +389,16 @@ template <typename ... Ts>
 
 // the trivially true proposition -- ie: C's "void" with its one value constructible
 struct unit {
-  unit() = default;
-  bool operator==(const unit&) const { return true; }
-  bool operator< (const unit&) const { return false; }
+  friend constexpr bool operator==(const unit&, const unit&) noexcept { return true; }
+  friend constexpr bool operator<(const unit&, const unit&) noexcept { return false; }
 };
-inline std::ostream& operator<<(std::ostream& o, const unit&) { o << "()"; return o; }
+inline std::ostream& operator<<(std::ostream& o, const unit&) { return o << "()"; }
 
 // drop the first type from a sequence to determine a tuple type
 // (useful with these macro expansions where we can't distinguish first and rest values)
-template <typename ... Ts>             struct tupleTail           {                            };
-template <typename T, typename ... Ts> struct tupleTail<T, Ts...> { using type = tuple<Ts...>; };
+template <typename... Ts> struct tupleTail {};
+template <typename T, typename... Ts> struct tupleTail<T, Ts...> {
+  using type = tuple<Ts...>; };
 
 // reflective structs
 #define PRIV_HPPF_STRUCT_FIELD(t, n) t n;
@@ -1020,9 +1025,7 @@ template <typename RepTy>
     RepTy value;
 
     alias() : value() { }
-    alias(const RepTy& x) : value(x) { }
-    constexpr alias(const alias<RepTy>&) = default;
-    alias& operator=(const alias<RepTy>&) = default;
+    alias(const RepTy& x) : value(x) { } // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
   };
 
 #define DEFINE_TYPE_ALIAS_AS(PRIV_ATY, N, PRIV_REPTY) \
@@ -1055,18 +1058,18 @@ using bytes = std::vector<uint8_t>;
 #define PRIV_HPPF_TYCTOR_RECURSIVE (static_cast<uint32_t>(13))
 #define PRIV_HPPF_TYCTOR_TABS      (static_cast<uint32_t>(15))
 
-struct D { uint32_t tid; D(uint32_t tid) : tid(tid) { } };
+struct D { uint32_t tid; explicit D(uint32_t tid) : tid(tid) { } };
 using desc = std::shared_ptr<D>;
 
 struct Nat : public D {
-  Nat(size_t x) : D(PRIV_HPPF_TYCTOR_SIZE), x(x) { }
+  explicit Nat(size_t x) : D(PRIV_HPPF_TYCTOR_SIZE), x(x) { }
 
   size_t x;
 };
 inline desc nat(size_t x) { return desc(new Nat(x)); }
 
 struct Prim : public D {
-  Prim(const std::string& n, const desc& rep) : D(PRIV_HPPF_TYCTOR_PRIM), n(n), rep(rep) { }
+  Prim(std::string n, desc rep) : D(PRIV_HPPF_TYCTOR_PRIM), n(std::move(n)), rep(std::move(rep)) { }
 
   std::string n;   // the name of this type, assumed primitive
   desc        rep; // may be null if not an opaque type alias
@@ -1074,20 +1077,20 @@ struct Prim : public D {
 inline desc prim(const std::string& n, const desc& rep = desc()) { return desc(new Prim(n, rep)); }
 
 struct Var : public D {
-  Var(const std::string& n) : D(PRIV_HPPF_TYCTOR_TVAR), n(n) { }
+  explicit Var(std::string n) : D(PRIV_HPPF_TYCTOR_TVAR), n(std::move(n)) { }
   std::string n;
 };
 inline desc var(const std::string& n) { return desc(new Var(n)); }
 
 struct FArr : public D {
-  FArr(const desc& t, const desc& len) : D(PRIV_HPPF_TYCTOR_FIXEDARR), t(t), len(len) { }
+  FArr(desc t, desc len) : D(PRIV_HPPF_TYCTOR_FIXEDARR), t(std::move(t)), len(std::move(len)) { }
   desc t;
   desc len;
 };
 inline desc array(const desc& t, const desc& len) { return desc(new FArr(t, len)); }
 
 struct Arr : public D {
-  Arr(const desc& t) : D(PRIV_HPPF_TYCTOR_ARR), t(t) { }
+  explicit Arr(desc t) : D(PRIV_HPPF_TYCTOR_ARR), t(std::move(t)) { }
   desc t;
 };
 inline desc array(const desc& t) { return desc(new Arr(t)); }
@@ -1096,7 +1099,7 @@ struct Variant : public D {
   using Ctor = tuple<std::string, uint32_t, desc>;
   using Ctors = std::vector<Ctor>;
 
-  Variant(const Ctors& ctors) : D(PRIV_HPPF_TYCTOR_VARIANT), ctors(ctors) { }
+  explicit Variant(Ctors ctors) : D(PRIV_HPPF_TYCTOR_VARIANT), ctors(std::move(ctors)) { }
 
   Ctors ctors;
 };
@@ -1111,7 +1114,7 @@ template <typename ... Tys>
   inline desc sum(const Tys&... tt) {
     std::vector<desc> ts;
     sumAcc<Tys...>::acc(&ts, tt...);
-    
+
     Variant::Ctors cs;
     for (size_t i = 0; i < ts.size(); ++i) {
       std::ostringstream n;
@@ -1125,7 +1128,7 @@ struct Struct : public D {
   using Field = tuple<std::string, int, desc>;
   using Fields = std::vector<Field>;
 
-  Struct(const Fields& fields) : D(PRIV_HPPF_TYCTOR_STRUCT), fields(fields) { }
+  explicit Struct(Fields fields) : D(PRIV_HPPF_TYCTOR_STRUCT), fields(std::move(fields)) { }
 
   Fields fields;
 };
@@ -1163,7 +1166,7 @@ template <typename ... Tys>
   }
 
 struct Recursive : public D {
-  Recursive(const std::string& x, const desc& t) : D(PRIV_HPPF_TYCTOR_RECURSIVE), x(x), t(t) { }
+  Recursive(std::string x, desc t) : D(PRIV_HPPF_TYCTOR_RECURSIVE), x(std::move(x)), t(std::move(t)) { }
 
   std::string x;
   desc        t;
@@ -1172,7 +1175,7 @@ inline desc recursive(const std::string& x, const desc& t) { return desc(new Rec
 
 struct Fn : public D {
   using Args = std::vector<std::string>;
-  Fn(const Args& args, const desc& t) : D(PRIV_HPPF_TYCTOR_TABS), args(args), t(t) { }
+  Fn(Args args, desc t) : D(PRIV_HPPF_TYCTOR_TABS), args(std::move(args)), t(std::move(t)) { }
 
   Args args;
   desc t;
@@ -1180,11 +1183,11 @@ struct Fn : public D {
 inline desc fnc(const Fn::Args&    args, const desc& t) { return desc(new Fn(args, t)); }
 
 template <typename ... Tys>
-  struct fnAcc { static desc acc(Fn::Args*) { assert(false && "fn must define arg list and body"); return desc(); } };
+  struct fnAcc { static desc acc(Fn::Args*) { assert(false && "fn must define arg list and body"); return {}; } };
 template <>
   struct fnAcc<desc> { static desc acc(Fn::Args* args, const desc& t) { return fnc(*args, t); } };
 template <size_t N, typename ... Tys>
-  struct fnAcc<char[N], Tys...> { static desc acc(Fn::Args* args, const char (&n)[N], const Tys& ... tt) { args->push_back(n); return fnAcc<Tys...>::acc(args, tt...); } };
+  struct fnAcc<char[N], Tys...> { static desc acc(Fn::Args* args, const char (&n)[N], const Tys& ... tt) { args->emplace_back(n); return fnAcc<Tys...>::acc(args, tt...); } };
 
 template <typename ... Tys>
   inline desc fn(const Tys& ... tt) { Fn::Args args; return fnAcc<Tys...>::acc(&args, tt...); }
@@ -1192,7 +1195,7 @@ template <typename ... Tys>
 struct App : public D {
   using Args = std::vector<desc>;
 
-  App(const desc& f, const Args& args) : D(PRIV_HPPF_TYCTOR_TAPP), f(f), args(args) { }
+  App(desc f, Args args) : D(PRIV_HPPF_TYCTOR_TAPP), f(std::move(f)), args(std::move(args)) { }
 
   desc f;
   Args args;
@@ -1292,15 +1295,18 @@ template <typename T>
   void w(const T& x, bytes* out) {
     out->insert(out->end(), reinterpret_cast<const uint8_t*>(&x), reinterpret_cast<const uint8_t*>(&x) + sizeof(x));
   }
+// length + str
 inline void ws(const char* x, bytes* out) {
-  size_t n = strlen(x);
+  const auto n = std::strlen(x);
   w(n, out);
   out->insert(out->end(), x, x + n);
 }
+// length + str
 inline void ws(const std::string& x, bytes* out) {
   w(static_cast<size_t>(x.size()), out);
   out->insert(out->end(), x.begin(), x.end());
 }
+// length + str
 inline void ws(const bytes& x, bytes* out) {
   w(static_cast<size_t>(x.size()), out);
   out->insert(out->end(), x.begin(), x.end());

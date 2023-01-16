@@ -7,3 +7,7 @@ CMakeFiles/
 /doc/building.txt
 .vscode/
 .gitmessage
+/.cache/
+/.hproc.*
+/test_report.json
+/compile_commands.json

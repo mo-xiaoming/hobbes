@@ -1,33 +1,41 @@
-#include "test.H"
 #include "format.H"
-#include <getopt.h>
-#include <hobbes/util/perf.H>
-#include <fstream>
+#include "test.H"
 
+#include <cstdlib>
+#include <hobbes/util/perf.H>
+
+#include <algorithm>
+#include <fstream>
+#include <functional>
+#include <ostream>
+
+#include <getopt.h>
+
+namespace test_detail {
 TestCoord& TestCoord::instance() {
   static TestCoord tc;
   return tc;
 }
 
 bool TestCoord::installTest(const std::string& group, const std::string& test, PTEST pf) {
-  this->tests[group].push_back(std::make_pair(test, pf));
-  this->results[group].push_back(Result(test));
+  tests[group].emplace_back(test, pf);
+  results[group].emplace_back(test);
   return true;
 }
 
-std::set<std::string> TestCoord::testGroupNames() const {
-  std::set<std::string> r;
-  for (const auto& g : this->tests) {
-    r.insert(g.first);
-  }
+std::vector<std::string> TestCoord::testGroupNames() const {
+  std::vector<std::string> r;
+  r.reserve(tests.size());
+  std::transform(tests.cbegin(), tests.cend(), std::inserter(r, r.begin()),
+                 [](const auto& t) { return std::cref(t.first); });
   return r;
 }
 
 int TestCoord::runTestGroups(const Args& args) {
   std::vector<std::string> failures;
-  const auto & groups = args.tests;
+  const auto& groups = args.groupNames;
 
-  auto updateTerminal = [&failures](const std::string& name, const Result& result) {
+  const auto updateTerminal = [&failures](const std::string& name, const Result& result) {
     std::cout << "    " << name;
     if (result.status == Result::Status::Pass) {
       std::cout << " SUCCESS ";
@@ -38,8 +46,8 @@ int TestCoord::runTestGroups(const Args& args) {
     std::cout << "(" << hobbes::describeNanoTime(result.duration) << ")" << std::endl;
   };
 
-  std::cout << "Running " << groups.size() << " group" << (groups.size() == 1 ? "" : "s") << " of tests" << std::endl
-            << "---------------------------------------------------------------------" << std::endl
+  std::cout << "Running " << groups.size() << " group" << (groups.size() == 1 ? "" : "s")
+            << " of tests\n---------------------------------------------------------------------\n"
             << std::endl;
 
   long tt0 = hobbes::tick();
@@ -50,34 +58,34 @@ int TestCoord::runTestGroups(const Args& args) {
       continue;
     }
     const auto& g = gi->second;
-    auto & r = this->results[gn];
+    auto& r = this->results[gn];
 
-    std::cout << "  " << gn << " (" << g.size() << " test" << (g.size() == 1 ? "" : "s") << ")" << std::endl
-              << "  ---------------------------------------------------------" << std::endl;
+    std::cout << "  " << gn << " (" << g.size() << " test" << (g.size() == 1 ? "" : "s")
+              << ")\n  ---------------------------------------------------------" << std::endl;
 
     long gt0 = hobbes::tick();
     for (size_t i = 0; i < g.size(); ++i) {
-      const auto & t = g[i];
-      auto & result = r[i];
+      const auto& t = g[i];
+      auto& result = r[i];
       long t0 = hobbes::tick();
       try {
         t.second();
-        result.record(Result::Status::Pass, hobbes::tick() - t0);
+        result.recordPass(hobbes::tick() - t0);
       } catch (std::exception& ex) {
-        result.record(Result::Status::Fail, hobbes::tick() - t0, "[" + gn + "/" + t.first + "]: " + ex.what());
+        result.recordFail(hobbes::tick() - t0, "[" + gn + "/" + t.first + "]: " + ex.what());
       }
       updateTerminal(t.first, result);
     }
-    std::cout << "  ---------------------------------------------------------" << std::endl
-              << "  " << hobbes::describeNanoTime(hobbes::tick()-gt0) << std::endl
+    std::cout << "  ---------------------------------------------------------\n  "
+              << hobbes::describeNanoTime(hobbes::tick() - gt0) << '\n'
               << std::endl;
   }
-  std::cout << "---------------------------------------------------------------------" << std::endl
-            << hobbes::describeNanoTime(hobbes::tick()-tt0) << std::endl;
+  std::cout << "---------------------------------------------------------------------\n"
+            << hobbes::describeNanoTime(hobbes::tick() - tt0) << std::endl;
 
   if (!failures.empty()) {
-    std::cout << "\n\nFAILURE" << (failures.size() == 1 ? "" : "S") << ":" << std::endl
-              << "---------------------------------------------------------------------" << std::endl;
+    std::cout << "\n\nFAILURE" << (failures.size() == 1 ? "" : "S")
+              << ":\n---------------------------------------------------------------------\n";
     for (const auto& failure : failures) {
       std::cout << failure << std::endl;
     }
@@ -89,7 +97,7 @@ int TestCoord::runTestGroups(const Args& args) {
       outfile << toJSON();
       std::cout << "JSON report generated: " << path << std::endl;
     } else {
-      std::cerr << "error in generating JSON report: " << strerror(errno) << std::endl;
+      std::cerr << "error in generating JSON report: " << ::strerror(errno) << std::endl;
     }
   }
 
@@ -101,45 +109,60 @@ std::string TestCoord::toJSON() {
   showJSON(std::vector<GroupedResults::value_type>(results.begin(), results.end()), os);
   return os.str();
 }
+} // namespace test_detail
 
+namespace {
 void listTest() {
-  for (const auto & test : TestCoord::instance().testGroupNames()) {
-    std::cout << test << std::endl;
+  for (const auto& gn : test_detail::TestCoord::instance().testGroupNames()) {
+    std::cout << gn << std::endl;
   }
 }
 
 void usage() {
-  std::cout << "hobbes-test [--list_tests][--tests <name> [--tests <name>...][--json <path>]]" << std::endl;
+  std::cout << "hobbes-test [--list_tests][--tests <name> [--tests <name>...][--json <path>]]\n";
 }
 
-Args parseArgs(int argc, char** argv) {
-  static const struct option options[] = {
+bool parseArgs(int argc, char** argv, test_detail::Args& args) {
+  // clang-format off
+  static const option options[] = {
     {"help",       no_argument,       nullptr, 'h'},
     {"list_tests", no_argument,       nullptr, 'l'},
     {"tests",      required_argument, nullptr, 't'},
     {"json",       required_argument, nullptr, 'r'},
-    {nullptr,            no_argument,       nullptr, ' '}
+    {nullptr,      no_argument,       nullptr, ' '}
   };
+  // clang-format on
 
-  Args args;
-  int key;
-  while ((key = getopt_long(argc, argv, "hlt:r:", options, nullptr)) != -1) {
+  int key = 0;
+  while ((key = ::getopt_long(argc, argv, "hlt:r:", options, nullptr)) != -1) {
     switch (key) {
-      case 'l': listTest(); exit(EXIT_SUCCESS);
-      case 't': args.tests.insert(optarg); break;
-      case 'r': args.report = optarg; break;
-      case 'h':
-      case '?':
-      default: usage(); exit(EXIT_SUCCESS);
+    case 'l':
+      listTest();
+      return false;
+    case 't':
+      args.groupNames.emplace_back(optarg);
+      break;
+    case 'r':
+      args.report = optarg;
+      break;
+    case 'h':
+    case '?':
+    default:
+      usage();
+      return false;
     }
   }
-  if (args.tests.empty()) {
-    args.tests = TestCoord::instance().testGroupNames();
+  if (args.groupNames.empty()) {
+    args.groupNames = test_detail::TestCoord::instance().testGroupNames();
   }
-  return args;
+  return true;
 }
+} // namespace
 
 int main(int argc, char** argv) {
-  return TestCoord::instance().runTestGroups(parseArgs(argc, argv));
+  test_detail::Args args;
+  if (!parseArgs(argc, argv, args)) {
+    return EXIT_FAILURE;
+  }
+  return test_detail::TestCoord::instance().runTestGroups(args);
 }
-

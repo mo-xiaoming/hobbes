@@ -48,7 +48,7 @@ namespace spin {
 
 #if defined(CLOCK_REALTIME)
 inline long poll_tickNS() {
-  timespec ts;
+  timespec ts{};
   if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
     return ts.tv_sec * 1000000000L + ts.tv_nsec;
   } else {
@@ -71,7 +71,9 @@ static inline void wakeN(volatile uint32_t*, int) {
 }
 
 } // namespace spin
-}}} // namespace hobbes { namespace storage { namespace internal
+}  // namespace internal
+}  // namespace storage
+}  // namespace hobbes
 
 // a few things have to be OS-specific here
 //  * available waiting strategy in shared memory
@@ -135,10 +137,10 @@ namespace hobbes { namespace storage { namespace internal {
 
 namespace spin {
 
-static inline void waitForUpdate(volatile uint32_t* p, int eqV) {
+static inline void waitForUpdate(const volatile uint32_t* p, int eqV) {
   while (true) {
     for (size_t c = 0; c < 4096; ++c) {
-      if (*p != uint32_t(eqV)) {
+      if (*p != static_cast<uint32_t>(eqV)) {
         return;
       }
     }
@@ -154,13 +156,13 @@ static inline void waitForUpdate(volatile uint32_t* p, int eqV, size_t timeoutNS
 
   while (true) {
     for (size_t c = 0; c < 4096; ++c) {
-      if (*p != uint32_t(eqV)) {
+      if (*p != static_cast<uint32_t>(eqV)) {
         return;
       }
     }
 
     long t1 = poll_tickNS();
-    if ((t1-t0) >= long(timeoutNS)) {
+    if ((t1-t0) >= static_cast<long>(timeoutNS)) {
       timeoutF();
       t0 = t1;
     }
@@ -182,7 +184,7 @@ static inline void waitForUpdate(volatile uint32_t* p, int eqV, size_t timeoutNS
     return;
   }
 
-  struct timespec ts;
+  struct timespec ts{};
   ts.tv_sec  = timeoutNS / 1000000000L;
   ts.tv_nsec = timeoutNS % 1000000000L;
 
@@ -204,7 +206,9 @@ static inline void wakeN(volatile uint32_t* p, int c) {
 
 namespace platform = futex;
 
-}}} // namespace hobbes { namespace storage { namespace internal
+}  // namespace internal
+}  // namespace storage
+}  // namespace hobbes
 #endif
 
 namespace hobbes { namespace storage {
@@ -233,7 +237,8 @@ static inline WakeFn wakeFn(const WaitPolicy s) {
   }
 }
 
-}}
+}  // namespace storage
+}  // namespace hobbes
 
 namespace hobbes { namespace storage {
 
@@ -259,10 +264,10 @@ template <typename T>
 
 static inline unsigned spin(unsigned count) {
   for (volatile unsigned i = 0; i != count; ++i);
-  return (count << 1);
+  return (count << 1U);
 }
 
-static inline void uxchg(volatile uint32_t* px, uint32_t nx) {
+static inline void uxchg(const volatile uint32_t* px, uint32_t nx) {
   __asm__ __volatile__(
     "xchgl %0,%1"
     :"=r" (nx)
@@ -304,12 +309,12 @@ inline int mqconnect(const std::string& fileName) {
   if (r == -1) {
     throw std::runtime_error("Unable to allocate socket: " + std::string(strerror(errno)));
   }
-  
-  sockaddr_un addr;
+
+  sockaddr_un addr{};
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", fileName.c_str());
- 
+
   auto* saddr = reinterpret_cast<sockaddr*>(&addr);
   size_t    len   = sizeof(addr);
   if (connect(r, saddr, len) == -1) {
@@ -343,7 +348,7 @@ inline int mqlisten(const std::string& fileName) {
     throw std::runtime_error("Domain socket pathname too long: " + fileName);
   }
 
-  memset(&addr, 0, sizeof(addr));
+  ::memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   unlink(fileName.c_str());
   snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", fileName.c_str());
@@ -423,7 +428,7 @@ inline ProcThread thisProcThread() {
 inline std::string sharedMemName(const std::string& groupName, const ProcThread& pt) {
   std::ostringstream ss;
   ss << "/" << groupName << "." << pt.first << "." << pt.second;
-  return ss.str();
+  return std::move(ss).str();
 }
 inline std::string sharedMemName(const std::string& groupName) {
   return sharedMemName(groupName, thisProcThread());
@@ -487,7 +492,7 @@ struct pqueue_config {
   pqueue_config() :
     valuesz(0), count(0), wstate(nullptr), readerIndex(nullptr), writerIndex(nullptr), data(nullptr) {
   }
-  
+
   pqueue_config(size_t valuesz, size_t count, uint32_t* wstate, uint32_t* ri, uint32_t* wi, uint8_t* data) :
     valuesz(valuesz), count(count), wstate(wstate), readerIndex(ri), writerIndex(wi), data(data)
   {
@@ -539,42 +544,42 @@ public:
     if (pagesz == -1) {
       throw std::runtime_error("Failed to query system page size for '" + shmname + "': " + strerror(errno));
     }
-  
+
     // create the shared memory region
     int shfd = shm_open(shmname.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (shfd == -1) {
       throw std::runtime_error("Failed to allocate shared memory for '" + shmname + "': " + strerror(errno));
     }
-  
+
     // our meta-data section comes first up to the first page boundary
     // then our data section comes next
     auto metaLen = align<size_t>(sizeof(ShQueueHeader) + meta.size(),  pagesz);
     auto dataLen = align<size_t>(sizeof(ShQueueData)   + qvalsz*count, pagesz);
     size_t memLen  = metaLen + dataLen;
-  
+
     // allocate this much data
     if (ftruncate(shfd, memLen) == -1) {
       throw std::runtime_error("Failed to truncate shared memory for '" + shmname + "': " + strerror(errno));
     }
-  
+
     auto* mem = reinterpret_cast<uint8_t*>(mmap(nullptr, memLen, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, shfd, 0));
     if (mem == MAP_FAILED) {
       throw std::runtime_error("Failed to map bytes out of shared memory for '" + shmname + "': " + strerror(errno));
     }
-  
+
     // write meta data
     auto* hdr = reinterpret_cast<ShQueueHeader*>(mem);
     hdr->valsz  = qvalsz;
     hdr->count  = count;
     hdr->metasz = meta.size();
     memcpy(mem + sizeof(ShQueueHeader), &meta[0], meta.size());
-  
+
     // OK, this queue is fully initialized
     uxchg(&hdr->ready, 1);
-  
+
     // now make this pqueue config
     auto* sqd = reinterpret_cast<ShQueueData*>(mem + metaLen);
-  
+
     this->shmname = shmname;
     this->shmfd   = shfd;
     this->cfg.valuesz     = qvalsz;
@@ -595,7 +600,7 @@ public:
     uint32_t nwi = nextIndex(writeIndex());
 
     unsigned count = PRIV_HSTORE_SPIN_MIN;
-  
+
     while (PRIV_HSTORE_UNLIKELY(*readIndex() == nwi)) {
       if (count < PRIV_HSTORE_SPIN_MAX) {
         // back-off the writer
@@ -622,7 +627,7 @@ public:
     }
     return value(*writeIndex());
   }
-  
+
   uint8_t* pollNext() {
     if (PRIV_HSTORE_UNLIKELY(*readIndex() == nextIndex(writeIndex()))) {
       return nullptr;
@@ -633,7 +638,7 @@ public:
 
   void push() {
     uxchg(writeIndex(), nextIndex(writeIndex()));
-  
+
     // when the writer advances, the reader can be unblocked
     if (PRIV_HSTORE_UNLIKELY(xchg(waitState(), PRIV_HSTORE_STATE_UNBLOCKED) == PRIV_HSTORE_STATE_READER_WAITING)) {
       (*wakeFn)(waitState(), 1);
@@ -793,38 +798,38 @@ struct QueueConnection {
 
 inline QueueConnection consumeQueue(const std::string& shmname) {
   // sections of shared memory are aligned to page boundaries
-  long pagesz = sysconf(_SC_PAGESIZE);
+  const long pagesz = ::sysconf(_SC_PAGESIZE);
   if (pagesz == -1) {
-    throw std::runtime_error("Failed to query system page size for '" + shmname + "': " + strerror(errno));
+    throw std::runtime_error("Failed to query system page size for '" + shmname + "': " + ::strerror(errno));
   }
 
   // see if we can open this shared memory region
-  int shfd = shm_open(shmname.c_str(), O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  const int shfd = ::shm_open(shmname.c_str(), O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH); // NOLINT(hicpp-signed-bitwise)
   if (shfd == -1) {
-    throw std::runtime_error("Failed to open shared memory for '" + shmname + "': " + strerror(errno));
+    throw std::runtime_error("Failed to open shared memory for '" + shmname + "': " + ::strerror(errno));
   }
 
   // make sure that the region has been sized
-  struct stat msb;
-  if (fstat(shfd, &msb) < 0) {
-    close(shfd);
-    throw std::runtime_error("Failed to stat shared memory for '" + shmname + "': " + strerror(errno));
+  struct stat msb{};
+  if (::fstat(shfd, &msb) < 0) {
+    ::close(shfd);
+    throw std::runtime_error("Failed to stat shared memory for '" + shmname + "': " + ::strerror(errno));
   }
   if (msb.st_size <= 0) {
-    close(shfd);
+    ::close(shfd);
     throw std::runtime_error("Shared memory for '" + shmname + "' is not ready");
   }
 
   // map memory for this data, ensure it is in a good state
-  auto* mem = reinterpret_cast<uint8_t*>(mmap(nullptr, msb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, shfd, 0));
+  auto* mem = static_cast<uint8_t*>(::mmap(nullptr, msb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, shfd, 0)); // NOLINT(hicpp-signed-bitwise)
   if (mem == MAP_FAILED) {
-    close(shfd);
-    throw std::runtime_error("Failed to map bytes out of shared memory for '" + shmname + "': " + strerror(errno));
+    ::close(shfd);
+    throw std::runtime_error("Failed to map bytes out of shared memory for '" + shmname + "': " + ::strerror(errno));
   }
 
-  if (reinterpret_cast<ShQueueHeader*>(mem)->ready == 0u) {
-    munmap(mem, msb.st_size);
-    close(shfd);
+  if (reinterpret_cast<ShQueueHeader*>(mem)->ready == 0U) {
+    ::munmap(mem, msb.st_size);
+    ::close(shfd);
     throw std::runtime_error("Not ready to consume shared memory for '" + shmname + "'");
   }
 
@@ -891,7 +896,7 @@ public:
     uint32_t ri = *readIndex();
 
     unsigned count = PRIV_HSTORE_SPIN_MIN;
-  
+
     while (PRIV_HSTORE_UNLIKELY(*writeIndex() == ri)) {
       if (count < PRIV_HSTORE_SPIN_MAX) {
         // try back-off the reader
@@ -936,7 +941,7 @@ public:
   // remove the next value from the queue (increment the read index)
   void pop() {
     uxchg(readIndex(), nextIndex(readIndex()));
-  
+
     // when the reader advances, the writer can be unblocked
     if (PRIV_HSTORE_UNLIKELY(xchg(waitState(), PRIV_HSTORE_STATE_UNBLOCKED) == PRIV_HSTORE_STATE_WRITER_WAITING)) {
       (*wakeFn)(waitState(), 1);
@@ -963,24 +968,24 @@ public:
     if (this->page == nullptr) {
       this->page = this->rq->next(timeoutNS, timeoutF);
     }
-  
+
     size_t doff = 0;
-  
+
     while (sz != 0 && (this->page != nullptr)) {
       // how much can we copy out of the current page into the dest buffer?
       const volatile uint32_t* pend      = reinterpret_cast<const uint32_t*>(this->page + this->pagesz);
       size_t                   rpagesz   = *pend & ~(0xFF << 24);
       size_t                   availPage = rpagesz - this->offset;
       size_t                   csz       = (sz < availPage) ? sz : availPage;
-  
+
       // copy as much as we can
       memcpy(dst + doff, this->page + this->offset, csz);
-  
+
       // step through this segment we've copied
       this->offset += csz;
       doff         += csz;
       sz           -= csz;
-  
+
       // if we've hit the end of the page, mark it done and then try for the next one
       if (this->offset == rpagesz) {
         // wait for the producer to decide what state the page is in
@@ -995,7 +1000,7 @@ public:
         this->offset = 0;
       }
     }
-  
+
     return doff;
   }
 };
@@ -1392,7 +1397,7 @@ template <typename ... Ts>
 template <typename T>
   struct store<T, typename tbool<T::is_hmeta_enum>::type> {
     static const bool can_memcpy = true;
-    
+
     static ty::desc type()                      { return ty::enumdef(store<typename T::rep_t>::type(), T::meta()); }
     static size_t   size(const T&)              { return sizeof(typename T::rep_t); }
     static bool     write(wpipe& p, const T& x) { return p.write(reinterpret_cast<const uint8_t*>(&x), sizeof(x)); }
@@ -1551,7 +1556,7 @@ template <typename T>
 template <typename F, typename T>
   struct namedValue {
     T value;
-    namedValue(const T& v) : value(v) { }
+    explicit constexpr namedValue(const T& v) : value(v) { }
   };
 
 template <typename F, typename T>
@@ -1582,21 +1587,25 @@ template <typename T>
     }
   };
 
+namespace internal {
 // make a function for describing store payload types
 template <typename T>
   struct hstore_argl_name {
     static const bool isTuple = true;
+    // doesn't check buffer overflow
     static void nameDesc(const char* prefix, size_t idx, char* buffer, size_t buflen) {
-      snprintf(buffer, buflen, prefix, static_cast<unsigned long long>(idx));
+      ::snprintf(buffer, buflen, prefix, static_cast<unsigned long long>(idx));
     }
   };
 template <typename F, typename T>
   struct hstore_argl_name<namedValue<F,T>> {
     static const bool isTuple = false;
+    // doesn't check buffer overflow
     static void nameDesc(const char*, size_t, char* buffer, size_t buflen) {
-      strncpy(buffer, F::str(), buflen);
+      ::strncpy(buffer, F::str(), buflen);
     }
   };
+} // namespace internal
 
 template <typename ... Ts>
   struct hstore_payload_types {
@@ -1609,11 +1618,12 @@ template <typename ... Ts>
 template <typename T, typename ... Ts>
   struct hstore_payload_types<T,Ts...> {
     using head_type = T;
-    static const size_t count = 1 + hstore_payload_types<Ts...>::count;
-    static const bool isTuple = hstore_argl_name<T>::isTuple && hstore_payload_types<Ts...>::isTuple;
+    static const size_t count = sizeof...(Ts) + 1;
+    // isTuple == false: record with named fields
+    static const bool isTuple = internal::hstore_argl_name<T>::isTuple && hstore_payload_types<Ts...>::isTuple;
     static void fields(const char* fmt, size_t f, ty::Struct::Fields* fs) {
       char fn[128];
-      hstore_argl_name<T>::nameDesc(fmt, f, fn, sizeof(fn));
+      internal::hstore_argl_name<T>::nameDesc(fmt, f, fn, sizeof(fn));
       fs->push_back(ty::Struct::Field(fn, -1, store<T>::type()));
 
       hstore_payload_types<Ts...>::fields(fmt, f+1, fs);
@@ -1651,12 +1661,9 @@ template <typename TyList>
     }
   }
 
-template <uint32_t* X>
-  uint32_t forceRegistration() { return *X; }
 template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags, typename FormatStr, typename ArgTyList>
   struct StorageStatement {
     static uint32_t id;
-    StorageStatement() { forceRegistration<&id>(); }
   };
 template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags, typename FormatStr, typename ArgTyList>
   uint32_t StorageStatement<Group, G, File, Line, StmtName, Flags, FormatStr, ArgTyList>::id = G->allocateStorageStatement(File::str(), Line, StmtName::str(), Flags, FormatStr::str(), &makeTyDescF<ArgTyList>, &ArgTyList::nameHints);
@@ -1715,7 +1722,7 @@ struct StorageGroup {
       ty::ws(s.second.file,   meta);
       ty::w (s.second.line,   meta);
       ty::w (s.second.id,     meta);
-      
+
       bytes td;
       s.second.tdesc(&td,0);
       ty::ws(td, meta);
@@ -1732,7 +1739,7 @@ struct StorageGroup {
       // allocate a shared memory queue for this group, register it with the group server
       bytes meta;
       prepareMeta(&meta);
-      
+
       size_t pagesz = sysconf(_SC_PAGESIZE);
       size_t pagec  = 1 + (meta.size() / pagesz) + std::max<size_t>(this->mempages, 10);
 
@@ -1852,7 +1859,7 @@ struct StorageGroup {
     if (!this->statements) {
       this->statements = new StorageStatements();
     }
-    
+
     auto name = decideName(namet, tnhints);
     auto s = this->statements->find(name);
     if (s != this->statements->end()) {
@@ -1958,31 +1965,56 @@ template <typename GName, typename ... Ts>
            serialize_values<Ts...>::write(p, xs...);
   }
 
-// validate arity in log format strings (prevent format strings referring to payload variables that don't exist)
-template <size_t N>
-  static constexpr size_t readInt(const char (&fmt)[N], size_t i, size_t e, size_t n) {
-    return (i == e) ? n : readInt(fmt, i+1, e, (n*10)+(fmt[i]-'0'));
-  }
-
-static constexpr size_t maxV(size_t x, size_t y) {
-  return (x < y) ? y : x;
+// validate arity in log format strings (prevent format strings referring to payload variables
+// that don't exist)
+namespace internal {
+constexpr size_t readInt(const char* begin, const char* end) {
+    size_t n = 0;
+    for (; begin != end; ++begin) {
+      n = (n * 10) + (*begin - '0');
+    }
+    return n;
 }
 
-template <size_t N>
-  static constexpr size_t maxVarRefS(const char (&fmt)[N], size_t i, size_t s, size_t vri, size_t maxvr) {
-    return  (i >= N) ? maxvr
-           :(s == 0) ? ((fmt[i] == '\\') ? maxVarRefS(fmt, i+2, 0, 0, maxvr)
-                       :(fmt[i] == '$')  ? maxVarRefS(fmt, i+1, 1, i+1, maxvr)
-                       :                   maxVarRefS(fmt, i+1, 0, 0,   maxvr))
-           :           ((fmt[i] >= '0' && fmt[i] <= '9') ?
-                           maxVarRefS(fmt, i+1, 1, vri, maxvr)
-                         : maxVarRefS(fmt, i,   0, 0,   maxV(maxvr, 1+readInt(fmt, vri, i, 0))));
-  }
+constexpr size_t maxV(size_t x, size_t y) { return (x < y) ? y : x; };
+
+enum class IsInFmtStr {
+  Yes,
+  No,
+};
 
 template <size_t N>
-  static constexpr size_t maxVarRef(const char (&fmt)[N]) {
-    return maxVarRefS(fmt, 0, 0, 0, 0);
+constexpr size_t maxVarRefS(const char (&fmt)[N], size_t fmtIdx, IsInFmtStr processingVar,
+                                   const char* varBegin, size_t maxvr) {
+  if (fmtIdx >= N) {
+    return maxvr;
   }
+
+  if (processingVar == IsInFmtStr::No) {
+    if (fmt[fmtIdx] == '\\') {
+      return maxVarRefS(fmt, fmtIdx + 2, IsInFmtStr::No, nullptr, maxvr);
+    }
+    if (fmt[fmtIdx] == '$') {
+      return maxVarRefS(fmt, fmtIdx + 1, IsInFmtStr::Yes, fmt + fmtIdx + 1, maxvr);
+    }
+    return maxVarRefS(fmt, fmtIdx + 1, IsInFmtStr::No, nullptr, maxvr);
+  }
+
+  if (fmt[fmtIdx] >= '0' && fmt[fmtIdx] <= '9') {
+    return maxVarRefS(fmt, fmtIdx + 1, IsInFmtStr::Yes, varBegin, maxvr);
+  }
+
+  // readInt is the only location converts str to num, so adding one to make it to be the expected count
+  return maxVarRefS(fmt, fmtIdx, IsInFmtStr::No, 0,
+                    maxV(maxvr, 1+readInt(varBegin, fmt + fmtIdx)));
+}
+} // namespace internal
+
+// get the max `$N` (0 <= N <= 9) in the format string, returns N+1, that is, the least count of provided arguments.
+// it doesn't handle malformated string
+template <size_t N> constexpr size_t maxVarRef(const char (&fmt)[N]) {
+  return internal::maxVarRefS(fmt, 0, internal::IsInFmtStr::No, nullptr, 0);
+}
 
 // create statement groups
 #define DECLARE_STORAGE_GROUP(NAME, cm)                     extern ::hobbes::storage::StorageGroup<PRIV_HPPF_TSTR(#NAME),cm> NAME
@@ -2050,7 +2082,7 @@ inline size_t rs(const reader::MetaData& md, size_t o, bytes* s) {
 class Transaction {
 public:
   // a persistent transaction to retain log data between consumer sessions (if necessary)
-  Transaction(std::string fname) : fd(-1), file_size(0), map_size(0), data(nullptr), data_size(nullptr), wi(0), ri(0) {
+  explicit Transaction(std::string fname) : fd(-1), file_size(0), map_size(0), data(nullptr), data_size(nullptr), wi(0), ri(0) {
     for (char &i : fname) {
       switch (i) {
       case '/': case ':': case '[': case ']': i='_'; break;
@@ -2179,7 +2211,8 @@ private:
   }
 
   // read group flags/settings
-  int qos=0, cm=0;
+  int qos=0;
+  int cm=0;
   o = r(md, o, &qos);
   o = r(md, o, &cm);
 
@@ -2219,6 +2252,7 @@ private:
   runReadProcessWithTimeout(qc, wp, initF, 0, [](const reader&){});
 }
 
-}}
+} // namespace storage
+} // namespace hobbes
 
 #endif

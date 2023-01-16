@@ -97,7 +97,7 @@ reader::reader(imagefile* f) : fdata(f) {
   for (const auto& b : this->fdata->bindings) {
     if (!b.first.empty() && b.first[0] != '.') {
       SBinding sb;
-      sb.type   = decodeBindingByVersion(this->fdata->version, b.second.type);
+      sb.type   = decodeBindingByVersion(this->fdata->version, binding(b.second.type));
       sb.offset = this->fdata->version==0 ? b.second.boffset : b.second.offset;
       this->sbindings[b.first] = sb;
     }
@@ -494,7 +494,7 @@ std::string withUniqueFilenameBy(const std::string& fprefix, const std::string& 
 // generate a new file with a given prefix & suffix
 std::string uniqueFilename(const std::string& fprefix, const std::string& fsuffix) {
   return withUniqueFilenameBy(fprefix, fsuffix, [](const std::string& newpath) {
-    int fd = open(newpath.c_str(), O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    int fd = ::open(newpath.c_str(), O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (fd >= 0) {
       close(fd);
       return true;

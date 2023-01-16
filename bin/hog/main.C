@@ -4,6 +4,7 @@
 #include <hobbes/util/time.H>
 
 #include <atomic>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 
@@ -42,7 +43,8 @@ void evalGroupHostConnection(SessionGroup* sg, const size_t sessionHash, const s
 
     auto wp = static_cast<hobbes::storage::WaitPolicy>(0x1 & (cmd >> 1));
   
-    uint64_t pid=0, tid=0;
+    uint64_t pid=0;
+    uint64_t tid=0;
     hobbes::fdread(c, reinterpret_cast<char*>(&pid), sizeof(pid));
     hobbes::fdread(c, reinterpret_cast<char*>(&tid), sizeof(tid));
     out() << "queue registered for group '" << groupName << "' from " << pid << ":" << tid << ", cmd " << static_cast<int>(cmd) << std::endl;
@@ -86,7 +88,7 @@ void runGroupHost(const size_t sessionHash, const std::string& groupName, const 
     [sg,groupName,&sessionHash,&m,&reg](int s) {
       out() << "new connection for '" << groupName << "'" << std::endl;
 
-      int c = accept(s, nullptr, nullptr);
+      int c = ::accept4(s, nullptr, nullptr, SOCK_CLOEXEC);
       if (c != -1) {
         try {
           uint32_t version = 0;
@@ -137,18 +139,17 @@ void run(const RunMode& m, const std::vector<std::string>& args) {
   }
 }
 
-}
+}  // namespace hog
 
 static std::vector<std::string> argvToStrings(const char** ts, const int count) {
   std::vector<std::string> args;
-  for (int i = 0; i < count; ++i) {
-    args.emplace_back(std::string{ts[i]});
-  }
+  args.reserve(count);
+  std::transform(ts, ts + count, std::back_inserter(args), [](const auto* t) { return t; });
   return args;
 }
 
 int main(int argc, const char** argv) {
-  signal(SIGPIPE, SIG_IGN);
+  (void)signal(SIGPIPE, SIG_IGN);
   try {
     auto m = hog::config(argc, argv);
     // Presumably we don't want to automatically recover and perform batchsend
