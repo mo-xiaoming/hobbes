@@ -128,7 +128,7 @@ TEST(UnitTests, ReflectEncode) {
   hobbes::ty::bytes out;
   const auto a = std::static_pointer_cast<hobbes::ty::Nat>(hobbes::ty::nat(42UL));
   hobbes::ty::encode(a, &out);
-  EXPECT_EQ(out.size(), i + sizeof(PRIV_HPPF_TYCTOR_SIZE) + sizeof(a->x)); 
+  EXPECT_EQ(out.size(), i + sizeof(PRIV_HPPF_TYCTOR_SIZE) + sizeof(a->x));
 
   // tid
   TID tid{};
@@ -140,4 +140,163 @@ TEST(UnitTests, ReflectEncode) {
   ::memcpy(&x, out.data() + sizeof(TID) + i, sizeof(a->x));
   EXPECT_EQ(x, 42UL);
   i += sizeof(a->x);
+}
+
+namespace {
+namespace can_show_type {
+static_assert(hobbes::can_show_type<int&>::value, "");
+static_assert(hobbes::can_show_type<int>::value, "");
+struct A {
+  [[maybe_unused]] friend std::ostream& operator<<(std::ostream& os, A) { return os; }
+};
+static_assert(hobbes::can_show_type<A&>::value, "");
+static_assert(hobbes::can_show_type<A>::value, "");
+struct B {};
+static_assert(!hobbes::can_show_type<B>::value, "");
+static_assert(!hobbes::can_show_type<B&>::value, "");
+
+static_assert(hobbes::can_show_types<int, A&>::value, "");
+static_assert(!hobbes::can_show_types<A, B>::value, "");
+static_assert(!hobbes::can_show_types<B>::value, "");
+static_assert(hobbes::can_show_types<double>::value, "");
+} // namespace can_show_type
+
+namespace align_to {
+// { bool }: bool
+static_assert(hobbes::alignTo(0, 1) == 0, "");
+// { bool, int }: int
+static_assert(hobbes::alignTo(1, 4) == 4, "");
+// { bool, int, bool }: 2nd bool
+static_assert(hobbes::alignTo(8, 1) == 8, "");
+// { int }: int
+static_assert(hobbes::alignTo(0, 4) == 0, "");
+// { int, bool }: bool
+static_assert(hobbes::alignTo(4, 1) == 4, "");
+// { int, bool, int }: 2nd int
+static_assert(hobbes::alignTo(8, 4) == 8, "");
+} // namespace align_to
+
+namespace nth {
+static_assert(std::is_same<hobbes::nth<0UL, bool>::type, bool>::value, "");
+static_assert(std::is_same<hobbes::nth<0UL, bool, int>::type, bool>::value, "");
+static_assert(std::is_same<hobbes::nth<1UL, bool, int>::type, int>::value, "");
+} // namespace nth
+
+namespace offset_info {
+using Unit = hobbes::offsetInfo<0UL, 0UL>;
+static_assert(Unit::offset == 0UL, "");
+static_assert(Unit::maxAlignment == 1UL, "");
+static_assert(Unit::size == 0UL, "");
+static_assert(Unit::packed, "");
+
+using Bool = hobbes::offsetInfo<0UL, 0UL, bool>;
+static_assert(Bool::offset == 0UL, "");
+static_assert(Bool::offset == hobbes::offsetAt<0UL, Bool>::value, "");
+static_assert(Bool::maxAlignment == 1UL, "");
+static_assert(Bool::size == 1UL, "");
+static_assert(Bool::packed, "");
+
+using BoolInt = hobbes::offsetInfo<0UL, 0UL, bool, int>;
+static_assert(BoolInt::offset == 0UL, "");
+static_assert(BoolInt::offset == hobbes::offsetAt<0UL, BoolInt>::value, "");
+static_assert(4UL == hobbes::offsetAt<1UL, BoolInt>::value, "");
+static_assert(BoolInt::maxAlignment == 4UL, "");
+static_assert(BoolInt::size == 8UL, "");
+static_assert(!BoolInt::packed, "");
+
+using IntBool = hobbes::offsetInfo<0UL, 0UL, int, bool>;
+static_assert(IntBool::offset == 0UL, "");
+static_assert(IntBool::offset == hobbes::offsetAt<0, IntBool>::value, "");
+static_assert(4UL == hobbes::offsetAt<1UL, IntBool>::value, "");
+static_assert(IntBool::maxAlignment == 4UL, "");
+static_assert(IntBool::size == 5UL, "");
+static_assert(IntBool::packed, "");
+
+using Big = hobbes::offsetInfo<0UL, 0UL, char[1000]>;
+static_assert(Big::offset == 0UL, "");
+static_assert(Big::offset == hobbes::offsetAt<0, Big>::value, "");
+static_assert(Big::maxAlignment == 1UL, "");
+static_assert(Big::size == 1000UL, "");
+static_assert(Big::packed, "");
+} // namespace offset_info
+
+namespace tuple {
+using BoolTuple = hobbes::tuple<bool>;
+static_assert(BoolTuple::alignment == 1UL, "");
+static_assert(BoolTuple::size == 1UL, "");
+static_assert(BoolTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, BoolTuple>::type, bool>::value, "");
+
+using IntTuple = hobbes::tuple<int>;
+static_assert(IntTuple::alignment == 4UL, "");
+static_assert(IntTuple::size == 4UL, "");
+static_assert(IntTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, IntTuple>::type, int>::value, "");
+
+using BoolIntTuple = hobbes::tuple<bool, int>;
+static_assert(BoolIntTuple::alignment == 4UL, "");
+static_assert(BoolIntTuple::size == 8UL, "");
+static_assert(!BoolIntTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, BoolIntTuple>::type, bool>::value, "");
+static_assert(std::is_same<hobbes::tupType<1UL, BoolIntTuple>::type, int>::value, "");
+
+using IntBoolTuple = hobbes::tuple<int, bool>;
+static_assert(IntBoolTuple::alignment == 4UL, "");
+static_assert(IntBoolTuple::size == 8UL, "");
+static_assert(!IntBoolTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, IntBoolTuple>::type, int>::value, "");
+static_assert(std::is_same<hobbes::tupType<1UL, IntBoolTuple>::type, bool>::value, "");
+
+using IntIntTuple = hobbes::tuple<int, int>;
+static_assert(IntIntTuple::alignment == 4UL, "");
+static_assert(IntIntTuple::size == 8UL, "");
+static_assert(IntIntTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, IntIntTuple>::type, int>::value, "");
+static_assert(std::is_same<hobbes::tupType<1UL, IntIntTuple>::type, int>::value, "");
+
+using BoolBoolTuple = hobbes::tuple<bool, bool>;
+static_assert(BoolBoolTuple::alignment == 1UL, "");
+static_assert(BoolBoolTuple::size == 2UL, "");
+static_assert(BoolBoolTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, BoolBoolTuple>::type, bool>::value, "");
+static_assert(std::is_same<hobbes::tupType<1UL, BoolBoolTuple>::type, bool>::value, "");
+
+using BigTuple = hobbes::tuple<char[1000]>;
+static_assert(BigTuple::alignment == 1UL, "");
+static_assert(BigTuple::size == 1000UL, "");
+static_assert(BigTuple::packed, "");
+static_assert(std::is_same<hobbes::tupType<0UL, BigTuple>::type, char[1000]>::value, "");
+} // namespace tuple
+} // namespace
+
+TEST(UnitTests, ReflectOffsetInfo) {
+  constexpr offset_info::Unit a;
+  constexpr offset_info::Unit b;
+  EXPECT_TRUE(offset_info::Unit::eq(reinterpret_cast<const uint8_t*>(&a),
+                                    reinterpret_cast<const uint8_t*>(&b)));
+}
+
+TEST(UnitTests, ReflectTuple) {
+  using UnitTuple = hobbes::tuple<>;
+  static_assert(UnitTuple::alignment == 1UL, "");
+  static_assert(UnitTuple::size == 0UL, "");
+  UnitTuple u1;
+  UnitTuple u2;
+  EXPECT_TRUE(u1 == u2);
+
+  tuple::BoolIntTuple bi1;
+  EXPECT_EQ(bi1.at<0>(), false);
+  EXPECT_EQ(bi1.at<1>(), 0);
+
+  tuple::BoolIntTuple bi2(true, 42);
+  EXPECT_EQ(bi2.at<0>(), true);
+  EXPECT_EQ(bi2.at<1>(), 42);
+
+  tuple::BoolIntTuple bi3(bi2);
+  EXPECT_EQ(bi3.at<0>(), true);
+  EXPECT_EQ(bi3.at<1>(), 42);
+
+  bi2.at<1>() = 47;
+  bi3 = bi2;
+  EXPECT_TRUE(bi2 == bi3);
 }

@@ -215,7 +215,7 @@ constexpr size_t alignTo(size_t x, size_t a) {
   return (x % a == 0) ? x : (a * (1 + x/a));
 }
 constexpr size_t szmax(size_t x, size_t y) {
-  return (x > y) ? x : y;
+  return x < y ? y : x;
 }
 
 template <size_t index, size_t base, typename ... Fields>
@@ -223,6 +223,10 @@ template <size_t index, size_t base, typename ... Fields>
     static const size_t offset       = base;
     static const size_t maxAlignment = 1;
     static const size_t size         = 0;
+    /*
+     * size 8, { bool, int } considered unpacked
+     * size 5, { int, bool } considered   packed
+     */
     static const bool   packed       = true; // but technically unit can't be memcopied
 
     static void defInit (uint8_t*) { }
@@ -286,10 +290,10 @@ template <typename ... Fields>
     tuple() {
       offs::defInit(this->buffer);
     }
-    tuple(const Fields&... fs) {
+    explicit tuple(const Fields&... fs) {
       offs::initFrom(this->buffer, fs...);
     }
-    tuple(const tuple<Fields...>& rhs) {
+    explicit tuple(const tuple<Fields...>& rhs) {
       offs::copyFrom(this->buffer, rhs.buffer);
     }
     ~tuple() {
@@ -315,23 +319,18 @@ template <typename ... Fields>
       }
     template <size_t k>
       const typename nth<k, Fields...>::type& at() const { return *atP<k>(); }
+
+    [[nodiscard]] friend bool operator==(const tuple<Fields...>& lhs, const tuple<Fields...>& rhs) {
+      return offsetInfo<0, 0, Fields...>::eq(lhs.buffer, rhs.buffer);
+    }
   };
 template <>
   struct tuple<> {
     static const size_t alignment = 1;
     static const size_t size      = 0;
 
-    tuple() = default;
-    tuple(const tuple<>&) = default;
-    ~tuple() = default;
-
-    tuple<>& operator=(const tuple<>&) = default;
+    [[nodiscard]] friend constexpr bool operator==(tuple<>, tuple<>) noexcept { return true; }
   };
-
-template <typename ... Fields>
-  inline bool operator==(const tuple<Fields...>& lhs, const tuple<Fields...>& rhs) {
-    return offsetInfo<0, 0, Fields...>::eq(lhs.buffer, rhs.buffer);
-  }
 
 template <size_t i, typename T>
   struct tupType { };

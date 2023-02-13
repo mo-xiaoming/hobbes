@@ -1976,8 +1976,6 @@ constexpr size_t readInt(const char* begin, const char* end) {
     return n;
 }
 
-constexpr size_t maxV(size_t x, size_t y) { return (x < y) ? y : x; };
-
 enum class IsInFmtStr {
   Yes,
   No,
@@ -2006,7 +2004,7 @@ constexpr size_t maxVarRefS(const char (&fmt)[N], size_t fmtIdx, IsInFmtStr proc
 
   // readInt is the only location converts str to num, so adding one to make it to be the expected count
   return maxVarRefS(fmt, fmtIdx, IsInFmtStr::No, 0,
-                    maxV(maxvr, 1+readInt(varBegin, fmt + fmtIdx)));
+                    szmax(maxvr, 1+readInt(varBegin, fmt + fmtIdx)));
 }
 } // namespace internal
 
