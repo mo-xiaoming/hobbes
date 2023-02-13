@@ -482,29 +482,37 @@ template <typename T, typename... Ts> struct tupleTail<T, Ts...> {
 #define DEFINE_ENUM(T, CTORS...) DEFINE_PACKED_ENUM(T, uint32_t, CTORS)
 
 // standard layout sum type with efficient dispatch
-template <bool f, typename T, typename F>
-  struct TIfF { };
-template <typename T, typename F>
-  struct TIfF<true, T, F> { using type = T; };
-template <typename T, typename F>
-  struct TIfF<false, T, F> { using type = F; };
-template <typename T>
-  struct TSizeOfF { static const size_t value = sizeof(T); };
-template <typename T>
-  struct TAlignOfF { static const size_t value = alignof(T); };
-template <template <class> class SzP, typename T0, typename ... Ts>
-  struct maximum { static const size_t value = SzP<T0>::value; using type = T0; };
-template <template <class> class SzP, typename T0, typename T1, typename ... Ts>
-  struct maximum<SzP, T0, T1, Ts...> : public maximum<SzP, typename TIfF<SzP<T1>::value < SzP<T0>::value, T0, T1>::type, Ts...> { };
+template <bool f, typename T, typename F> struct TIfF {};
+template <typename T, typename F> struct TIfF<true, T, F> {
+  using type = T;
+};
+template <typename T, typename F> struct TIfF<false, T, F> {
+  using type = F;
+};
+template <typename T> struct TSizeOfF {
+  static const size_t value = sizeof(T);
+};
+template <typename T> struct TAlignOfF {
+  static const size_t value = alignof(T);
+};
+template <template <class> class SzP, typename T0, typename... Ts> struct maximum {
+  static const size_t value = SzP<T0>::value;
+  using type = T0;
+};
+template <template <class> class SzP, typename T0, typename T1, typename... Ts>
+    struct maximum<SzP, T0, T1, Ts...> : public maximum < SzP,
+    typename TIfF<SzP<T1>::value<SzP<T0>::value, T0, T1>::type, Ts...> {};
 
-template <typename T, typename ... Ctors>
-  struct CtorIndexOf { static const uint32_t value = 0; };
-template <typename T, typename ... Ctors>
-  struct CtorIndexOf<T, T, Ctors...> { static const uint32_t value = 0; };
-template <typename T, typename Ctor, typename ... Ctors>
-  struct CtorIndexOf<T, Ctor, Ctors...> { static const uint32_t value = 1 + CtorIndexOf<T, Ctors...>::value; };
-template <typename T, typename ... Ts>
-  struct First { using type = T; };
+template <typename T, typename... Ctors> struct CtorIndexOf {};
+template <typename T, typename... Ctors> struct CtorIndexOf<T, T, Ctors...> {
+  static const uint32_t value = 0;
+};
+template <typename T, typename Ctor, typename... Ctors> struct CtorIndexOf<T, Ctor, Ctors...> {
+  static const uint32_t value = 1 + CtorIndexOf<T, Ctors...>::value;
+};
+template <typename T, typename... Ts> struct First {
+  using type = T;
+};
 
 template <size_t i, typename R, template <size_t,class,class> class F, typename U, typename A, typename ... Ctors>
   struct variantAppInit {

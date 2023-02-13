@@ -362,3 +362,39 @@ TEST(UnitTests, ReflectTuple) {
   oss.str("");
 }
 
+namespace {
+namespace variant {
+static_assert(hobbes::TSizeOfF<int>::value == sizeof(int), "");
+static_assert(hobbes::TSizeOfF<bool>::value == sizeof(bool), "");
+
+static_assert(hobbes::TAlignOfF<int>::value == sizeof(int), "");
+static_assert(hobbes::TAlignOfF<bool>::value == sizeof(bool), "");
+
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, int>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, int, bool>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, bool, int>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, int, bool, char>::type, int>::value,
+              "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, bool, int, char>::type, int>::value,
+              "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TSizeOfF, bool, char, int>::type, int>::value,
+              "");
+
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, int>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, int, bool>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, bool, int>::type, int>::value, "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, int, bool, char>::type, int>::value,
+              "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, bool, int, char>::type, int>::value,
+              "");
+static_assert(std::is_same<hobbes::maximum<hobbes::TAlignOfF, bool, char, int>::type, int>::value,
+              "");
+
+static_assert(hobbes::CtorIndexOf<int, int>::value == 0U, "");
+static_assert(hobbes::CtorIndexOf<int, int, double>::value == 0U, "");
+static_assert(hobbes::CtorIndexOf<int, double, int>::value == 1U, "");
+
+static_assert(std::is_same<hobbes::First<int>::type, int>::value, "");
+static_assert(std::is_same<hobbes::First<int, double>::type, int>::value, "");
+} // namespace variant
+} // namespace
