@@ -324,6 +324,7 @@ template <typename ... Fields>
       return offsetInfo<0, 0, Fields...>::eq(lhs.buffer, rhs.buffer);
     }
   };
+// tuple<> is not streamable, is this correct behavior?
 template <>
   struct tuple<> {
     static const size_t alignment = 1;

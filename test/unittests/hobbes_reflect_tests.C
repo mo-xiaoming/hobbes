@@ -266,6 +266,45 @@ static_assert(BigTuple::alignment == 1UL, "");
 static_assert(BigTuple::size == 1000UL, "");
 static_assert(BigTuple::packed, "");
 static_assert(std::is_same<hobbes::tupType<0UL, BigTuple>::type, char[1000]>::value, "");
+
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<>>::type, hobbes::tuple<>>::value, "");
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<int>>::type, hobbes::tuple<int>>::value,
+              "");
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<int, double>>::type,
+                           hobbes::tuple<int, double>>::value,
+              "");
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<int>, hobbes::tuple<double>>::type,
+                           hobbes::tuple<int, double>>::value,
+              "");
+static_assert(
+    std::is_same<hobbes::concatT<hobbes::tuple<int>, hobbes::tuple<>, hobbes::tuple<double>>::type,
+                 hobbes::tuple<int, double>>::value,
+    "");
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<int>, hobbes::tuple<bool>,
+                                           hobbes::tuple<double>>::type,
+                           hobbes::tuple<int, bool, double>>::value,
+              "");
+static_assert(std::is_same<hobbes::concatT<hobbes::tuple<int>, hobbes::tuple<bool>,
+                                           hobbes::tuple<double>, hobbes::tuple<char>>::type,
+                           hobbes::tuple<int, bool, double, char>>::value,
+              "");
+
+template <typename T> struct W {};
+
+template <typename T> struct TX {
+  using type = W<T>;
+};
+
+static_assert(std::is_same<hobbes::fmap<TX, hobbes::tuple<>>::type, hobbes::tuple<>>::value, "");
+static_assert(
+    std::is_same<hobbes::fmap<TX, hobbes::tuple<int>>::type, hobbes::tuple<W<int>>>::value, "");
+static_assert(std::is_same<hobbes::fmap<TX, hobbes::tuple<int, double>>::type,
+                           hobbes::tuple<W<int>, W<double>>>::value,
+              "");
+
+static_assert(std::is_same<hobbes::tupleTail<int>::type, hobbes::tuple<>>::value, "");
+static_assert(std::is_same<hobbes::tupleTail<int, double>::type, hobbes::tuple<double>>::value, "");
+static_assert(std::is_same<hobbes::tupleTail<int, double, char>::type, hobbes::tuple<double, char>>::value, "");
 } // namespace tuple
 } // namespace
 
@@ -277,26 +316,48 @@ TEST(UnitTests, ReflectOffsetInfo) {
 }
 
 TEST(UnitTests, ReflectTuple) {
+  std::ostringstream oss;
+
   using UnitTuple = hobbes::tuple<>;
   static_assert(UnitTuple::alignment == 1UL, "");
   static_assert(UnitTuple::size == 0UL, "");
   UnitTuple u1;
   UnitTuple u2;
   EXPECT_TRUE(u1 == u2);
+#if 0
+  oss << u1;
+  EXPECT_EQ(oss.str(), "()");
+  oss.str("");
+#endif
 
   tuple::BoolIntTuple bi1;
   EXPECT_EQ(bi1.at<0>(), false);
   EXPECT_EQ(bi1.at<1>(), 0);
+  oss << bi1;
+  EXPECT_EQ(oss.str(), "(0, 0)");
+  oss.str("");
 
   tuple::BoolIntTuple bi2(true, 42);
   EXPECT_EQ(bi2.at<0>(), true);
   EXPECT_EQ(bi2.at<1>(), 42);
+  oss << bi2;
+  EXPECT_EQ(oss.str(), "(1, 42)");
+  oss.str("");
 
   tuple::BoolIntTuple bi3(bi2);
   EXPECT_EQ(bi3.at<0>(), true);
   EXPECT_EQ(bi3.at<1>(), 42);
+  oss << bi2;
+  EXPECT_EQ(oss.str(), "(1, 42)");
+  oss.str("");
 
   bi2.at<1>() = 47;
   bi3 = bi2;
   EXPECT_TRUE(bi2 == bi3);
+  oss << bi2;
+  EXPECT_EQ(oss.str(), "(1, 47)");
+  oss.str("");
+  oss << bi3;
+  EXPECT_EQ(oss.str(), "(1, 47)");
+  oss.str("");
 }
