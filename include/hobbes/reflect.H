@@ -403,39 +403,46 @@ template <typename T, typename... Ts> struct tupleTail<T, Ts...> {
 // reflective structs
 #define PRIV_HPPF_STRUCT_FIELD(t, n) t n;
 #define PRIV_HPPF_STRUCT_FIELD_VISIT(t, n) v.template visit<t>(#n);
-#define PRIV_HPPF_STRUCT_FIELD_EQ(t, n) && this->n == rhs.n
+#define PRIV_HPPF_STRUCT_FIELD_EQ(t, n) &&(lhs.n == rhs.n)
 #define PRIV_HPPF_STRUCT_FIELD_TYARGL(t, n) , t
-#define PRIV_HPPF_STRUCT_FIELD_NLOOKUP(t, n) if (o == idx) { return #n; } ++o;
+#define PRIV_HPPF_STRUCT_FIELD_NLOOKUP(t, n) \
+  if (o == idx) { \
+    return #n; \
+  } \
+  ++o;
 #define PRIV_HPPF_STRUCT_FIELD_SHOW(_, n) ss << ", " << #n << "=" << v.n;
 
 #define DEFINE_STRUCT(T, FIELDS...) \
   struct T { \
     PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD, FIELDS) /* struct fields */ \
-    static const bool is_hmeta_struct = true; /* identify this type as a struct */ \
-    typedef typename ::hobbes::tupleTail<int PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_TYARGL, FIELDS)>::type as_tuple_type; \
+    static const bool is_hmeta_struct = true;     /* identify this type as a struct */ \
+    typedef typename ::hobbes::tupleTail<int PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_TYARGL, \
+                                                           FIELDS)>::type as_tuple_type; \
     static std::string _hmeta_struct_type_name() { return #T; } \
-    template <typename V> \
-      static void meta(V& v) { \
-        PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_VISIT, FIELDS) \
-      } \
-    template <size_t idx> \
-      static const char* _hmeta_field_name() { \
-        size_t o = 0; \
-        PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_NLOOKUP, FIELDS) \
-        return "???"; \
-      } \
+    template <typename V> static void meta(V& v) { \
+      PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_VISIT, FIELDS) \
+    } \
+    template <size_t idx> static const char* _hmeta_field_name() { \
+      size_t o = 0; \
+      PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_NLOOKUP, FIELDS) \
+      return "???"; \
+    } \
     template <typename X> \
-      inline typename std::enable_if<std::is_base_of<X, T>::value, bool>::type operator==(const X& rhs) const { \
-        return true PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_EQ, FIELDS); \
-      } \
+    [[nodiscard]] friend typename std::enable_if<std::is_base_of<X, T>::value, bool>::type \
+    operator==(const T& lhs, const X& rhs) { \
+      return true PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_EQ, FIELDS); \
+    } \
     template <typename X> \
-      friend inline typename std::enable_if<std::is_base_of<X,T>::value && hobbes::can_show_type<typename T::as_tuple_type>::value,std::ostream&>::type operator<<(std::ostream& o, const X& v) { \
-        using namespace hobbes; \
-        std::ostringstream ss; \
-        PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_SHOW, FIELDS); \
-        o << "{ " << ss.str().substr(2) << " }"; \
-        return o; \
-      } \
+    friend typename std::enable_if<std::is_base_of<X, T>::value && \
+                                       hobbes::can_show_type<typename T::as_tuple_type>::value, \
+                                   std::ostream&>::type \
+    operator<<(std::ostream& o, const X& v) { \
+      using namespace hobbes; \
+      std::ostringstream ss; \
+      PRIV_HPPF_MAP(PRIV_HPPF_STRUCT_FIELD_SHOW, FIELDS); \
+      o << "{ " << ss.str().substr(2) << " }"; \
+      return o; \
+    } \
   }
 
 // reflective enumerations

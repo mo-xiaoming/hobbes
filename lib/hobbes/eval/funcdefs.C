@@ -88,7 +88,7 @@ char* memalloc(size_t n, size_t asz) {
 
 char* memallocz(size_t n, size_t asz) {
   char* r = reinterpret_cast<char*>(threadRegion().malloc(n, asz));
-  memset(r, 0, n);
+  std::memset(r, 0, n);
   return r;
 }
 

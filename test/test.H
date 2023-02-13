@@ -184,7 +184,7 @@ inline std::string fileinfo(const char* file, int line) {
       (p); \
     } catch (const std::exception& e) { \
       const std::string actual_msg = e.what(); \
-      if (actual_msg.find(expect_msg) != std::string::npos) { \
+      if (actual_msg.find((expect_msg)) != std::string::npos) { \
         pass = true; \
       } else { \
         std::ostringstream errmsg; \
