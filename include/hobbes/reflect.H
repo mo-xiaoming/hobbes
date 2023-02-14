@@ -43,7 +43,7 @@ namespace string {
     inline std::string from(const T& x) {
       std::ostringstream ss;
       ss << x;
-      return ss.str();
+      return std::move(ss).str();
     }
 
   // pretty-print C++ type names

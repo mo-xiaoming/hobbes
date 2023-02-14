@@ -69,5 +69,35 @@ TEST(UnitTests, StorageMakeTyDescF) {
   hobbes::storage::bytes b;
   std::string d;
   // unit
+  // TODO(mo-xiaoming): haven't figure out an easy way to test bytes data
   hobbes::storage::makeTyDescF<decltype(hobbes::storage::makePayloadTypes())>(&b, &d);
+}
+
+namespace {
+template <typename T> void testPrimStore(const char* name) {
+  static_assert(hobbes::storage::store<T>::can_memcpy, "");
+  EXPECT_EQ(hobbes::storage::store<T>::type()->tid, PRIV_HPPF_TYCTOR_PRIM);
+  EXPECT_EQ(hobbes::storage::store<T>::size(T{}), sizeof(T));
+  EXPECT_EQ(std::static_pointer_cast<hobbes::ty::Prim>(hobbes::storage::store<T>::type())->n, name);
+}
+} // namespace
+
+TEST(UnitTests, StoragePrimStore) {
+  testPrimStore<bool>("bool");
+  testPrimStore<uint8_t>("byte");
+  testPrimStore<char>("char");
+  testPrimStore<int16_t>("short");
+  testPrimStore<uint16_t>("short");
+  testPrimStore<int32_t>("int");
+  testPrimStore<uint32_t>("int");
+  testPrimStore<int64_t>("long");
+  testPrimStore<uint64_t>("long");
+  testPrimStore<__int128>("int128");
+  testPrimStore<float>("float");
+  testPrimStore<double>("double");
+
+  static_assert(!hobbes::storage::store<hobbes::unit>::can_memcpy, "");
+  EXPECT_EQ(hobbes::storage::store<hobbes::unit>::type()->tid, PRIV_HPPF_TYCTOR_PRIM);
+  EXPECT_EQ(hobbes::storage::store<hobbes::unit>::size(), 0UL);
+  EXPECT_EQ(std::static_pointer_cast<hobbes::ty::Prim>(hobbes::storage::store<hobbes::unit>::type())->n, "unit");
 }

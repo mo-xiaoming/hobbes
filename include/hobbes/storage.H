@@ -1010,45 +1010,49 @@ public:
  * store<T> : the main interface for type-directed storage into shared memory pipes
  *
  *****************************/
-template <typename T, typename P = void>
-  struct store {
-  };
+template <typename T, typename P = void> struct store {};
 
 template <typename T> struct store<const T*> : store<T*> {};
 
 #define PRIV_HSTORE_DEFINE_PRIMTYS(T, n) \
-  template <> \
-    struct store<T> { \
-      static const bool can_memcpy = true; \
-      static ty::desc    type()                      { return ty::prim(n); } \
-      static size_t      size(const T&)              { return sizeof(T); } \
-      static bool        write(wpipe& p, const T& x) { return p.write(reinterpret_cast<const uint8_t*>(&x), sizeof(x)); } \
-    }
+  template <> struct store<T> { \
+    static const bool can_memcpy = true; \
+    static ty::desc type() { return ty::prim(n); } \
+    static size_t size(const T&) { return sizeof(T); } \
+    static bool write(wpipe& p, const T& x) { \
+      return p.write(reinterpret_cast<const uint8_t*>(&x), sizeof(x)); \
+    } \
+  }
 
-PRIV_HSTORE_DEFINE_PRIMTYS(bool,     "bool");
-PRIV_HSTORE_DEFINE_PRIMTYS(uint8_t,  "byte");
-PRIV_HSTORE_DEFINE_PRIMTYS(char,     "char");
-PRIV_HSTORE_DEFINE_PRIMTYS(int16_t,  "short");
+PRIV_HSTORE_DEFINE_PRIMTYS(bool, "bool");
+PRIV_HSTORE_DEFINE_PRIMTYS(uint8_t, "byte");
+PRIV_HSTORE_DEFINE_PRIMTYS(char, "char");
+PRIV_HSTORE_DEFINE_PRIMTYS(int16_t, "short");
 PRIV_HSTORE_DEFINE_PRIMTYS(uint16_t, "short");
-PRIV_HSTORE_DEFINE_PRIMTYS(int32_t,  "int");
+PRIV_HSTORE_DEFINE_PRIMTYS(int32_t, "int");
 PRIV_HSTORE_DEFINE_PRIMTYS(uint32_t, "int");
-PRIV_HSTORE_DEFINE_PRIMTYS(int64_t,  "long");
+PRIV_HSTORE_DEFINE_PRIMTYS(int64_t, "long");
 PRIV_HSTORE_DEFINE_PRIMTYS(uint64_t, "long");
 #if defined(__APPLE__) && defined(__MACH__)
 PRIV_HSTORE_DEFINE_PRIMTYS(size_t, "long");
 #endif
 PRIV_HSTORE_DEFINE_PRIMTYS(__int128, "int128");
-PRIV_HSTORE_DEFINE_PRIMTYS(float,    "float");
-PRIV_HSTORE_DEFINE_PRIMTYS(double,   "double");
+PRIV_HSTORE_DEFINE_PRIMTYS(float, "float");
+PRIV_HSTORE_DEFINE_PRIMTYS(double, "double");
 
 // store unit
-template <>
-  struct store<unit> {
-    static const bool can_memcpy = false;
-    static ty::desc type()                     { return ty::prim("unit"); }
-    static size_t   size()                     { return 0; }
-    static bool     write(wpipe&, const unit&) { return true; }
-  };
+template <> struct store<unit> {
+  static const bool can_memcpy = false;
+  static ty::desc type() {
+    return ty::prim("unit");
+  }
+  static size_t size() {
+    return 0;
+  }
+  static bool write(wpipe&, const unit&) {
+    return true;
+  }
+};
 
 // store fixed-length arrays
 template <typename T, size_t N>
@@ -1599,6 +1603,7 @@ template <typename T>
   };
 template <typename F, typename T>
   struct hstore_argl_name<namedValue<F,T>> {
+    // either a Tuple or a Record(named Tuple)
     static const bool isTuple = false;
     // doesn't check buffer overflow
     static void nameDesc(const char*, size_t, char* buffer, size_t buflen) {
@@ -1621,12 +1626,12 @@ template <typename T, typename ... Ts>
     static const size_t count = sizeof...(Ts) + 1;
     // isTuple == false: record with named fields
     static const bool isTuple = internal::hstore_argl_name<T>::isTuple && hstore_payload_types<Ts...>::isTuple;
-    static void fields(const char* fmt, size_t f, ty::Struct::Fields* fs) {
-      char fn[128];
-      internal::hstore_argl_name<T>::nameDesc(fmt, f, fn, sizeof(fn));
-      fs->push_back(ty::Struct::Field(fn, -1, store<T>::type()));
+    static void fields(const char* fmt, size_t fieldIndex, ty::Struct::Fields* fields) {
+      char fieldName[128];
+      internal::hstore_argl_name<T>::nameDesc(fmt, fieldIndex, fieldName, sizeof(fieldName));
+      fields->push_back(ty::Struct::Field(fieldName, -1, store<T>::type()));
 
-      hstore_payload_types<Ts...>::fields(fmt, f+1, fs);
+      hstore_payload_types<Ts...>::fields(fmt, fieldIndex+1, fields);
     }
     static void nameHints(std::vector<std::string>* ns) {
       storeNames<T>::accum(ns);
@@ -1638,35 +1643,40 @@ template <typename ... Ts>
     return hstore_payload_types<Ts...>();
   }
 
-using tydescfn = void (*)(bytes *, std::string *);
-template <typename TyList>
-  void makeTyDescF(bytes* e, std::string* d) {
-    ty::desc td;
+// for tuple, it can be a unit if there's no field
+using tydescfn = void (*)(bytes*, std::string*);
+template <typename TyList> void makeTyDescF(bytes* e, std::string* d) {
+  ty::desc td;
 
-    if (!TyList::isTuple || TyList::count > 1) {
-      ty::Struct::Fields fs;
-      TyList::fields(TyList::isTuple ? ".f%lld" : "field%lld", 0, &fs);
-      td = ty::record(fs);
-    } else if (TyList::count == 0) {
-      td = ty::prim("unit");
-    } else {
-      td = store<typename TyList::head_type>::type();
-    }
-
-    if (e) {
-      ty::encode(td, e);
-    }
-    if (d) {
-      *d = ty::show(td);
-    }
+  if (!TyList::isTuple || TyList::count > 1) {
+    ty::Struct::Fields fs;
+    TyList::fields(TyList::isTuple ? ".f%lld" : "field%lld", 0, &fs);
+    td = ty::record(fs);
+  } else if (TyList::count == 0) {
+    td = ty::prim("unit");
+  } else {
+    // this must be TyList::isTuple and count == 1
+    td = store<typename TyList::head_type>::type();
   }
 
-template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags, typename FormatStr, typename ArgTyList>
-  struct StorageStatement {
-    static uint32_t id;
-  };
-template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags, typename FormatStr, typename ArgTyList>
-  uint32_t StorageStatement<Group, G, File, Line, StmtName, Flags, FormatStr, ArgTyList>::id = G->allocateStorageStatement(File::str(), Line, StmtName::str(), Flags, FormatStr::str(), &makeTyDescF<ArgTyList>, &ArgTyList::nameHints);
+  if (e) {
+    ty::encode(td, e);
+  }
+  if (d) {
+    *d = ty::show(td);
+  }
+}
+
+template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags,
+          typename FormatStr, typename ArgTyList>
+struct StorageStatement {
+  static const uint32_t id;
+};
+template <typename Group, Group* G, typename File, uint32_t Line, typename StmtName, size_t Flags,
+          typename FormatStr, typename ArgTyList>
+const uint32_t StorageStatement<Group, G, File, Line, StmtName, Flags, FormatStr, ArgTyList>::id =
+    G->allocateStorageStatement(File::str(), Line, StmtName::str(), Flags, FormatStr::str(),
+                                &makeTyDescF<ArgTyList>, &ArgTyList::nameHints);
 
 // allow static registration of storage points
 enum CommitMethod {

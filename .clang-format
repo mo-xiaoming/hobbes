@@ -3,3 +3,5 @@ PointerAlignment: Left
 IndentPPDirectives: AfterHash
 AlignEscapedNewlines: DontAlign
 ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: Empty
+
