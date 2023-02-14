@@ -90,9 +90,9 @@ namespace string {
   inline pair rsplit(const std::string& s, const std::string& ss) {
     size_t p = s.rfind(ss);
     if (p == std::string::npos) {
-      return pair("", s);
+      return {"", s};
     } else {
-      return pair(s.substr(0, p), s.substr(p + ss.size(), s.size()));
+      return {s.substr(0, p), s.substr(p + ss.size(), s.size())};
     }
   }
 
@@ -103,12 +103,12 @@ namespace string {
       for (size_t i = 1; i < ss.size(); ++i) {
         x << d << ss[i];
       }
-      return x.str();
+      return std::move(x).str();
     } else {
       return "";
     }
   }
-}
+}  // namespace string
 
 using int128_t = __int128;
 

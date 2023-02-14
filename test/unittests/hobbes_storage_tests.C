@@ -99,5 +99,32 @@ TEST(UnitTests, StoragePrimStore) {
   static_assert(!hobbes::storage::store<hobbes::unit>::can_memcpy, "");
   EXPECT_EQ(hobbes::storage::store<hobbes::unit>::type()->tid, PRIV_HPPF_TYCTOR_PRIM);
   EXPECT_EQ(hobbes::storage::store<hobbes::unit>::size(), 0UL);
-  EXPECT_EQ(std::static_pointer_cast<hobbes::ty::Prim>(hobbes::storage::store<hobbes::unit>::type())->n, "unit");
+  EXPECT_EQ(
+      std::static_pointer_cast<hobbes::ty::Prim>(hobbes::storage::store<hobbes::unit>::type())->n,
+      "unit");
+}
+
+namespace {
+struct WithStorageName {};
+} // namespace
+
+namespace hobbes {
+namespace storage {
+template <> struct store<WithStorageName> {
+  static std::string storageName() {
+    return "X";
+  }
+};
+} // namespace storage
+} // namespace hobbes
+
+TEST(UnitTests, StorageStoreNames) {
+  std::vector<std::string> a;
+  hobbes::storage::storeNames<WithStorageName>::accum(&a);
+  EXPECT_EQ(a.size(), 1UL);
+  EXPECT_EQ(a[0], "X");
+
+  a.clear();
+  hobbes::storage::storeNames<int>::accum(&a);
+  EXPECT_TRUE(a.empty());
 }

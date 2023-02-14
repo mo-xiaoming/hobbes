@@ -20,6 +20,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -40,6 +41,7 @@
 #include <fcntl.h>
 
 // types with static reflection info (for reflective structs, variants, etc)
+#include "hobbes/util/str.H"
 #include "reflect.H"
 
 namespace hobbes { namespace storage { namespace internal {
@@ -1573,23 +1575,26 @@ template <typename F, typename T>
 #define HNAME(N,E) ::hobbes::storage::namedValue<PRIV_HPPF_TSTR(#N),decltype(E)>(E)
 
 // allow inference of log statement names from payload types
-using tynamehints = void (*)(std::vector<std::string> *);
-template <typename T>
-  struct nameAt {
-    template <typename U, std::string (*P)()> struct HasStorageName { };
-    template <typename U> static std::string is(const HasStorageName<U, &U::storageName>*) { return U::storageName(); }
-    template <typename U> static std::string is(...)                                       { return ""; }
-  };
+using tynamehints = void (*)(std::vector<std::string>*);
+template <typename T> struct nameAt {
+  template <typename U, std::string (*P)()> struct HasStorageName {};
+  template <typename U> static std::string is(const HasStorageName<U, &U::storageName>*) {
+    return U::storageName();
+  }
+  template <typename U> static std::string is(...) {
+    return "";
+  }
+};
 
-template <typename T>
-  struct storeNames {
-    static void accum(std::vector<std::string>* ns) {
-      std::string n = nameAt<T>::template is<store<T>>(0);
-      if (!n.empty()) {
-        ns->push_back(n);
-      }
+// if T::storageName() exists, then adds it to ns, otherwise does nothing
+template <typename T> struct storeNames {
+  static void accum(std::vector<std::string>* ns) {
+    std::string n = nameAt<T>::template is<store<T>>(nullptr);
+    if (!n.empty()) {
+      ns->push_back(std::move(n));
     }
-  };
+  }
+};
 
 namespace internal {
 // make a function for describing store payload types
@@ -1634,6 +1639,7 @@ template <typename T, typename ... Ts>
       hstore_payload_types<Ts...>::fields(fmt, fieldIndex+1, fields);
     }
     static void nameHints(std::vector<std::string>* ns) {
+      ns->reserve(ns->size() + count);
       storeNames<T>::accum(ns);
       hstore_payload_types<Ts...>::nameHints(ns);
     }
@@ -1696,7 +1702,7 @@ struct StorageGroup {
   };
   using StorageStatements = std::map<std::string, StmtData>;
 
-  StorageStatements* statements;
+  std::unique_ptr<StorageStatements> statements;
   PipeQOS            qos;
   size_t             mempages;
   WaitPolicy         wp;
@@ -1704,17 +1710,12 @@ struct StorageGroup {
 
   std::mutex                 mqmtx;
   int                        mqserver;
-  static thread_local wpipe* pipe;
+  static thread_local std::unique_ptr<wpipe> pipe;
   static std::vector<ProcThread> pts;
 
   constexpr StorageGroup(size_t pagec, const PipeQOS qos) : StorageGroup(pagec, qos, Platform) {}
   constexpr StorageGroup(size_t pagec, const PipeQOS qos, const WaitPolicy wp)
     : statements(nullptr), qos(qos), mempages(pagec), wp(wp), enabled(true), mqserver(-1) {}
-
-  ~StorageGroup() {
-    delete this->statements;
-    delete this->pipe;
-  }
 
   void prepareMeta(bytes* meta) {
     if (!this->statements) return; // if nothing to record, nothing to prepare
@@ -1802,32 +1803,33 @@ struct StorageGroup {
     reconnectSHM(&this->mqserver, Name::str(), this->wp, pts);
   }
 
+  static constexpr char autoNamePrefix[] = "auto:";
+
   // use the log statement name provided by the user (if applicable)
   // if the name is auto:N, then use either N or a name inferred from the type being logged
   // for auto-assigned names, append an incrementing counter if necessary to make the name unique
   static bool isAutoName(const std::string& x) {
-    return x.substr(0, 5) == "auto:";
+    return x.substr(0, sizeof(autoNamePrefix) - 1) == autoNamePrefix;
   }
 
+  // if `x` is in the format of "auto:...", then
+  //   adding store<any field>::storageName() to ns iff exists
+  //   if ns is empty
+  //     return N
+  //   else
+  //     return "_".join(ns);
+  // else
+  //   return `x`
   static std::string decideName(const std::string& x, tynamehints tnhints) {
-    if (!isAutoName(x)) {
-      return x;
-    } else {
+    if (isAutoName(x)) {
       std::string n;
       std::vector<std::string> ns;
+      ns.reserve(8UL);
       tnhints(&ns);
-      if (ns.empty()) {
-        n = x.substr(5);
-      } else {
-        std::ostringstream nss;
-        nss << ns[0];
-        for (size_t i = 1; i < ns.size(); ++i) {
-          nss << "_" << ns[i];
-        }
-        n = nss.str();
-      }
-      return n;
+      return ns.empty() ? x.substr(sizeof(autoNamePrefix) - 1) : str::cdelim(ns, "_");
     }
+
+    return x;
   }
 
   static std::string incrAutoName(const std::string& n) {
@@ -1867,64 +1869,67 @@ struct StorageGroup {
 
   uint32_t allocateStorageStatement(const std::string& file, uint32_t line, const std::string& namet, size_t flags, const std::string& fmtstr, tydescfn tdesc, tynamehints tnhints) {
     if (!this->statements) {
-      this->statements = new StorageStatements();
+      this->statements = std::make_unique<StorageStatements>();
     }
 
-    auto name = decideName(namet, tnhints);
-    auto s = this->statements->find(name);
+    const auto name = decideName(namet, tnhints);
+    const auto s = this->statements->find(name);
     if (s != this->statements->end()) {
       // this statement has already been added
       // make sure that all identifying parameters are consistent
-      bytes ety, xty;
-      s->second.tdesc(&ety,0);
+      bytes ety;
+      bytes xty;
+      s->second.tdesc(&ety, 0);
       tdesc(&xty,nullptr);
       if (ety != xty) {
         if (isAutoName(namet)) {
           return addStatement(file, line, incrAutoName(name), flags, fmtstr, tdesc);
-        } else {
-          std::string etd, xtd;
-          s->second.tdesc(0,&etd);
-          tdesc(nullptr,&xtd);
-
-          std::cerr
-            << "fatal error: incompatible types for store statement '" << name << "' between:\n"
-            << "  " << s->second.file << ":" << s->second.line << " (" << xtd << ")\n"
-            << "and\n"
-            << "  " << file << ":" << line << " (" << etd << ")\n"
-            << std::endl;
-
-          exit(-1);
         }
+
+        std::string etd;
+        std::string xtd;
+        s->second.tdesc(0,&etd);
+        tdesc(nullptr,&xtd);
+
+        std::cerr
+          << "fatal error: incompatible types for store statement '" << name << "' between:\n"
+          << "  " << s->second.file << ":" << s->second.line << " (" << xtd << ")\n"
+          << "and\n"
+          << "  " << file << ":" << line << " (" << etd << ")\n"
+          << std::endl;
+
+        // TODO(mo-xiaoming): why exit?
+        exit(-1);
       }
 
       if (s->second.fmtstr != fmtstr) {
         if (isAutoName(namet)) {
           return addStatement(file, line, incrAutoName(name), flags, fmtstr, tdesc);
-        } else {
-          std::cerr
-            << "fatal error: incompatible format strings for store statement '" << name << "' between:\n"
-            << "  " << s->second.file << ":" << s->second.line << " (" << s->second.fmtstr << ")\n"
-            << "and\n"
-            << "  " << file << ":" << line << " (" << fmtstr << ")\n"
-            << std::endl;
-
-          exit(-1);
         }
+
+        std::cerr
+          << "fatal error: incompatible format strings for store statement '" << name << "' between:\n"
+          << "  " << s->second.file << ":" << s->second.line << " (" << s->second.fmtstr << ")\n"
+          << "and\n"
+          << "  " << file << ":" << line << " (" << fmtstr << ")\n"
+          << std::endl;
+
+        exit(-1);
       }
 
       if (s->second.flags != flags) {
         if (isAutoName(namet)) {
           return addStatement(file, line, incrAutoName(name), flags, fmtstr, tdesc);
-        } else {
-          std::cerr
-            << "fatal error: incompatible storage flags for store statement '" << name << "' between:\n"
-            << "  " << s->second.file << ":" << s->second.line << " (" << s->second.flags << ")\n"
-            << "and\n"
-            << "  " << file << ":" << line << " (" << flags << ")\n"
-            << std::endl;
-
-          exit(-1);
         }
+
+        std::cerr
+          << "fatal error: incompatible storage flags for store statement '" << name << "' between:\n"
+          << "  " << s->second.file << ":" << s->second.line << " (" << s->second.flags << ")\n"
+          << "and\n"
+          << "  " << file << ":" << line << " (" << flags << ")\n"
+          << std::endl;
+
+        exit(-1);
       }
 
       return s->second.id;
@@ -1935,9 +1940,8 @@ struct StorageGroup {
   }
 };
 template <typename Name, CommitMethod cm>
-  thread_local wpipe* StorageGroup<Name, cm>::pipe = nullptr;
-template <typename Name, CommitMethod cm>
-  std::vector<ProcThread> StorageGroup<Name, cm>::pts;
+thread_local std::unique_ptr<wpipe> StorageGroup<Name, cm>::pipe;
+template <typename Name, CommitMethod cm> std::vector<ProcThread> StorageGroup<Name, cm>::pts;
 
 // write a storage statement with payload into a pipe
 template <typename ... Ts>

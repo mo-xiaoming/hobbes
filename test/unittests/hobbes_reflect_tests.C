@@ -398,3 +398,6 @@ static_assert(std::is_same<hobbes::First<int>::type, int>::value, "");
 static_assert(std::is_same<hobbes::First<int, double>::type, int>::value, "");
 } // namespace variant
 } // namespace
+
+TEST(UnitTests, ReflectString) {
+}
