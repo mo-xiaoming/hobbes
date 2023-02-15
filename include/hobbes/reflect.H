@@ -95,19 +95,6 @@ namespace string {
       return {s.substr(0, p), s.substr(p + ss.size(), s.size())};
     }
   }
-
-  inline std::string cdelim(const seq& ss, const std::string& d) {
-    if (!ss.empty()) {
-      std::ostringstream x;
-      x << ss[0];
-      for (size_t i = 1; i < ss.size(); ++i) {
-        x << d << ss[i];
-      }
-      return std::move(x).str();
-    } else {
-      return "";
-    }
-  }
 }  // namespace string
 
 using int128_t = __int128;

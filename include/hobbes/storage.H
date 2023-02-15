@@ -1754,7 +1754,7 @@ struct StorageGroup {
       size_t pagesz = sysconf(_SC_PAGESIZE);
       size_t pagec  = 1 + (meta.size() / pagesz) + std::max<size_t>(this->mempages, 10);
 
-      this->pipe =
+      this->pipe.reset(
         new wpipe(
           new writer(meta, sharedMemName(Name::str()), pagesz, pagec, wp),
           this->qos,
@@ -1764,7 +1764,7 @@ struct StorageGroup {
             std::lock_guard<std::mutex> mqguard(this->mqmtx);
             reconnectSHM(&this->mqserver, Name::str(), wp, pts);
           }
-        );
+        ));
 
       try {
         registerSHMAlloc(&this->mqserver, Name::str(), wp);
@@ -1803,13 +1803,13 @@ struct StorageGroup {
     reconnectSHM(&this->mqserver, Name::str(), this->wp, pts);
   }
 
-  static constexpr char autoNamePrefix[] = "auto:";
+  static const std::string autoNamePrefix;
 
   // use the log statement name provided by the user (if applicable)
   // if the name is auto:N, then use either N or a name inferred from the type being logged
   // for auto-assigned names, append an incrementing counter if necessary to make the name unique
   static bool isAutoName(const std::string& x) {
-    return x.substr(0, sizeof(autoNamePrefix) - 1) == autoNamePrefix;
+    return x.substr(0, autoNamePrefix.size()) == autoNamePrefix;
   }
 
   // if `x` is in the format of "auto:...", then
@@ -1826,7 +1826,7 @@ struct StorageGroup {
       std::vector<std::string> ns;
       ns.reserve(8UL);
       tnhints(&ns);
-      return ns.empty() ? x.substr(sizeof(autoNamePrefix) - 1) : str::cdelim(ns, "_");
+      return ns.empty() ? x.substr(autoNamePrefix.size()) : str::cdelim(ns, "_");
     }
 
     return x;
@@ -1939,6 +1939,7 @@ struct StorageGroup {
     return addStatement(file, line, name, flags, fmtstr, tdesc);
   }
 };
+template <typename Name, CommitMethod cm> const std::string StorageGroup<Name, cm>::autoNamePrefix("auto:");
 template <typename Name, CommitMethod cm>
 thread_local std::unique_ptr<wpipe> StorageGroup<Name, cm>::pipe;
 template <typename Name, CommitMethod cm> std::vector<ProcThread> StorageGroup<Name, cm>::pts;

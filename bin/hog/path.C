@@ -20,5 +20,4 @@ std::string instantiateDir(const std::string& groupName, const std::string& dir)
   return x;
 }
 
-}
-
+}  // namespace hog
