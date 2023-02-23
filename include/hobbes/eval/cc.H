@@ -96,7 +96,7 @@ template <typename... NamesAndExpr> struct PArgl<std::string, NamesAndExpr...> {
 class cc : public typedb {
 public:
   cc();
-  virtual ~cc();
+  ~cc() override;
 
   // parse expressions
   using readModuleFileFn = ModulePtr (*)(cc *, const std::string &);

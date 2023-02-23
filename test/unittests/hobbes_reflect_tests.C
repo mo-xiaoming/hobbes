@@ -1,7 +1,7 @@
 #include <hobbes/reflect.H>
+#include <hobbes/util/codec.H>
 
 #include "../test.H"
-#include "hobbes/util/codec.H"
 
 namespace {
 constexpr char toNumChar(std::size_t i) noexcept {

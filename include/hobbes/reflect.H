@@ -614,16 +614,13 @@ template <typename ... Ctors>
     variant() : tag(0) {
       new (this->storage) typename First<Ctors...>::type();
     }
-    template <typename T>
-      variant(const T& t) : tag(CtorIndexOf<T, Ctors...>::value) {
-        static_assert(CtorIndexOf<T, Ctors...>::value < sizeof...(Ctors), "Constructor type isn't part of variant");
-        new (this->storage) T(t);
-      }
+    template <typename T> variant(const T& t) : tag(CtorIndexOf<T, Ctors...>::value) {
+      static_assert(CtorIndexOf<T, Ctors...>::value < sizeof...(Ctors),
+                    "Constructor type isn't part of variant");
+      new (this->storage) T(t);
+    }
     variant(const variant<Ctors...>& rhs) : tag(rhs.tag) {
       VCCtor::apply(this->tag, this->storage, rhs.storage);
-    }
-    ~variant() {
-      VDtor::apply(this->tag, this->storage);
     }
     variant<Ctors...>& operator=(const variant<Ctors...>& rhs) {
       if (this != &rhs) {
@@ -633,6 +630,9 @@ template <typename ... Ctors>
       }
       return *this;
     }
+    ~variant() {
+      VDtor::apply(this->tag, this->storage);
+    }
 
     // This function is only instantiated when T is unique in Ctors
     template <typename T, typename = std::enable_if_t<detail::CountType<T, Ctors...>::value == 1>>
@@ -641,7 +641,7 @@ template <typename ... Ctors>
       const T* get() const { return findByCtor<T>(); }
 
     // This function is only instantiated in case of having a type like variant<char, int, char>
-    // and tring to access the char
+    // and string to access the char
     //
     // \p fn should be void(void*) alike
     template <typename T, typename Fn,
@@ -659,7 +659,7 @@ template <typename ... Ctors>
       R apply(Args... args) const {
         return variantApp<R, F, U, tuple<Ctors...>, Args...>::apply(this->tag, const_cast<void*>(reinterpret_cast<const void*>(this->storage)), args...);
       }
-  public:
+
     const uint32_t& unsafeTag() const     { return this->tag; }
     uint32_t&       unsafeTag()           { return this->tag; }
     const void*     unsafePayload() const { return this->storage; }

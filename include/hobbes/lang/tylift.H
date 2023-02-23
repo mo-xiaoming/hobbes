@@ -9,6 +9,7 @@
 #include <hobbes/util/str.H>
 #include <hobbes/util/preprocessor.H>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <array>
 #include <set>
@@ -24,6 +25,13 @@ namespace hobbes {
  * typedb : an interface to a type environment
  *********/
 struct typedb {
+  typedb() = default;
+  typedb(const typedb&) = delete;
+  typedb(typedb&&) = delete;
+  typedb& operator=(const typedb&) = delete;
+  typedb& operator=(typedb&&) = delete;
+  virtual ~typedb() = default;
+
   // define new opaque types with an internal representation
   virtual MonoTypePtr defineNamedType(const std::string& name, const str::seq& argNames, const MonoTypePtr& ty) = 0;
   virtual bool isTypeName(const std::string&) const = 0;
@@ -43,7 +51,15 @@ struct typedb {
 };
 
 struct nulltypedb : public typedb {
-  MonoTypePtr defineNamedType(const std::string& name, const str::seq& argNames, const MonoTypePtr& ty) override;
+  nulltypedb() = default;
+  nulltypedb(const nulltypedb&) = delete;
+  nulltypedb(nulltypedb&&) = delete;
+  nulltypedb& operator=(const nulltypedb&) = delete;
+  nulltypedb& operator=(nulltypedb&&) = delete;
+  ~nulltypedb() override = default;
+
+  MonoTypePtr defineNamedType(const std::string& name, const str::seq& argNames,
+                              const MonoTypePtr& ty) override;
   bool isTypeName(const std::string&) const override;
   [[noreturn]] MonoTypePtr namedTypeRepresentation(const std::string&) const override;
 
@@ -53,7 +69,7 @@ struct nulltypedb : public typedb {
   
   [[noreturn]] PolyTypePtr opaquePtrPolyType(const std::type_info&, unsigned int sz, bool inStruct) override;
   [[noreturn]] MonoTypePtr opaquePtrMonoType(const std::type_info&, unsigned int sz, bool inStruct) override;
- 
+
   PolyTypePtr generalize(const MonoTypePtr& mt) const override;
 };
 extern nulltypedb nulltdb;
@@ -69,12 +85,14 @@ template <typename T>
   };
 struct recursion {
   void* value;
-  recursion(void* x) : value(x) { }
+  explicit recursion(void* x) : value(x) { }
 };
 
 // a linked list is a recursive sum of nested tuples starting at unit
 template <typename T>
   struct seq {
+    static_assert(!std::is_same<T, unit>::value, "hobbes::seq<unit> work");
+
     using pair_t = std::pair<T, seq<T> *>;
     using rep_t = variant<unit, pair_t>;
     rep_t data;
@@ -82,7 +100,7 @@ template <typename T>
     seq() : data(unit()) { }
     seq(const T& x, seq<T>* xs) : data(pair_t(x, xs)) { }
 
-    bool empty() const { return get<unit>(this->data) != 0; }
+    bool empty() const { return get<unit>(this->data) != nullptr; }
     const pair_t* head() const { return get<pair_t>(this->data); }
   };
 
