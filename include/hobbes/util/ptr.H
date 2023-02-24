@@ -69,6 +69,20 @@ private:
 };
 
 /**
+ * @brief get the index of a Type in @a Ts
+ * Type must exists in Ts
+ */
+template <std::size_t i, typename... Ts> struct TypeIndex;
+
+template <std::size_t i, typename T, typename... Ts> struct TypeIndex<i, T, T, Ts...> {
+  static const std::size_t value = i;
+};
+
+template <std::size_t i, typename T, typename U, typename... Ts> struct TypeIndex<i, T, U, Ts...> {
+  static const size_t value = TypeIndex<i + 1, T, Ts...>::value;
+};
+
+/**
  * @brief call \c UniqueTypeValueCache.compact() on all @a Caches
  */
 template <size_t i, typename... Caches>
@@ -84,26 +98,15 @@ template <size_t i, typename... Caches>
 }
 
 /**
- * @brief get the index of a Type in @a Ts
- * Type must exists in Ts
- */
-template <std::size_t i, typename... Ts> struct TypeIndex;
-
-template <std::size_t i, typename T, typename... Ts> struct TypeIndex<i, T, T, Ts...> {
-  static const std::size_t value = i;
-};
-
-template <std::size_t i, typename T, typename U, typename... Ts> struct TypeIndex<i, T, U, Ts...> {
-  static const size_t value = TypeIndex<i + 1, T, Ts...>::value;
-};
-
-/**
  * @brief it stores all \c UniqueTypeValueCache
  */
 template <typename... Caches> class AllUniqueTypeValueCaches {
   std::tuple<Caches...> caches;
 
 public:
+  /**
+    * @brief get the cache of cache type \a T
+    */
   template <typename T>
   [[nodiscard]]
   typename std::tuple_element<TypeIndex<0, T, Caches...>::value, std::tuple<Caches...>>::type&
@@ -111,6 +114,9 @@ public:
     return std::get<TypeIndex<0, T, Caches...>::value>(this->caches);
   }
 
+  /**
+   * @brief keep compacting all caches until all values have outside references.
+   */
   size_t compact() {
     size_t tc = 0;
     while (true) {

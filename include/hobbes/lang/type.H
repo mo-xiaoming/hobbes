@@ -7,6 +7,7 @@
 #include <hobbes/util/lannotation.H>
 #include <hobbes/util/ptr.H>
 #include <hobbes/util/str.H>
+
 #include <map>
 #include <memory>
 #include <set>
@@ -256,11 +257,10 @@ inline std::ostream& operator<<(std::ostream& out, const ConstraintPtr& t) {
 }
 
 // improves performance of case-analysis over MonoType instances (to avoid 'dynamic_cast')
-template <typename Case>
-  class MonoTypeCase : public MonoType {
-  public:
-    MonoTypeCase();
-  };
+template <typename Case> class MonoTypeCase : public MonoType {
+public:
+  MonoTypeCase() : MonoType(Case::type_case_id) {}
+};
 
 // a type treated as primitive (by name)
 // may be an "actual primitive" (void, unit, bool, byte, char, int, long, float, double, ...)
@@ -657,10 +657,6 @@ private:
   friend class MonoType;
   TExpr(const ExprPtr&);
 };
-
-template <typename Case>
-  MonoTypeCase<Case>::MonoTypeCase() : MonoType(Case::type_case_id) {
-  }
 
 // simplify showing types (with or without simplifying type variable names)
 std::string show(const PolyType& e);
@@ -1295,7 +1291,7 @@ template <>
     }
   };
 
-}
+} // namespace hobbes
 
 #endif
 

@@ -540,48 +540,44 @@ namespace internal {
 ////////////
 // manage allocation of mono types so that type pointers are uniquely determined by constructor arguments
 ////////////
-using PrimCache = UniqueTypeValueCache<const Prim, std::string, MonoTypePtr>;
-using OpaquePtrCache = UniqueTypeValueCache<const OpaquePtr, std::string, unsigned int, bool>;
-using TVarCache = UniqueTypeValueCache<const TVar, std::string>;
-using TGenCache = UniqueTypeValueCache<const TGen, int>;
-using TAbsCache = UniqueTypeValueCache<const TAbs, str::seq, MonoTypePtr>;
-using TAppCache = UniqueTypeValueCache<const TApp, MonoTypePtr, MonoTypes>;
-using FixedArrayCache = UniqueTypeValueCache<const FixedArray, MonoTypePtr, MonoTypePtr>;
-using ArrayCache = UniqueTypeValueCache<const Array, MonoTypePtr>;
-using VariantCache = UniqueTypeValueCache<const Variant, Variant::Members>;
-using RecordCache = UniqueTypeValueCache<const Record, Record::Members>;
-using FuncCache = UniqueTypeValueCache<const Func, MonoTypePtr, MonoTypePtr>;
-using ExistsCache = UniqueTypeValueCache<const Exists, std::string, MonoTypePtr>;
-using RecursiveCache = UniqueTypeValueCache<const Recursive, std::string, MonoTypePtr>;
-using TStringCache = UniqueTypeValueCache<const TString, std::string>;
-using TLongCache = UniqueTypeValueCache<const TLong, long>;
-using TExprCache = UniqueTypeValueCache<const TExpr, std::string>;
+using PrimCache = UniqueTypeValueCache<Prim, std::string, MonoTypePtr>;
+using OpaquePtrCache = UniqueTypeValueCache<OpaquePtr, std::string, unsigned int, bool>;
+using TVarCache = UniqueTypeValueCache<TVar, std::string>;
+using TGenCache = UniqueTypeValueCache<TGen, int>;
+using TAbsCache = UniqueTypeValueCache<TAbs, str::seq, MonoTypePtr>;
+using TAppCache = UniqueTypeValueCache<TApp, MonoTypePtr, MonoTypes>;
+using FixedArrayCache = UniqueTypeValueCache<FixedArray, MonoTypePtr, MonoTypePtr>;
+using ArrayCache = UniqueTypeValueCache<Array, MonoTypePtr>;
+using VariantCache = UniqueTypeValueCache<Variant, Variant::Members>;
+using RecordCache = UniqueTypeValueCache<Record, Record::Members>;
+using FuncCache = UniqueTypeValueCache<Func, MonoTypePtr, MonoTypePtr>;
+using ExistsCache = UniqueTypeValueCache<Exists, std::string, MonoTypePtr>;
+using RecursiveCache = UniqueTypeValueCache<Recursive, std::string, MonoTypePtr>;
+using TStringCache = UniqueTypeValueCache<TString, std::string>;
+using TLongCache = UniqueTypeValueCache<TLong, long>;
+using TExprCache = UniqueTypeValueCache<TExpr, std::string>;
 
 using MTypeCtorMaps =
     AllUniqueTypeValueCaches<PrimCache, OpaquePtrCache, TVarCache, TGenCache, TAbsCache, TAppCache,
                      FixedArrayCache, ArrayCache, VariantCache, RecordCache, FuncCache, ExistsCache,
                      RecursiveCache, TStringCache, TLongCache, TExprCache>;
 
-MTypeCtorMaps& tctorMaps() {
+MTypeCtorMaps& globalUniqueTypeValueCaches() {
   static MTypeCtorMaps x;
   return x;
 }
 } // namespace internal
 
 void compactMTypeMemory() {
-  internal::tctorMaps().compact();
+  internal::globalUniqueTypeValueCaches().compact();
 }
 
-template <typename Class, typename T, typename ... Args>
-  MonoTypePtr MonoType::makeType(const Args&... args) {
-    return
-      std::const_pointer_cast<MonoType>(std::static_pointer_cast<const MonoType>(
-        internal::tctorMaps().at<Class>().get(
-          [](const Args&... nargs) { return new T(nargs...); },
-          args...
-        )
-      ));
-  }
+template <typename CacheType, typename T, typename... Args>
+MonoTypePtr MonoType::makeType(const Args&... args) {
+  const auto ctor = [](const Args&... nargs) { return new T(nargs...); };
+
+  return internal::globalUniqueTypeValueCaches().at<CacheType>().get(ctor, args...);
+}
 
 ////////
 // primitive monotypes
@@ -1489,10 +1485,8 @@ MonoTypePtr TExpr::make(const ExprPtr& e) {
   //      we identify them by _printed_ expression forms, under the assumption that this is adequate to uniquely
   //      identify expressions in the global context (otherwise we'd wind up with a lot of equivalent types
   //      unintentionally interpreted as distinct
-  return
-    std::const_pointer_cast<MonoType>(std::static_pointer_cast<const MonoType>(
-      internal::tctorMaps().at<internal::TExprCache>().get([e](const std::string&){return new TExpr(e);}, hobbes::show(e))
-    ));
+  return internal::globalUniqueTypeValueCaches().at<internal::TExprCache>().get(
+      [e](const std::string&) { return new TExpr(e); }, hobbes::show(e));
 }
 
 TExpr::TExpr(const ExprPtr& e) : e(e) {
