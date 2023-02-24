@@ -536,46 +536,47 @@ unsigned int alignment(const MonoTypePtr& pty) {
   }
 }
 
+namespace internal {
 ////////////
 // manage allocation of mono types so that type pointers are uniquely determined by constructor arguments
 ////////////
-using PrimMem = unique_refc_map<const Prim, std::string, MonoTypePtr>;
-using OpaquePtrMem = unique_refc_map<const OpaquePtr, std::string, unsigned int, bool>;
-using TVarMem = unique_refc_map<const TVar, std::string>;
-using TGenMem = unique_refc_map<const TGen, int>;
-using TAbsMem = unique_refc_map<const TAbs, str::seq, MonoTypePtr>;
-using TAppMem = unique_refc_map<const TApp, MonoTypePtr, MonoTypes>;
-using FixedArrayMem = unique_refc_map<const FixedArray, MonoTypePtr, MonoTypePtr>;
-using ArrayMem = unique_refc_map<const Array, MonoTypePtr>;
-using VariantMem = unique_refc_map<const Variant, Variant::Members>;
-using RecordMem = unique_refc_map<const Record, Record::Members>;
-using FuncMem = unique_refc_map<const Func, MonoTypePtr, MonoTypePtr>;
-using ExistsMem = unique_refc_map<const Exists, std::string, MonoTypePtr>;
-using RecursiveMem = unique_refc_map<const Recursive, std::string, MonoTypePtr>;
+using PrimCache = unique_refc_map<const Prim, std::string, MonoTypePtr>;
+using OpaquePtrCache = unique_refc_map<const OpaquePtr, std::string, unsigned int, bool>;
+using TVarCache = unique_refc_map<const TVar, std::string>;
+using TGenCache = unique_refc_map<const TGen, int>;
+using TAbsCache = unique_refc_map<const TAbs, str::seq, MonoTypePtr>;
+using TAppCache = unique_refc_map<const TApp, MonoTypePtr, MonoTypes>;
+using FixedArrayCache = unique_refc_map<const FixedArray, MonoTypePtr, MonoTypePtr>;
+using ArrayCache = unique_refc_map<const Array, MonoTypePtr>;
+using VariantCache = unique_refc_map<const Variant, Variant::Members>;
+using RecordCache = unique_refc_map<const Record, Record::Members>;
+using FuncCache = unique_refc_map<const Func, MonoTypePtr, MonoTypePtr>;
+using ExistsCache = unique_refc_map<const Exists, std::string, MonoTypePtr>;
+using RecursiveCache = unique_refc_map<const Recursive, std::string, MonoTypePtr>;
+using TStringCache = unique_refc_map<const TString, std::string>;
+using TLongCache = unique_refc_map<const TLong, long>;
+using TExprCache = unique_refc_map<const TExpr, std::string>;
 
-using TStringMem = unique_refc_map<const TString, std::string>;
-using TLongMem = unique_refc_map<const TLong, long>;
-using TExprMem = unique_refc_map<const TExpr, std::string>;
+using MTypeCtorMaps =
+    unique_refc_maps<PrimCache, OpaquePtrCache, TVarCache, TGenCache, TAbsCache, TAppCache,
+                     FixedArrayCache, ArrayCache, VariantCache, RecordCache, FuncCache, ExistsCache,
+                     RecursiveCache, TStringCache, TLongCache, TExprCache>;
 
-using MTypeCtorMaps = unique_refc_maps<PrimMem, OpaquePtrMem, TVarMem, TGenMem, TAbsMem, TAppMem, FixedArrayMem, ArrayMem, VariantMem, RecordMem, FuncMem, ExistsMem, RecursiveMem, TStringMem, TLongMem, TExprMem>;
-
-MTypeCtorMaps* tctorMaps() {
-  static MTypeCtorMaps* x = nullptr;
-  if (x == nullptr) {
-    x = new MTypeCtorMaps();
-  }
+MTypeCtorMaps& tctorMaps() {
+  static MTypeCtorMaps x;
   return x;
 }
+} // namespace internal
 
 void compactMTypeMemory() {
-  tctorMaps()->compact();
+  internal::tctorMaps().compact();
 }
 
 template <typename Class, typename T, typename ... Args>
   MonoTypePtr MonoType::makeType(const Args&... args) {
     return
       std::const_pointer_cast<MonoType>(std::static_pointer_cast<const MonoType>(
-        tctorMaps()->at<Class>().get(
+        internal::tctorMaps().at<Class>().get(
           [](const Args&... nargs) { return new T(nargs...); },
           args...
         )
@@ -586,7 +587,7 @@ template <typename Class, typename T, typename ... Args>
 // primitive monotypes
 ////////
 MonoTypePtr Prim::make(const std::string& nm, const MonoTypePtr& t) {
-  return makeType<PrimMem, Prim>(nm, t);
+  return makeType<internal::PrimCache, Prim>(nm, t);
 }
 
 Prim::Prim(const std::string& nm, const MonoTypePtr& t) : nm(nm), t(t) {
@@ -601,7 +602,7 @@ const std::string& Prim::name() const { return this->nm; }
 const MonoTypePtr& Prim::representation() const { return this->t; }
 
 MonoTypePtr OpaquePtr::make(const std::string& nm, unsigned int sz, bool scontig) {
-  return makeType<OpaquePtrMem, OpaquePtr>(nm, scontig ? sz : 0, scontig);
+  return makeType<internal::OpaquePtrCache, OpaquePtr>(nm, scontig ? sz : 0, scontig);
 }
 
 OpaquePtr::OpaquePtr(const std::string& nm, unsigned int sz, bool scontig)
@@ -629,7 +630,7 @@ MonoTypePtr normIfOpaquePtr(const MonoTypePtr& ty) {
 }
 
 MonoTypePtr TVar::make(const std::string& nm) {
-  return makeType<TVarMem, TVar>(nm);
+  return makeType<internal::TVarCache, TVar>(nm);
 }
 
 TVar::TVar(const std::string& nm) : nm(nm) {
@@ -640,7 +641,7 @@ const std::string& TVar::name() const { return this->nm; }
 void TVar::show(std::ostream& out) const { out << this->nm; }
 
 MonoTypePtr TGen::make(int x) {
-  return makeType<TGenMem, TGen>(x);
+  return makeType<internal::TGenCache, TGen>(x);
 }
 
 TGen::TGen(int x) : x(x) {
@@ -651,7 +652,7 @@ void TGen::show(std::ostream& out) const { out << "#" << this->x; }
 
 // a type-level abstraction
 MonoTypePtr TAbs::make(const str::seq& targns, const MonoTypePtr& b) {
-  return makeType<TAbsMem, TAbs>(targns, b);
+  return makeType<internal::TAbsCache, TAbs>(targns, b);
 }
 
 TAbs::TAbs(const str::seq& targns, const MonoTypePtr& b) : targns(targns), b(b) {
@@ -682,7 +683,7 @@ bool showFileRef(const MonoTypePtr& f, const MonoTypes& targs, std::ostream& out
 }
 
 MonoTypePtr TApp::make(const MonoTypePtr& f, const MonoTypes& targs) {
-  return makeType<TAppMem, TApp>(f, targs);
+  return makeType<internal::TAppCache, TApp>(f, targs);
 }
 
 TApp::TApp(const MonoTypePtr& f, const MonoTypes& targs) : f(f), targs(targs) {
@@ -707,7 +708,7 @@ const MonoTypePtr& TApp::fn() const { return this->f; }
 const MonoTypes&   TApp::args() const { return this->targs; }
 
 MonoTypePtr FixedArray::make(const MonoTypePtr& ty, const MonoTypePtr& len) {
-  return makeType<FixedArrayMem, FixedArray>(ty, len);
+  return makeType<internal::FixedArrayCache, FixedArray>(ty, len);
 }
 
 FixedArray::FixedArray(const MonoTypePtr& ty, const MonoTypePtr& len) : ty(normIfOpaquePtr(ty)), len(len) {
@@ -728,7 +729,7 @@ long FixedArray::requireLength() const {
 }
 
 MonoTypePtr Array::make(const MonoTypePtr& t) {
-  return makeType<ArrayMem, Array>(t);
+  return makeType<internal::ArrayCache, Array>(t);
 }
 
 Array::Array(const MonoTypePtr& ty) : ty(normIfOpaquePtr(ty)) {
@@ -741,7 +742,7 @@ const MonoTypePtr& Array::type() const { return this->ty; }
 
 // variant types
 MonoTypePtr Variant::make(const Members& ms) {
-  return makeType<VariantMem, Variant>(ms);
+  return makeType<internal::VariantCache, Variant>(ms);
 }
 
 static void resetCtorIDs(Variant::Members* ms) {
@@ -1045,7 +1046,7 @@ inline bool isHiddenFieldName(const std::string& fn) {
 }
 
 MonoTypePtr Record::make(const Members& ms) {
-  return makeType<RecordMem, Record>(Record::withResolvedMemoryLayout(ms));
+  return makeType<internal::RecordCache, Record>(Record::withResolvedMemoryLayout(ms));
 }
 
 Record::Record(const Record::Members& tms) : ms(tms), maxFieldAlignmentM(-1) {
@@ -1399,7 +1400,7 @@ unsigned int Record::index(const Members& ms, const std::string& mn) const {
 }
 
 MonoTypePtr Func::make(const MonoTypePtr& aty, const MonoTypePtr& rty) {
-  return makeType<FuncMem, Func>(aty, rty);
+  return makeType<internal::FuncCache, Func>(aty, rty);
 }
 
 Func::Func(const MonoTypePtr& aty, const MonoTypePtr& rty) : aty(aty), rty(rty) {
@@ -1427,7 +1428,7 @@ void Func::show(std::ostream& out) const {
 }
 
 MonoTypePtr Exists::make(const std::string& tname, const MonoTypePtr& bty) {
-  return makeType<ExistsMem, Exists>(tname, bty);
+  return makeType<internal::ExistsCache, Exists>(tname, bty);
 }
 
 Exists::Exists(const std::string& tname, const MonoTypePtr& bty) : tname(tname), bty(bty) {
@@ -1445,7 +1446,7 @@ const MonoTypePtr& Exists::absType() const { return this->bty; }
 
 // recursive types
 MonoTypePtr Recursive::make(const std::string& tname, const MonoTypePtr& bty) {
-  return makeType<RecursiveMem, Recursive>(tname, bty);
+  return makeType<internal::RecursiveCache, Recursive>(tname, bty);
 }
 
 Recursive::Recursive(const std::string& tname, const MonoTypePtr& bty) : tname(tname), bty(bty) {
@@ -1463,7 +1464,7 @@ const MonoTypePtr& Recursive::recType() const { return this->bty; }
 
 // type-level values
 MonoTypePtr TString::make(const std::string& x) {
-  return makeType<TStringMem, TString>(x);
+  return makeType<internal::TStringCache, TString>(x);
 }
 
 TString::TString(const std::string& val) : val(val) {
@@ -1473,7 +1474,7 @@ void TString::show(std::ostream& out) const { out << "'" << this->val << "'"; }
 const std::string& TString::value() const { return this->val; }
 
 MonoTypePtr TLong::make(long x) {
-  return makeType<TLongMem, TLong>(x);
+  return makeType<internal::TLongCache, TLong>(x);
 }
 
 TLong::TLong(long x) : x(x) {
@@ -1490,7 +1491,7 @@ MonoTypePtr TExpr::make(const ExprPtr& e) {
   //      unintentionally interpreted as distinct
   return
     std::const_pointer_cast<MonoType>(std::static_pointer_cast<const MonoType>(
-      tctorMaps()->at<TExprMem>().get([e](const std::string&){return new TExpr(e);}, hobbes::show(e))
+      internal::tctorMaps().at<internal::TExprCache>().get([e](const std::string&){return new TExpr(e);}, hobbes::show(e))
     ));
 }
 
