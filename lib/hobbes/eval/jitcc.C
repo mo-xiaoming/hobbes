@@ -33,6 +33,7 @@
 #include <new>
 #include <memory>
 #include <limits>
+#include <atomic>
 #else
 #if LLVM_VERSION_MINOR == 3 or LLVM_VERSION_MINOR == 5
 #include <llvm/ExecutionEngine/JIT.h>

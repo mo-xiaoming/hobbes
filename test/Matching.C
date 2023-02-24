@@ -1,8 +1,10 @@
-
-#include "hobbes/lang/pat/pattern.H"
 #include "test.H"
+
 #include <hobbes/hobbes.H>
 #include <hobbes/util/perf.H>
+#include <hobbes/lang/pat/pattern.H>
+
+#include <atomic>
 #include <thread>
 
 using namespace hobbes;
@@ -436,7 +438,7 @@ TEST(Matching, noRaceInterpMatch) {
     ps.emplace_back([&]() {
       auto t0 = tick();
       while (wrongMatches == 0 &&
-             size_t(tick() - t0) < 1UL * 1000 * 1000 * 1000) {
+             static_cast<size_t>(tick() - t0) < 1UL * 1000 * 1000 * 1000) {
         if (f("foo") != 0) {
           ++wrongMatches;
         }

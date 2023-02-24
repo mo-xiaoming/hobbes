@@ -540,25 +540,25 @@ namespace internal {
 ////////////
 // manage allocation of mono types so that type pointers are uniquely determined by constructor arguments
 ////////////
-using PrimCache = unique_refc_map<const Prim, std::string, MonoTypePtr>;
-using OpaquePtrCache = unique_refc_map<const OpaquePtr, std::string, unsigned int, bool>;
-using TVarCache = unique_refc_map<const TVar, std::string>;
-using TGenCache = unique_refc_map<const TGen, int>;
-using TAbsCache = unique_refc_map<const TAbs, str::seq, MonoTypePtr>;
-using TAppCache = unique_refc_map<const TApp, MonoTypePtr, MonoTypes>;
-using FixedArrayCache = unique_refc_map<const FixedArray, MonoTypePtr, MonoTypePtr>;
-using ArrayCache = unique_refc_map<const Array, MonoTypePtr>;
-using VariantCache = unique_refc_map<const Variant, Variant::Members>;
-using RecordCache = unique_refc_map<const Record, Record::Members>;
-using FuncCache = unique_refc_map<const Func, MonoTypePtr, MonoTypePtr>;
-using ExistsCache = unique_refc_map<const Exists, std::string, MonoTypePtr>;
-using RecursiveCache = unique_refc_map<const Recursive, std::string, MonoTypePtr>;
-using TStringCache = unique_refc_map<const TString, std::string>;
-using TLongCache = unique_refc_map<const TLong, long>;
-using TExprCache = unique_refc_map<const TExpr, std::string>;
+using PrimCache = UniqueTypeValueCache<const Prim, std::string, MonoTypePtr>;
+using OpaquePtrCache = UniqueTypeValueCache<const OpaquePtr, std::string, unsigned int, bool>;
+using TVarCache = UniqueTypeValueCache<const TVar, std::string>;
+using TGenCache = UniqueTypeValueCache<const TGen, int>;
+using TAbsCache = UniqueTypeValueCache<const TAbs, str::seq, MonoTypePtr>;
+using TAppCache = UniqueTypeValueCache<const TApp, MonoTypePtr, MonoTypes>;
+using FixedArrayCache = UniqueTypeValueCache<const FixedArray, MonoTypePtr, MonoTypePtr>;
+using ArrayCache = UniqueTypeValueCache<const Array, MonoTypePtr>;
+using VariantCache = UniqueTypeValueCache<const Variant, Variant::Members>;
+using RecordCache = UniqueTypeValueCache<const Record, Record::Members>;
+using FuncCache = UniqueTypeValueCache<const Func, MonoTypePtr, MonoTypePtr>;
+using ExistsCache = UniqueTypeValueCache<const Exists, std::string, MonoTypePtr>;
+using RecursiveCache = UniqueTypeValueCache<const Recursive, std::string, MonoTypePtr>;
+using TStringCache = UniqueTypeValueCache<const TString, std::string>;
+using TLongCache = UniqueTypeValueCache<const TLong, long>;
+using TExprCache = UniqueTypeValueCache<const TExpr, std::string>;
 
 using MTypeCtorMaps =
-    unique_refc_maps<PrimCache, OpaquePtrCache, TVarCache, TGenCache, TAbsCache, TAppCache,
+    AllUniqueTypeValueCaches<PrimCache, OpaquePtrCache, TVarCache, TGenCache, TAbsCache, TAppCache,
                      FixedArrayCache, ArrayCache, VariantCache, RecordCache, FuncCache, ExistsCache,
                      RecursiveCache, TStringCache, TLongCache, TExprCache>;
 

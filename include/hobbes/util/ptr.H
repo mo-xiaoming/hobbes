@@ -12,11 +12,27 @@
 namespace hobbes {
 
 namespace internal {
-template <typename T, typename... Args> class unique_refc_map {
-public:
-  using object_type = T;
 
-  const std::shared_ptr<T>& get(const std::function<T*(Args...)>& mk, const Args&... args) {
+/**
+ * @brief this "map" caches all values of @a Type.
+ *  All same genHash(ctor_args_for_Type_in_order) are considered to be the same value
+ * (is it risky?)
+ */
+template <typename Type, typename... Args> class UniqueTypeValueCache {
+public:
+  using object_type = Type;
+
+  /**
+   * @brief get the shared_ptr of a @a Type object.
+   * will be created in this cache if it hasn't been created.
+   *
+   * @param mk functor to creates @a Type
+   *
+   * @param args arguments for @a Type constructor
+   *
+   * @return an instance of this @a Type
+   */
+  const std::shared_ptr<Type>& get(const std::function<Type*(Args...)>& mk, const Args&... args) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     auto k = std::tuple<Args...>(args...);
     auto& r = this->values[k];
@@ -26,10 +42,15 @@ public:
     return r;
   }
 
+  /**
+   * @brief remove all values that is not being reference.
+   *
+   * @return the number of removed values
+   */
   size_t compact() {
     size_t c = 0;
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    for (auto v = this->values.begin(); v != this->values.end();) {
+    for (auto v = this->values.cbegin(); v != this->values.cend();) {
       if (v->second.use_count() == 1) {
         v = this->values.erase(v);
         ++c;
@@ -43,59 +64,66 @@ public:
 private:
   std::recursive_mutex mutex;
   using Values =
-      std::unordered_map<std::tuple<Args...>, std::shared_ptr<T>, genHash<std::tuple<Args...>>>;
+      std::unordered_map<std::tuple<Args...>, std::shared_ptr<Type>, genHash<std::tuple<Args...>>>;
   Values values;
 };
 
-template <size_t i, typename... UniqueRefcMaps>
-inline typename std::enable_if<i == sizeof...(UniqueRefcMaps), size_t>::type
-compactAll(std::tuple<UniqueRefcMaps...>&) {
+/**
+ * @brief call \c UniqueTypeValueCache.compact() on all @a Caches
+ */
+template <size_t i, typename... Caches>
+inline typename std::enable_if<i == sizeof...(Caches), size_t>::type
+compactAll(std::tuple<Caches...>&) {
   return 0;
 }
 
-template <size_t i, typename... UniqueRefcMaps>
+template <size_t i, typename... Caches>
     inline typename std::enable_if <
-    i<sizeof...(UniqueRefcMaps), size_t>::type compactAll(std::tuple<UniqueRefcMaps...>& ms) {
-  return std::get<i>(ms).compact() + compactAll<i + 1, UniqueRefcMaps...>(ms);
+    i<sizeof...(Caches), size_t>::type compactAll(std::tuple<Caches...>& ms) {
+  return std::get<i>(ms).compact() + compactAll<i + 1, Caches...>(ms);
 }
 
-template <size_t i, typename T, typename ... Ts>
-  struct TypeIndex {
-    static const size_t value = i;
-  };
+/**
+ * @brief get the index of a Type in @a Ts
+ * Type must exists in Ts
+ */
+template <std::size_t i, typename... Ts> struct TypeIndex;
 
-template <size_t i, typename T, typename ... Ts>
-  struct TypeIndex<i, T, T, Ts...> {
-    static const size_t value = i;
-  };
+template <std::size_t i, typename T, typename... Ts> struct TypeIndex<i, T, T, Ts...> {
+  static const std::size_t value = i;
+};
 
-template <size_t i, typename T, typename U, typename ... Ts>
-  struct TypeIndex<i, T, U, Ts...> {
-    static const size_t value = TypeIndex<i+1, T, Ts...>::value;
-  };
+template <std::size_t i, typename T, typename U, typename... Ts> struct TypeIndex<i, T, U, Ts...> {
+  static const size_t value = TypeIndex<i + 1, T, Ts...>::value;
+};
 
-template <typename ... UniqueRefcMaps>
-  class unique_refc_maps {
-  private:
-    using RefcMaps = std::tuple<UniqueRefcMaps...>;
-    RefcMaps refcMaps;
-  public:
-    template <typename T>
-      typename std::tuple_element<TypeIndex<0, T, UniqueRefcMaps...>::value, RefcMaps>::type& at() {
-        return std::get<TypeIndex<0, T, UniqueRefcMaps...>::value>(this->refcMaps);
+/**
+ * @brief it stores all \c UniqueTypeValueCache
+ */
+template <typename... Caches> class AllUniqueTypeValueCaches {
+  std::tuple<Caches...> caches;
+
+public:
+  template <typename T>
+  [[nodiscard]]
+  typename std::tuple_element<TypeIndex<0, T, Caches...>::value, std::tuple<Caches...>>::type&
+  at() {
+    return std::get<TypeIndex<0, T, Caches...>::value>(this->caches);
+  }
+
+  size_t compact() {
+    size_t tc = 0;
+    while (true) {
+      const size_t c = compactAll<0>(this->caches);
+      tc += c;
+      if (c == 0) {
+        break;
       }
-
-    size_t compact() {
-      size_t tc = 0;
-      while (true) {
-        size_t c = compactAll<0>(this->refcMaps);
-        tc += c;
-        if (c == 0) break;
-      }
-      return tc;
     }
-  };
-}  // namespace internal
+    return tc;
+  }
+};
+} // namespace internal
 
 template <typename V, typename U> V scast (U x)        { return static_cast<V>(x); }
 template <typename V, typename U> V rcast (U x)        { return reinterpret_cast<V>(x); }

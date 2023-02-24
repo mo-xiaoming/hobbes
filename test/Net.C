@@ -1,9 +1,11 @@
 
 #include "test.H"
+
 #include <hobbes/hobbes.H>
 #include <hobbes/ipc/net.H>
 #include <hobbes/net.H>
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
