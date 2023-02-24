@@ -190,14 +190,13 @@ std::string demangle(const char* tn) {
     return "";
   }
 
-  int   s   = 0;
-  const auto dmn = std::unique_ptr<char, void(*)(void*)>(abi::__cxa_demangle(tn, nullptr, nullptr, &s), ::free);
+  const auto dmn =
+      std::unique_ptr<char[], void (*)(void*)>(abi::__cxa_demangle(tn, nullptr, nullptr, nullptr), ::free);
 
-  if (dmn == nullptr) {
-    return {tn};
-  } else {
+  if (dmn) {
     return {dmn.get()};
   }
+  return {tn};
 }
 
 std::string demangle(const std::type_info& ti) {

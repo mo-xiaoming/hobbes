@@ -91,7 +91,7 @@ struct recursion {
 // a linked list is a recursive sum of nested tuples starting at unit
 template <typename T>
   struct seq {
-    static_assert(!std::is_same<T, unit>::value, "hobbes::seq<unit> work");
+    static_assert(!std::is_same<T, unit>::value, "hobbes::seq<unit> doesn't work");
 
     using pair_t = std::pair<T, seq<T> *>;
     using rep_t = variant<unit, pair_t>;
@@ -107,13 +107,20 @@ template <typename T>
 /******************
  * lift(T) : map C++ types to hobbes type descriptions
  ******************/
-template <typename T, bool InStruct = false, typename P = void>
-  struct lift;
+  template <typename T, bool InStruct = false, typename P = void> struct lift;
 
-// the default lift just refers to opaque C++ data (either as pointers or inline data)
-template <typename T, bool InStruct> struct opaquePtrLift { };
-template <typename T> struct opaquePtrLift<T,true>  { static MonoTypePtr type() { return OpaquePtr::make(str::demangle<T>(), sizeof(T), true); } };
-template <typename T> struct opaquePtrLift<T,false> { static MonoTypePtr type() { return OpaquePtr::make(str::demangle<T>(), 0, false); } };
+  // the default lift just refers to opaque C++ data (either as pointers or inline data)
+  template <typename T, bool InStruct> struct opaquePtrLift;
+  template <typename T> struct opaquePtrLift<T, true> {
+    static MonoTypePtr type() {
+      return OpaquePtr::make(str::demangle<T>(), sizeof(T), true);
+    }
+  };
+  template <typename T> struct opaquePtrLift<T, false> {
+    static MonoTypePtr type() {
+      return OpaquePtr::make(str::demangle<T>(), 0, false);
+    }
+  };
 
 // also by default : strip 'const' annotations and rewrite references to pointers
 template <typename T, bool InStruct> struct defaultLift { static MonoTypePtr type(typedb&) { return opaquePtrLift<T,InStruct>::type(); } };

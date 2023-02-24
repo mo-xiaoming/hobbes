@@ -288,17 +288,23 @@ class OpaquePtr : public MonoTypeCase<OpaquePtr> {
 public:
   void show(std::ostream& out) const override;
 
-  const std::string& name()               const;
-  unsigned int       size()               const;
-  bool               storedContiguously() const;
+  const std::string& name() const;
+  unsigned int size() const;
+  bool storedContiguously() const;
 
   static const int type_case_id = 1;
 
+  /**
+   * @param scontig Stored contiguously in memory.
+   *
+   * @param sz Size of the type. Ignored if @a scontig is false
+   */
   static MonoTypePtr make(const std::string& nm, unsigned int sz, bool scontig = false);
+
 private:
-  std::string  nm;
+  std::string nm;
   unsigned int sz;
-  bool         scontig;
+  bool scontig;
 
   friend class MonoType;
   OpaquePtr(const std::string&, unsigned int, bool);

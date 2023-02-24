@@ -604,13 +604,21 @@ MonoTypePtr OpaquePtr::make(const std::string& nm, unsigned int sz, bool scontig
   return makeType<OpaquePtrMem, OpaquePtr>(nm, scontig ? sz : 0, scontig);
 }
 
-OpaquePtr::OpaquePtr(const std::string& nm, unsigned int sz, bool scontig) : nm(nm), sz(sz), scontig(scontig) {
-}
+OpaquePtr::OpaquePtr(const std::string& nm, unsigned int sz, bool scontig)
+    : nm(nm), sz(sz), scontig(scontig) {}
 
-const std::string& OpaquePtr::name() const { return this->nm; }
-unsigned int OpaquePtr::size() const { return this->sz; }
-bool OpaquePtr::storedContiguously() const { return this->scontig; }
-void OpaquePtr::show(std::ostream& out) const { out << "<" << str::replace<char>(this->nm, "::", ".") << ">"; }
+const std::string& OpaquePtr::name() const {
+  return this->nm;
+}
+unsigned int OpaquePtr::size() const {
+  return this->sz;
+}
+bool OpaquePtr::storedContiguously() const {
+  return this->scontig;
+}
+void OpaquePtr::show(std::ostream& out) const {
+  out << "<" << str::replace<char>(this->nm, "::", ".") << ">";
+}
 
 MonoTypePtr normIfOpaquePtr(const MonoTypePtr& ty) {
   if (const OpaquePtr* op = is<OpaquePtr>(ty)) {

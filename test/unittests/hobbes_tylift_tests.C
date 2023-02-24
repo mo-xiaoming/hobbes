@@ -15,7 +15,7 @@ TEST(UnitTests, TyLiftSeq) {
     const hobbes::seq<int> two(73, &one);    
     EXPECT_FALSE(two.empty());
     EXPECT_EQ(two.head()->first, 73)
-    EXPECT_TRUE(one.head()->second == &one);
+    EXPECT_TRUE(two.head()->second == &one);
     EXPECT_FALSE(one.empty());
     EXPECT_EQ(one.head()->first, 42)
     EXPECT_TRUE(one.head()->second == nullptr);

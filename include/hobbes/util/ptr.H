@@ -3,12 +3,10 @@
 #define HOBBES_UTIL_PTR_HPP_INCLUDED
 
 #include <hobbes/util/hash.H>
+
+#include <functional>
 #include <memory>
-#include <vector>
 #include <unordered_map>
-#include <map>
-#include <iostream>
-#include <atomic>
 #include <mutex>
 
 namespace hobbes {
