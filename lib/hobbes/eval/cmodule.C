@@ -12,17 +12,16 @@
 #include <hobbes/util/str.H>
 #include <memory>
 #include <stdexcept>
+#include <utility>
+#include <unistd.h>
+
+namespace {
+bool fileExists(const std::string &fname) {
+  return ::access(fname.c_str(), R_OK) == 0;
+}
+}
 
 namespace hobbes {
-
-bool fileExists(const std::string &fname) {
-  // not the most elegant, but it does the job
-  FILE *f = fopen(fname.c_str(), "r");
-  if (f == nullptr)
-    return false;
-  fclose(f);
-  return true;
-}
 
 bool importObject(cc *e, const std::string &sopath) {
   if (!fileExists(sopath)) {
@@ -67,8 +66,9 @@ static ModulePaths &modulePaths() {
 }
 void pushModuleDir(const std::string &d) { modulePaths().push_back(d); }
 void popModuleDir() {
-  if (!modulePaths().empty())
+  if (!modulePaths().empty()) {
     modulePaths().resize(modulePaths().size() - 1);
+  }
 }
 
 // import a "module" from a path spec (A.B.C => [.|$MODULEPATH]/A/B/C.*)
@@ -98,7 +98,7 @@ ExprPtr applyTypeDefns(const ModulePtr &, cc *, const ExprPtr &);
 struct appTyDefnF : public switchTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnF(const ModulePtr &m, cc *e) : m(m), e(e) {}
+  appTyDefnF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   MonoTypePtr with(const TVar *v) const override {
     const auto &tn = v->name();
 
@@ -123,8 +123,9 @@ struct appTyDefnF : public switchTyFn {
 };
 MonoTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const MonoTypePtr &t) {
   auto ua = e->unappTyDefns.find(t.get());
-  if (ua != e->unappTyDefns.end())
+  if (ua != e->unappTyDefns.end()) {
     return ua->second;
+  }
 
   MonoTypePtr r = switchOf(t, appTyDefnF(m, e));
   e->unappTyDefns[t.get()] = r;
@@ -151,12 +152,12 @@ QualTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const QualTypePtr &t) {
 struct appTyDefnEF : public switchExprTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnEF(const ModulePtr &m, cc *e) : m(m), e(e) {}
+  appTyDefnEF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
-    if (t)
+    if (t) {
       return applyTypeDefns(this->m, this->e, t);
-    else
-      return t;
+    }
+    return {};
   }
 };
 ExprPtr applyTypeDefns(const ModulePtr &m, cc *e, const ExprPtr &x) {
@@ -166,12 +167,12 @@ ExprPtr applyTypeDefns(const ModulePtr &m, cc *e, const ExprPtr &x) {
 struct appTyDefnMF : public switchMDefTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnMF(const ModulePtr &m, cc *e) : m(m), e(e) {}
+  appTyDefnMF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
-    if (t)
+    if (t) {
       return applyTypeDefns(this->m, this->e, t);
-    else
-      return t;
+    }
+    return {};
   }
 };
 ModuleDefPtr applyTypeDefns(const ModulePtr &m, cc *e, const ModuleDefPtr &md) {
@@ -469,8 +470,8 @@ struct SafeExpr {
   using Status = SafeSet::Status;
   struct UnsafeDefs {
     UnsafeDefs() = default;
-    UnsafeDefs(std::string const &var, std::string const &fn_)
-        : var(var), fn(fn_), status(Status::UnSafe) {}
+    UnsafeDefs(std::string var, std::string fn_)
+        : var(std::move(var)), fn(std::move(fn_)), status(Status::UnSafe) {}
 
     const std::string &varName() const { return var; }
     const std::string &safeFn() const { return fn; }
@@ -529,10 +530,10 @@ private:
              std::function<R(const SafeExpr::UnsafeDefs &)> const &hit,
              std::function<R(void)> const &miss) -> R {
     auto it = map.find(n);
-    if (it != std::end(map) && it->second.varStatus() != SafeExpr::Status::Safe)
+    if (it != std::end(map) && it->second.varStatus() != SafeExpr::Status::Safe) {
       return hit(it->second);
-    else
-      return miss();
+    }
+    return miss();
   }
 
   static auto instance() -> SafeExpr & {
@@ -545,7 +546,7 @@ private:
   }
 
   SafeExpr() = default;
-  SafeExpr(Map const &map) : map(map) {}
+  explicit SafeExpr(Map map) : map(std::move(map)) {}
   Map map;
 };
 

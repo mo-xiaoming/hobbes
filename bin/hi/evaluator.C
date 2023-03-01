@@ -206,20 +206,20 @@ void evaluator::printTypeEnv() {
 
 hobbes::str::seq evaluator::completionsFor(const std::string& prefix) const {
   if (prefix.empty()) {
-    return hobbes::str::seq();
-  } else {
-    hobbes::str::seq vars;
-    hobbes::str::seq types;
-    this->ctx.dumpTypeEnv(&vars, &types);
-
-    hobbes::str::seq matches;
-    for (const auto& var : vars) {
-      if (prefix == var.substr(0, prefix.size())) {
-        matches.push_back(var);
-      }
-    }
-    return matches;
+    return {};
   }
+
+  hobbes::str::seq vars;
+  hobbes::str::seq types;
+  this->ctx.dumpTypeEnv(&vars, &types);
+
+  hobbes::str::seq matches;
+  for (const auto& var : vars) {
+    if (prefix == var.substr(0, prefix.size())) {
+      matches.push_back(var);
+    }
+  }
+  return matches;
 }
 
 void evaluator::printLLVMModule() {
@@ -259,9 +259,7 @@ void evaluator::perfTestExpr(const std::string& expr) {
 
 void evaluator::breakdownEvalExpr(const std::string& expr) {
   auto e = readExpr("print(" + expr + ")");
-  long t0;
-
-  t0 = hobbes::tick();
+  long t0 = hobbes::tick();
   this->ctx.unsweetenExpression(e);
   long ust = hobbes::tick() - t0;
 
@@ -343,5 +341,4 @@ std::pair<std::string, hobbes::ExprPtr> evaluator::readExprDefn(const std::strin
   return p;
 }
 
-}
-
+}  // namespace hi

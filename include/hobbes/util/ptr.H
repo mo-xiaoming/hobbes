@@ -6,8 +6,8 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
 #include <mutex>
+#include <unordered_map>
 
 namespace hobbes {
 
@@ -18,7 +18,8 @@ namespace internal {
  *  All same genHash(ctor_args_for_Type_in_order) are considered to be the same value
  * (is it risky?)
  */
-template <typename Type, typename... Args> class UniqueTypeValueCache {
+template <typename Type, typename... Args>
+class UniqueTypeValueCache {
 public:
   using object_type = Type;
 
@@ -72,13 +73,16 @@ private:
  * @brief get the index of a Type in @a Ts
  * Type must exists in Ts
  */
-template <std::size_t i, typename... Ts> struct TypeIndex;
+template <std::size_t i, typename... Ts>
+struct TypeIndex;
 
-template <std::size_t i, typename T, typename... Ts> struct TypeIndex<i, T, T, Ts...> {
+template <std::size_t i, typename T, typename... Ts>
+struct TypeIndex<i, T, T, Ts...> {
   static const std::size_t value = i;
 };
 
-template <std::size_t i, typename T, typename U, typename... Ts> struct TypeIndex<i, T, U, Ts...> {
+template <std::size_t i, typename T, typename U, typename... Ts>
+struct TypeIndex<i, T, U, Ts...> {
   static const size_t value = TypeIndex<i + 1, T, Ts...>::value;
 };
 
@@ -100,13 +104,14 @@ template <size_t i, typename... Caches>
 /**
  * @brief it stores all \c UniqueTypeValueCache
  */
-template <typename... Caches> class AllUniqueTypeValueCaches {
+template <typename... Caches>
+class AllUniqueTypeValueCaches {
   std::tuple<Caches...> caches;
 
 public:
   /**
-    * @brief get the cache of cache type \a T
-    */
+   * @brief get the cache of cache type \a T
+   */
   template <typename T>
   [[nodiscard]]
   typename std::tuple_element<TypeIndex<0, T, Caches...>::value, std::tuple<Caches...>>::type&
@@ -131,42 +136,51 @@ public:
 };
 } // namespace internal
 
-template <typename V, typename U> V scast (U x)        { return static_cast<V>(x); }
-template <typename V, typename U> V rcast (U x)        { return reinterpret_cast<V>(x); }
-template <typename V, typename U> V crcast(const U* x) { return reinterpret_cast<V>(const_cast<U*>(x)); }
+template <typename V, typename U>
+V scast(U x) {
+  return static_cast<V>(x);
+}
+template <typename V, typename U>
+V rcast(U x) {
+  return reinterpret_cast<V>(x);
+}
+template <typename V, typename U>
+V crcast(const U* x) {
+  return reinterpret_cast<V>(const_cast<U*>(x));
+}
 
 template <typename T>
-  T align(T x, T m) {
-    if (m == 0 || (x % m) == 0) {
-      return x;
-    } else {
-      return (1 + (x / m)) * m;
-    }
+T align(T x, T m) {
+  if (m == 0 || (x % m) == 0) {
+    return x;
+  } else {
+    return (1 + (x / m)) * m;
   }
+}
 
 template <typename T, typename S>
-  const T* is(const S* s) {
-    if (s && s->case_id() == T::type_case_id) {
-      return rcast<const T*>(s);
-    } else {
-      return nullptr;
-    }
+const T* is(const S* s) {
+  if (s && s->case_id() == T::type_case_id) {
+    return rcast<const T*>(s);
+  } else {
+    return nullptr;
   }
+}
 
 template <typename T, typename S>
-  T* isM(S* s) {
-    if (s && s->case_id() == T::type_case_id) {
-      return rcast<T*>(s);
-    } else {
-      return nullptr;
-    }
+T* isM(S* s) {
+  if (s && s->case_id() == T::type_case_id) {
+    return rcast<T*>(s);
+  } else {
+    return nullptr;
   }
+}
 
 template <typename T, typename S>
-  T* is(const std::shared_ptr<S>& s) {
-    return isM<T, S>(s.get());
-  }
+T* is(const std::shared_ptr<S>& s) {
+  return isM<T, S>(s.get());
+}
 
-}  // namespace hobbes
+} // namespace hobbes
 
 #endif

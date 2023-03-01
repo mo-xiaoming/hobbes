@@ -343,7 +343,7 @@ public:
     size_t  i = (r*this->colc)+c;
     size_t  k = i / 8;
     uint8_t b = i % 8;
-    return (this->data[k] & (1 << b)) != 0;
+    return (this->data[k] & (1UL << b)) != 0;
   }
   inline void set(size_t r, size_t c, bool f) {
     size_t  i = (r*this->colc)+c;
@@ -351,9 +351,9 @@ public:
     uint8_t b = i % 8;
 
     if (f) {
-      this->data[k] |= 1 << b;
+      this->data[k] |= 1UL << b;
     } else {
-      this->data[k] &= ~(1 << b);
+      this->data[k] &= ~(1UL << b);
     }
   }
   inline size_t rows() const { return this->rowc; }

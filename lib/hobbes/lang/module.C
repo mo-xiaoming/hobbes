@@ -11,6 +11,11 @@ namespace hobbes {
 Module::Module(const std::string& mname, const ModuleDefs& defs) : mname(mname), defs(defs) { }
 const std::string& Module::name()        const { return this->mname; }
 const ModuleDefs&  Module::definitions() const { return this->defs; }
+std::string ModuleDef::toString() const {
+  std::stringstream out;
+  this->show(out);
+  return std::move(out).str();
+}
 
 void Module::show(std::ostream& out) const {
   out << "module " << this->mname << " where" << std::endl;
@@ -18,6 +23,11 @@ void Module::show(std::ostream& out) const {
     def->show(out);
     out << std::endl;
   }
+}
+std::string Module::toString() const {
+  std::stringstream out;
+  this->show(out);
+  return std::move(out).str();
 }
 
 bool isValidOption(const std::string& o) {
@@ -39,7 +49,6 @@ const std::vector<std::string>& Module::options() const {
 /* module defs */
 ModuleDef::ModuleDef(int cid, const LexicalAnnotation& la) : LexicallyAnnotated(la), cid(cid) { }
 int ModuleDef::case_id() const { return this->cid; }
-ModuleDef::~ModuleDef() = default;
 
 // module imports
 MImport::MImport(const std::string& p, const std::string& n, const LexicalAnnotation& la) : Base(la), p(p), n(n) { }
@@ -139,23 +148,21 @@ void InstanceDef::show(std::ostream& out) const {
 
 /* utility methods */
 std::string show(const Module& m) {
-  std::ostringstream ss;
-  m.show(ss);
-  return ss.str();
+  return m.toString();
 }
-std::string show(const Module* m)    { return show(*m); }
-std::string show(const ModulePtr& m) { return show(*m); }
+std::string show(const Module* m) {
+  return show(*m);
+}
+std::string show(const ModulePtr& m) {
+  return show(*m);
+}
 
 std::string show(const MTypeDef* td) {
-  std::ostringstream ss;
-  td->show(ss);
-  return ss.str();
+  return td->ModuleDef::toString();
 }
 
 std::string show(const ClassDef& cd) {
-  std::ostringstream ss;
-  cd.show(ss);
-  return ss.str();
+  return cd.ModuleDef::toString();
 }
 
 std::string show(const ClassDef* cd) {
@@ -163,9 +170,7 @@ std::string show(const ClassDef* cd) {
 }
 
 std::string show(const InstanceDef& id) {
-  std::ostringstream ss;
-  id.show(ss);
-  return ss.str();
+  return id.ModuleDef::toString();
 }
 
 std::string show(const InstanceDef* id) {
@@ -173,9 +178,7 @@ std::string show(const InstanceDef* id) {
 }
 
 std::string show(const ModuleDefPtr& md) {
-  std::ostringstream ss;
-  md->show(ss);
-  return ss.str();
+  return md->toString();
 }
 
 std::string show(const CFunDepDef& fundep) {
@@ -213,7 +216,7 @@ ModuleDefPtr switchMDefTyFn::with(const MSafePragmaDef* x) const { return Module
 
 struct appMTySwitchF : public switchExprTyFn {
   const switchMDefTyFn* f;
-  appMTySwitchF(const switchMDefTyFn* f) : f(f) { }
+  explicit appMTySwitchF(const switchMDefTyFn* f) : f(f) { }
   QualTypePtr withTy(const QualTypePtr& t) const override { if (t) return this->f->withTy(t); else return t; }
 };
 ModuleDefPtr switchMDefTyFn::with(const MVarDef* x) const {
@@ -256,5 +259,4 @@ ModuleDefPtr switchMDefTyFn::with(const InstanceDef* x) const {
   return ModuleDefPtr(new InstanceDef(appMTyCS(this, x->constraints()), x->className(), appMTyTys(this, x->args()), appMTyMVDs(this, x->members()), x->la()));
 }
 
-}
-
+}  // namespace hobbes

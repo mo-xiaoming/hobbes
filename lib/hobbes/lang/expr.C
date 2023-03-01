@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <hobbes/lang/expr.H>
 #include <hobbes/lang/preds/class.H>
 #include <hobbes/util/array.H>
@@ -18,12 +19,14 @@ Exprs clones(const Exprs& es) {
 }
 
 std::string show(const Expr& e) {
-  std::ostringstream ss;
-  e.show(ss);
-  return ss.str();
+  return e.toString();
 }
-std::string show(const Expr* e)    { return show(*e); }
-std::string show(const ExprPtr& e) { return show(*e); }
+std::string show(const Expr* e) {
+  return show(*e);
+}
+std::string show(const ExprPtr& e) {
+  return show(*e);
+}
 
 std::string show(const Definition& d) {
   return d.first + " = " + show(d.second);
@@ -36,11 +39,14 @@ inline void showTy(std::ostream& out, const QualTypePtr& qty) {
 }
 
 Expr::Expr(int cid, const LexicalAnnotation& la) : LexicallyAnnotated(la), cid(cid) { }
-Expr::~Expr() = default;
 const QualTypePtr& Expr::type() const { return this->annotatedType; }
 void Expr::type(const QualTypePtr& ty) { this->annotatedType = ty; }
 int Expr::case_id() const { return this->cid; }
-
+std::string Expr::toString() const {
+  std::ostringstream out;
+  this->show(out);
+  return std::move(out).str();
+}
 Primitive::Primitive(int cid, const LexicalAnnotation& la) : Expr(cid, la) { }
 bool PrimPtrLT::operator()(const PrimitivePtr& p0, const PrimitivePtr& p1) const { return *p0 < *p1; }
 
@@ -50,7 +56,7 @@ void Unit::show(std::ostream& out) const          { out << "()"; }
 void Unit::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Unit::equiv(const Unit&)               const { return true; }
 bool Unit::lt(const Unit&)                  const { return false; }
-MonoTypePtr Unit::primType() const { return MonoTypePtr(Prim::make("unit")); }
+MonoTypePtr Unit::primType() const { return Prim::make("unit"); }
 
 Bool::Bool(bool x, const LexicalAnnotation& la) : Base(la), x(x) { }
 bool Bool::value() const { return this->x; }
@@ -60,7 +66,7 @@ void Bool::show(std::ostream& out)          const { out << (this->x ? "true" : "
 void Bool::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Bool::equiv(const Bool& rhs)           const { return this->x == rhs.x; }
 bool Bool::lt(const Bool& rhs)              const { return static_cast<int>(this->x) < static_cast<int>(rhs.x); }
-MonoTypePtr Bool::primType() const { return MonoTypePtr(Prim::make("bool")); }
+MonoTypePtr Bool::primType() const { return Prim::make("bool"); }
 
 Char::Char(char x, const LexicalAnnotation& la) : Base(la), x(x) { }
 char Char::value() const { return this->x; }
@@ -70,7 +76,7 @@ void Char::show(std::ostream& out)          const { out << "'" << this->x << "'"
 void Char::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Char::equiv(const Char& rhs)           const { return this->x == rhs.x; }
 bool Char::lt(const Char& rhs)              const { return this->x < rhs.x; }
-MonoTypePtr Char::primType() const { return MonoTypePtr(Prim::make("char")); }
+MonoTypePtr Char::primType() const { return Prim::make("char"); }
 
 Byte::Byte(unsigned char x, const LexicalAnnotation& la) : Base(la), x(x) { }
 unsigned char Byte::value() const { return this->x; }
@@ -80,7 +86,7 @@ void Byte::show(std::ostream& out)          const { out << str::hex(this->x); }
 void Byte::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Byte::equiv(const Byte& rhs)           const { return this->x == rhs.x; }
 bool Byte::lt(const Byte& rhs)              const { return this->x < rhs.x; }
-MonoTypePtr Byte::primType() const { return MonoTypePtr(Prim::make("byte")); }
+MonoTypePtr Byte::primType() const { return Prim::make("byte"); }
 
 Short::Short(short x, const LexicalAnnotation& la) : Base(la), x(x) { }
 short Short::value() const { return this->x; }
@@ -90,7 +96,7 @@ void Short::show(std::ostream& out)          const { out << this->x << "S"; }
 void Short::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Short::equiv(const Short& rhs)          const { return this->x == rhs.x; }
 bool Short::lt(const Short& rhs)             const { return this->x < rhs.x; }
-MonoTypePtr Short::primType() const { return MonoTypePtr(Prim::make("short")); }
+MonoTypePtr Short::primType() const { return Prim::make("short"); }
 
 Int::Int(int x, const LexicalAnnotation& la) : Base(la), x(x) { }
 int Int::value() const { return this->x; }
@@ -100,7 +106,7 @@ void Int::show(std::ostream& out)          const { out << this->x; }
 void Int::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Int::equiv(const Int& rhs)            const { return this->x == rhs.x; }
 bool Int::lt(const Int& rhs)               const { return this->x < rhs.x; }
-MonoTypePtr Int::primType() const { return MonoTypePtr(Prim::make("int")); }
+MonoTypePtr Int::primType() const { return Prim::make("int"); }
 
 Long::Long(long x, const LexicalAnnotation& la) : Base(la), x(x) { }
 long Long::value() const { return this->x; }
@@ -110,7 +116,7 @@ void Long::show(std::ostream& out)          const { out << this->x << "L"; }
 void Long::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Long::equiv(const Long& rhs)           const { return this->x == rhs.x; }
 bool Long::lt(const Long& rhs)              const { return this->x < rhs.x; }
-MonoTypePtr Long::primType() const { return MonoTypePtr(Prim::make("long")); }
+MonoTypePtr Long::primType() const { return Prim::make("long"); }
 
 Int128::Int128(int128_t x, const LexicalAnnotation& la) : Base(la), x(x) { }
 int128_t Int128::value() const { return this->x; }
@@ -120,7 +126,7 @@ void Int128::show(std::ostream& out)          const { printInt128(out, this->x);
 void Int128::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Int128::equiv(const Int128& rhs)         const { return this->x == rhs.x; }
 bool Int128::lt(const Int128& rhs)            const { return this->x < rhs.x; }
-MonoTypePtr Int128::primType() const { return MonoTypePtr(Prim::make("int128")); }
+MonoTypePtr Int128::primType() const { return Prim::make("int128"); }
 
 Float::Float(float x, const LexicalAnnotation& la) : Base(la), x(x) { }
 float Float::value() const { return this->x; }
@@ -130,7 +136,7 @@ void Float::show(std::ostream& out)          const { out << this->x << "e"; }
 void Float::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Float::equiv(const Float& rhs)          const { return this->x == rhs.x; }
 bool Float::lt(const Float& rhs)             const { return this->x < rhs.x; }
-MonoTypePtr Float::primType() const { return MonoTypePtr(Prim::make("float")); }
+MonoTypePtr Float::primType() const { return Prim::make("float"); }
 
 Double::Double(double x, const LexicalAnnotation& la) : Base(la), x(x) { }
 double Double::value() const { return this->x; }
@@ -140,7 +146,7 @@ void Double::show(std::ostream& out)          const { out << this->x; }
 void Double::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 bool Double::equiv(const Double& rhs)         const { return this->x == rhs.x; }
 bool Double::lt(const Double& rhs)            const { return this->x < rhs.x; }
-MonoTypePtr Double::primType() const { return MonoTypePtr(Prim::make("double")); }
+MonoTypePtr Double::primType() const { return Prim::make("double"); }
 
 Var::Var(const std::string& id, const LexicalAnnotation& la) : Base(la), id(id) { }
 bool Var::operator==(const Var& rhs) const { return this->id == rhs.id; }
@@ -651,8 +657,7 @@ Switch::Switch(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const L
       exhaustive |= bs.size() == 2;
       break;
     case Byte::type_case_id:
-      exhaustive |= bs.size() == 256;
-      break;
+      [[fallthrough]];
     case Case::type_case_id:
       exhaustive |= bs.size() == 256;
       break;
@@ -982,7 +987,7 @@ ExprPtr substitute(const VarMapping& vm, const ExprPtr& e, bool* mapped) {
 
 struct substTyF : public switchExprTyFn {
   const MonoTypeSubst& s;
-  substTyF(const MonoTypeSubst& s) : s(s) { }
+  explicit substTyF(const MonoTypeSubst& s) : s(s) { }
 
   QualTypePtr withTy(const QualTypePtr& qt) const override {
     if (qt) {
@@ -1282,7 +1287,7 @@ const ExprPtr& stripAssumpHead(const ExprPtr& e) {
 
 // find the set of free variables in an expression
 struct freeVarF : public switchExprC<VarSet> {
-  VarSet withConst(const Expr*)        const override { return VarSet(); }
+  VarSet withConst(const Expr*)        const override { return {}; }
   VarSet with     (const Var* v)       const override { return toSet(list(v->value())); }
   VarSet with     (const Let* v)       const override { return setUnion(list(freeVars(v->varExpr()), setDifference(freeVars(v->bodyExpr()), toSet(list(v->var()))))); }
   VarSet with     (const Fn* v)        const override { return setDifference(freeVars(v->body()), toSet(v->varNames())); }
@@ -1299,6 +1304,7 @@ struct freeVarF : public switchExprC<VarSet> {
   
   VarSet with(const LetRec* v) const override {
     std::vector<VarSet> fvs;
+    fvs.reserve(v->bindings().size() + 1);
     str::set            vns = toSet(v->varNames());
 
     for (const auto& b : v->bindings()) {
@@ -1311,6 +1317,7 @@ struct freeVarF : public switchExprC<VarSet> {
 
   VarSet with(const Case* v) const override {
     std::vector<VarSet> fvs;
+    fvs.reserve(v->bindings().size() + 2);
     fvs.push_back(freeVars(v->variant()));
     for (const auto &b : v->bindings()) {
       fvs.push_back(setDifference(freeVars(b.exp), toSet(list(b.vname))));
@@ -1323,6 +1330,7 @@ struct freeVarF : public switchExprC<VarSet> {
 
   VarSet with(const Switch* v) const override {
     std::vector<VarSet> fvs;
+    fvs.reserve(v->bindings().size() + 2);
     fvs.push_back(freeVars(v->expr()));
     for (const auto& sb : v->bindings()) {
       fvs.push_back(freeVars(sb.exp));
@@ -1345,7 +1353,7 @@ VarSet freeVars(const Expr& e) {
 // find the set of type variables in an expression
 struct etvarNamesF : public switchExprC<UnitV> {
   NameSet* out;
-  etvarNamesF(NameSet* out) : out(out) { }
+  explicit etvarNamesF(NameSet* out) : out(out) { }
   UnitV an(const Expr* v) const { if (v->type()) { tvarNames(v->type(), this->out); } return unitv; }
 
   UnitV withConst(const Expr*)        const override { return unitv; }
@@ -1463,7 +1471,7 @@ void decode(Switch::Binding* b, std::istream& in) {
 
 struct encodeExprF : public switchExpr<UnitV> {
   std::ostream& out;
-  encodeExprF(std::ostream& out) : out(out) { }
+  explicit encodeExprF(std::ostream& out) : out(out) { }
 
   UnitV with(const Unit*) const override {
     encode(Unit::type_case_id, this->out);
@@ -1939,12 +1947,9 @@ struct hasSingularTypeF : public switchExprC<bool> {
   bool with(const LetRec* v) const override {
     if (!d(v) || !r(v->bodyExpr())) return false;
 
-    for (const auto& b : v->bindings()) {
-      if (!r(b.second)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(v->bindings().cbegin(), v->bindings().cend(), [this](const auto& b) {
+      return r(b.second);
+    });
   }
 
   bool with(const Fn* v) const override {
@@ -1954,12 +1959,9 @@ struct hasSingularTypeF : public switchExprC<bool> {
   bool with(const App* v) const override {
     if (!d(v) || !r(v->fn())) return false;
 
-    for (const auto& a : v->args()) {
-      if (!r(a)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(v->args().cbegin(), v->args().cend(), [this](const auto& a) {
+      return r(a);
+    });
   }
 
   bool with(const Assign* v) const override {
@@ -1968,10 +1970,9 @@ struct hasSingularTypeF : public switchExprC<bool> {
 
   bool with(const MkArray* v) const override {
     if (!d(v)) return false;
-    for (const auto& val : v->values()) {
-      if (!r(val)) return false;
-    }
-    return true;
+    return std::all_of(v->values().cbegin(), v->values().cend(), [this](const auto& v) {
+      return r(v);
+    });
   }
 
   bool with(const MkVariant* v) const override {
@@ -1980,10 +1981,9 @@ struct hasSingularTypeF : public switchExprC<bool> {
 
   bool with(const MkRecord* v) const override {
     if (!d(v)) return false;
-    for (const auto& f : v->fields()) {
-      if (!r(f.second)) return false;
-    }
-    return true;
+    return std::all_of(v->fields().cbegin(), v->fields().cend(), [this](const auto& f) {
+      return r(f.second);
+    });
   }
 
   bool with(const AIndex* v) const override {
@@ -1992,18 +1992,16 @@ struct hasSingularTypeF : public switchExprC<bool> {
 
   bool with(const Case* v) const override {
     if (!d(v) || !r(v->variant()) || (v->defaultExpr() && !r(v->defaultExpr()))) return false;
-    for (const auto& b : v->bindings()) {
-      if (!r(b.exp)) return false;
-    }
-    return true;
+    return std::all_of(v->bindings().cbegin(), v->bindings().cend(), [this](const auto& b) {
+      return r(b.exp);
+    });
   }
 
   bool with(const Switch* v) const override {
     if (!d(v) || !r(v->expr()) || (v->defaultExpr() && !r(v->defaultExpr()))) return false;
-    for (const auto& b : v->bindings()) {
-      if (!r(b.exp)) return false;
-    }
-    return true;
+    return std::all_of(v->bindings().cbegin(), v->bindings().cend(), [this](const auto& b) {
+      return r(b.exp);
+    });
   }
 
   bool with(const Proj* v) const override {
@@ -2135,5 +2133,4 @@ int tgenSize(const ExprPtr& e) {
   return switchOf(e, tgenSizeExprF());
 }
 
-}
-
+}  // namespace hobbes

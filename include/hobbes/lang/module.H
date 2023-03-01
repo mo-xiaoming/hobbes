@@ -9,14 +9,16 @@
 #include <memory>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace hobbes {
 
 // modules can define types, variable type bindings, variables, classes, and class instances
 struct ModuleDef : public LexicallyAnnotated {
-  virtual ~ModuleDef();
+  virtual ~ModuleDef() = default;
   virtual void show(std::ostream&) const = 0;
+  [[nodiscard]] std::string toString() const;
 
   // improves performance of case-analysis over instances (to avoid 'dynamic_cast')
 public:
@@ -32,7 +34,7 @@ using ModuleDefs = std::vector<ModuleDefPtr>;
 template <typename Case>
   struct ModuleDefCase : public ModuleDef {
     using Base = ModuleDefCase<Case>;
-    ModuleDefCase(const LexicalAnnotation&);
+    explicit ModuleDefCase(const LexicalAnnotation&);
   };
 
 class MImport : public ModuleDefCase<MImport> {
@@ -153,7 +155,7 @@ using InstanceDefs = std::vector<InstanceDefPtr>;
 
 class MUnsafePragmaDef : public ModuleDefCase<MUnsafePragmaDef> {
 public:
-  MUnsafePragmaDef(const std::string& symbol, const LexicalAnnotation& la) : Base(la), symbol(symbol) {}
+  MUnsafePragmaDef(std::string  symbol, const LexicalAnnotation& la) : Base(la), symbol(std::move(symbol)) {}
   void show(std::ostream& out) const override { out << "{-# UNSAFE " << symbol << " #-}"; } ; 
 
   const std::string& symbolValue() const { return symbol; }
@@ -196,21 +198,21 @@ template <typename T>
   T switchOf(const ModuleDefPtr& p, const switchMDef<T>& f) {
     switch (p->case_id()) {
     case MImport::type_case_id:
-      return f.with(reinterpret_cast<const MImport*>(p.get()));
+      return f.with(rcast<const MImport*>(p.get()));
     case MTypeDef::type_case_id:
-      return f.with(reinterpret_cast<const MTypeDef*>(p.get()));
+      return f.with(rcast<const MTypeDef*>(p.get()));
     case MVarTypeDef::type_case_id:
-      return f.with(reinterpret_cast<const MVarTypeDef*>(p.get()));
+      return f.with(rcast<const MVarTypeDef*>(p.get()));
     case MVarDef::type_case_id:
-      return f.with(reinterpret_cast<const MVarDef*>(p.get()));
+      return f.with(rcast<const MVarDef*>(p.get()));
     case ClassDef::type_case_id:
-      return f.with(reinterpret_cast<const ClassDef*>(p.get()));
+      return f.with(rcast<const ClassDef*>(p.get()));
     case InstanceDef::type_case_id:
-      return f.with(reinterpret_cast<const InstanceDef*>(p.get()));
+      return f.with(rcast<const InstanceDef*>(p.get()));
     case MUnsafePragmaDef::type_case_id:
-      return f.with(reinterpret_cast<const MUnsafePragmaDef*>(p.get()));
+      return f.with(rcast<const MUnsafePragmaDef*>(p.get()));
     case MSafePragmaDef::type_case_id:
-      return f.with(reinterpret_cast<const MSafePragmaDef*>(p.get())); 
+      return f.with(rcast<const MSafePragmaDef*>(p.get())); 
     default:
       {
         std::ostringstream ss;
@@ -243,6 +245,7 @@ public:
   const ModuleDefs&  definitions() const;
 
   void show(std::ostream& out) const;
+  [[nodiscard]] std::string toString() const;
 
   // allow language options set within modules
   void setOption(const std::string&, const LexicalAnnotation&);
@@ -269,7 +272,7 @@ std::string show(const ModuleDefPtr& md);
 std::string show(const CFunDepDef& fundep);
 std::string show(const CFunDepDefs& fundeps);
 
-}
+}  // namespace hobbes
 
 #endif
 

@@ -1489,7 +1489,7 @@ MonoTypePtr TExpr::make(const ExprPtr& e) {
       [e](const std::string&) { return new TExpr(e); }, hobbes::show(e));
 }
 
-TExpr::TExpr(const ExprPtr& e) : e(e) {
+TExpr::TExpr(ExprPtr e) : e(std::move(e)) {
 }
 
 void TExpr::show(std::ostream& out) const { this->e->show(out); }

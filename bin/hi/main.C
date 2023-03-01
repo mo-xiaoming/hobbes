@@ -186,8 +186,9 @@ void showShellHelp() {
 
 void showUnsafeSymbols() {
   hobbes::SafeSet::forEach([](std::string const&, hobbes::SafeSet::Status const& status, std::string const& desc) {
-    if (hobbes::SafeSet::Status::UnSafe == status)
+    if (hobbes::SafeSet::Status::UnSafe == status) {
       std::cout << desc << std::endl;
+    }
   });
 }
 
@@ -254,7 +255,7 @@ void installInterruptHandler() {
 void evalLine(char*);
 
 void repl(evaluator*) {
-  signal(SIGWINCH, SIG_IGN);
+  (void)signal(SIGWINCH, SIG_IGN);
 
   // set up stdin to be read incrementally
   std::ostringstream prompt;
@@ -571,14 +572,14 @@ void runProcess(const std::string& cmd, std::ostream& out) {
   close(pio[1]);
 
   char buf[4096];
-  int n;
+  int n = 0;
   while ((n = read(pio[0], buf, sizeof(buf))) != 0) {
     out.write(buf, n);
   }
   close(pio[0]);
 }
 
-}
+}  // namespace hi
 
 using namespace hi;
 

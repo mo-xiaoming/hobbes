@@ -8,6 +8,7 @@
 #include <memory>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace hobbes {
@@ -16,9 +17,15 @@ using int128_t = __int128;
 
 class Expr : public LexicallyAnnotated {
 public:
-  virtual ~Expr();
+  Expr(const Expr&) = delete;
+  Expr(Expr&&) = delete;
+  Expr& operator=(const Expr&) = delete;
+  Expr& operator=(Expr&&) = delete;
+
+  virtual ~Expr() = default;
 
   virtual void show(std::ostream&) const = 0;
+  [[nodiscard]] std::string toString() const;
   virtual void showAnnotated(std::ostream&) const = 0;
   virtual Expr* clone() const = 0;
   virtual bool operator==(const Expr&) const = 0;
@@ -43,7 +50,7 @@ template <typename Case>
   class ExprCase : public Expr {
   public:
     using Base = ExprCase<Case>;
-    ExprCase(const LexicalAnnotation&);
+    explicit ExprCase(const LexicalAnnotation&);
     virtual bool operator==(const Case&) const = 0;
 
     bool operator==(const Expr& rhs) const override {
@@ -96,7 +103,7 @@ template <typename Case>
   class PrimitiveCase : public Primitive {
   public:
     using Base = PrimitiveCase<Case>;
-    PrimitiveCase(const LexicalAnnotation&);
+    explicit PrimitiveCase(const LexicalAnnotation&);
     virtual bool equiv(const Case&) const = 0;
     virtual bool lt(const Case&) const = 0;
 
@@ -119,7 +126,7 @@ template <typename Case>
 
 class Unit : public PrimitiveCase<Unit> {
 public:
-  Unit(const LexicalAnnotation&);
+  explicit Unit(const LexicalAnnotation&);
   Expr* clone() const override;
   void show(std::ostream& out) const override;
   void showAnnotated(std::ostream& out) const override;
@@ -510,7 +517,7 @@ class Case : public ExprCase<Case> {
 public:
   struct Binding {
     Binding() = default;
-    Binding(const std::string& selector, const std::string& vname, const ExprPtr& exp) : selector(selector), vname(vname), exp(exp) { }
+    Binding(std::string selector, std::string vname, ExprPtr exp) : selector(std::move(selector)), vname(std::move(vname)), exp(std::move(exp)) { }
 
     std::string selector;
     std::string vname;
@@ -549,7 +556,7 @@ class Switch : public ExprCase<Switch> {
 public:
   struct Binding {
     Binding() = default;
-    Binding(const PrimitivePtr& value, const ExprPtr& exp) : value(value), exp(exp) { }
+    Binding(PrimitivePtr  value, ExprPtr  exp) : value(std::move(value)), exp(std::move(exp)) { }
 
     PrimitivePtr value;
     ExprPtr      exp;
@@ -832,7 +839,7 @@ inline ExprPtr proj(const ExprPtr& rec, const str::seq& fields, const LexicalAnn
 }
 
 inline Case::Bindings caseOfBindings() {
-  return Case::Bindings();
+  return {};
 }
 
 template <typename ... Cases>
@@ -846,7 +853,7 @@ template <typename ... Cases>
 
 template <typename ... Cases>
   ExprPtr caseOf(const ExprPtr& e, Cases... cs) {
-    return ExprPtr(new Case(e, caseOfBindings(cs...), e->la()));
+    return ExprPtr{new Case(e, caseOfBindings(cs...), e->la())};
   }
 
 inline Constraints liftConstraints(const Exprs& es) {
@@ -1167,6 +1174,8 @@ bool isConst(const ExprPtr&);
 
 template <typename T>
   struct switchExprM {
+    virtual ~switchExprM() = default;
+
     virtual T with(Unit* v)      = 0;
     virtual T with(Bool* v)      = 0;
     virtual T with(Char* v)      = 0;
@@ -1315,7 +1324,6 @@ template <typename K, typename T>
 //   as a function or an in-place mutation
 //
 struct switchExprTyFn : public switchExprC<ExprPtr> {
-  virtual ~switchExprTyFn() = default;
   // whatever type transform is being done (default is the identity transform)
   virtual QualTypePtr withTy(const QualTypePtr& qt) const;
 
@@ -1439,6 +1447,6 @@ bool hasSingularType(const ExprPtr&);
 // determine the tgen size of types across an expression
 int tgenSize(const ExprPtr&);
 
-}
+}  // namespace hobbes
 
 #endif

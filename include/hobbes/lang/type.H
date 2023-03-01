@@ -651,11 +651,12 @@ public:
   static const int type_case_id = 14;
 
   static MonoTypePtr make(const ExprPtr&);
+
 private:
   ExprPtr e;
   
   friend class MonoType;
-  TExpr(const ExprPtr&);
+  explicit TExpr(ExprPtr);
 };
 
 // simplify showing types (with or without simplifying type variable names)
