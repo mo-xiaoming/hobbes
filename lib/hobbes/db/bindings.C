@@ -7,6 +7,7 @@
 #include <hobbes/eval/funcdefs.H>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 namespace hobbes {
 
@@ -65,7 +66,7 @@ bool isFileType(const MonoTypePtr& fty) {
 
 struct injFileReferencesF : public switchTyFn {
   ExprPtr f;
-  injFileReferencesF(const ExprPtr& f) : f(f) { }
+  explicit injFileReferencesF(ExprPtr  f) : f(std::move(f)) { }
 
   MonoTypePtr with(const Prim* t) const override {
     return Prim::make(t->name(), t->representation() ? switchOf(t->representation(), *this) : t->representation());
@@ -710,7 +711,7 @@ struct openFileF : public op {
   bool        writeable;
   std::string loadf;
 
-  openFileF(bool writeable, const std::string& loadf) : writeable(writeable), loadf(loadf) {
+  openFileF(bool writeable, std::string loadf) : writeable(writeable), loadf(std::move(loadf)) {
   }
 
   using InternTypes = std::unordered_map<std::string, MonoTypePtr>;
@@ -1116,7 +1117,7 @@ reader::PageEntries* pageEntries(long f) {
 struct pageEntriesF : public op {
   std::string f;
 
-  pageEntriesF(const std::string& f) : f(f) {
+  explicit pageEntriesF(std::string  f) : f(std::move(f)) {
   }
   llvm::Value* apply(jitcc* c, const MonoTypes&, const MonoTypePtr&, const Exprs& es) override {
     ExprPtr wfrtfn = var(this->f, functy(list(primty("long")), lift<reader::PageEntries*>::type(nulltdb)), es[0]->la());

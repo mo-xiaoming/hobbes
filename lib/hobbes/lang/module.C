@@ -4,11 +4,12 @@
 #include <hobbes/util/lannotation.H>
 #include <memory>
 #include <sstream>
+#include <utility>
 
 namespace hobbes {
 
 /* modules */
-Module::Module(const std::string& mname, const ModuleDefs& defs) : mname(mname), defs(defs) { }
+Module::Module(std::string mname, ModuleDefs defs) : mname(std::move(mname)), defs(std::move(defs)) { }
 const std::string& Module::name()        const { return this->mname; }
 const ModuleDefs&  Module::definitions() const { return this->defs; }
 std::string ModuleDef::toString() const {
@@ -51,13 +52,13 @@ ModuleDef::ModuleDef(int cid, const LexicalAnnotation& la) : LexicallyAnnotated(
 int ModuleDef::case_id() const { return this->cid; }
 
 // module imports
-MImport::MImport(const std::string& p, const std::string& n, const LexicalAnnotation& la) : Base(la), p(p), n(n) { }
+MImport::MImport(std::string  p, std::string  n, const LexicalAnnotation& la) : Base(la), p(std::move(p)), n(std::move(n)) { }
 const std::string& MImport::path() const { return this->p; }
 const std::string& MImport::name() const { return this->n; }
 void MImport::show(std::ostream& out) const { out << "import " << this->n; }
 
 // type definitions
-MTypeDef::MTypeDef(Visibility v, const std::string& tname, const str::seq& targs, const QualTypePtr& t, const LexicalAnnotation& la) : Base(la), v(v), tname(tname), targs(targs), t(t) { }
+MTypeDef::MTypeDef(Visibility v, std::string  tname, str::seq  targs, QualTypePtr  t, const LexicalAnnotation& la) : Base(la), v(v), tname(std::move(tname)), targs(std::move(targs)), t(std::move(t)) { }
 
 MTypeDef::Visibility MTypeDef::visibility() const { return this->v; }
 const std::string&   MTypeDef::name()       const { return this->tname; }
@@ -73,7 +74,7 @@ void MTypeDef::show(std::ostream& out) const {
 }
 
 // variable type bindings
-MVarTypeDef::MVarTypeDef(const std::string& vname, const QualTypePtr& qty, const LexicalAnnotation& la) : Base(la), vname(vname), qty(qty) { }
+MVarTypeDef::MVarTypeDef(std::string  vname, QualTypePtr  qty, const LexicalAnnotation& la) : Base(la), vname(std::move(vname)), qty(std::move(qty)) { }
 const std::string& MVarTypeDef::varName() const { return this->vname; }
 const QualTypePtr& MVarTypeDef::varType() const { return this->qty; }
 
@@ -94,7 +95,7 @@ str::seq nameBlanks(const str::seq& xs) {
   return r;
 }
 
-MVarDef::MVarDef(const str::seq& vargl, const ExprPtr& e, const LexicalAnnotation& la) : Base(la), vargl(nameBlanks(vargl)), expr(e) { }
+MVarDef::MVarDef(const str::seq& vargl, ExprPtr  e, const LexicalAnnotation& la) : Base(la), vargl(nameBlanks(vargl)), expr(std::move(e)) { }
 const str::seq& MVarDef::varWithArgs() const { return this->vargl; }
 const ExprPtr&  MVarDef::varExpr() const { return this->expr; }
 
@@ -103,8 +104,8 @@ void MVarDef::show(std::ostream& out) const {
 }
 
 // class declarations
-ClassDef::ClassDef(const Constraints& cs, const std::string& cname, const str::seq& tvars, const CFunDepDefs& fdeps, const MVarTypeDefs& mvtydefs, const LexicalAnnotation& la) :
-  Base(la), cs(cs), cname(cname), tvars(tvars), fdeps(fdeps), mvtydefs(mvtydefs)
+ClassDef::ClassDef(Constraints  cs, std::string  cname, str::seq  tvars, CFunDepDefs  fdeps, MVarTypeDefs  mvtydefs, const LexicalAnnotation& la) :
+  Base(la), cs(std::move(cs)), cname(std::move(cname)), tvars(std::move(tvars)), fdeps(std::move(fdeps)), mvtydefs(std::move(mvtydefs))
 {}
 
 const Constraints&  ClassDef::constraints() const { return this->cs; }
@@ -128,8 +129,8 @@ void ClassDef::show(std::ostream& out) const {
 }
 
 // instance declarations
-InstanceDef::InstanceDef(const Constraints& cs, const std::string& cname, const MonoTypes& targs, const MVarDefs& mdefs, const LexicalAnnotation& la) :
-  Base(la), cs(cs), cname(cname), targs(targs), mdefs(mdefs)
+InstanceDef::InstanceDef(Constraints  cs, std::string  cname, MonoTypes  targs, MVarDefs  mdefs, const LexicalAnnotation& la) :
+  Base(la), cs(std::move(cs)), cname(std::move(cname)), targs(std::move(targs)), mdefs(std::move(mdefs))
 {}
 
 const Constraints& InstanceDef::constraints() const { return this->cs; }

@@ -17,7 +17,7 @@ template < typename Char = char, typename Traits = std::char_traits<Char> >
     using int_type = typename BaseT::int_type;
     using char_type = typename BaseT::char_type;
 
-    raw_ostream_buffer(RawData* d) : d(d) {
+    explicit raw_ostream_buffer(RawData* d) : d(d) {
     }
   private:
     RawData* d;

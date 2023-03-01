@@ -109,7 +109,7 @@ struct cwbitstream {
   size_t* batchNode;
 
   // allocate an initial batch and prepare to write bits
-  cwbitstream(imagefile* file) : file(file), buffer(nullptr), seg(nullptr), batchNode(nullptr) {
+  explicit cwbitstream(imagefile* file) : file(file), buffer(nullptr), seg(nullptr), batchNode(nullptr) {
   }
 
   // initialize a root node from a pair of model states (init and final)
@@ -358,7 +358,7 @@ struct crbitstream {
   // the file to read out of
   imagefile* file;
 
-  crbitstream(imagefile* file) : file(file), low(0), high(arithn::cmax) {
+  explicit crbitstream(imagefile* file) : file(file), low(0), high(arithn::cmax) {
   }
 
   // the current batch and segment we're compressing out of
@@ -1052,7 +1052,7 @@ template <typename T>
     using PModel = typename compress<T>::PModel;
     using CModel = typename compress<T>::CModel;
 
-    cwseries(imagefile* f, const std::string& seqname, size_t maxBatchSize) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f), seqname(seqname), batchSize(maxBatchSize), out(f) {
+    cwseries(imagefile* f, std::string seqname_, size_t maxBatchSize) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f), seqname(std::move(seqname_)), batchSize(maxBatchSize), out(f) {
       // determine sequence types
       this->stdef = storedCompressedSeqTypeDef(this->tdef, store<PModel>::storeType(), this->batchSize);
 
@@ -1173,22 +1173,21 @@ template <typename T>
     using PModel = typename compress<T>::PModel;
     using CModel = typename compress<T>::CModel;
 
-    crseries(imagefile* f, const std::string& seqname, const binding& b) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f), batchSize(inferCompressedBatchSize(b.type)), readState(f) {
+    crseries(imagefile* f_, const std::string& seqname_, const binding& b_) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f_), batchSize(inferCompressedBatchSize(b_.type)), readState(f_) {
       // determine value and sequence types
       this->stdef = storedCompressedSeqTypeDef(this->tdef, store<PModel>::storeType(), this->batchSize);
 
-      if (!ty::equivModOffset(this->stdef, ty::decode(b.type))) {
-        throw std::runtime_error("File defines series '" + seqname + "' with unexpected type\n  expected: " + ty::show(this->stdef) + "\n  actual:   " + ty::show(ty::decode(b.type)));
+      if (!ty::equivModOffset(this->stdef, ty::decode(b_.type))) {
+        throw std::runtime_error("File defines series '" + seqname_ + "' with unexpected type\n  expected: " + ty::show(this->stdef) + "\n  actual:   " + ty::show(ty::decode(b_.type)));
       }
 
       // load all nodes, prepare to walk in-order
-      auto* n = reinterpret_cast<uint64_t*>(mapFileData(this->f, b.offset, sizeof(size_t)));
+      auto* n = reinterpret_cast<uint64_t*>(mapFileData(this->f, b_.offset, sizeof(size_t)));
       loadReadState(*n);
       unmapFileData(this->f, n, sizeof(size_t));
     }
     crseries(imagefile* f, const std::string& seqname) : crseries(f, seqname, loadBinding(f, seqname)) {
     }
-    ~crseries() = default;
 
     const ty::desc& typeDef()  const override { return this->tdef; }
     imagefile*      file()     const { return this->f; }

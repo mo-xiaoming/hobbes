@@ -98,7 +98,7 @@ ExprPtr applyTypeDefns(const ModulePtr &, cc *, const ExprPtr &);
 struct appTyDefnF : public switchTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
+  appTyDefnF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
   MonoTypePtr with(const TVar *v) const override {
     const auto &tn = v->name();
 
@@ -152,7 +152,7 @@ QualTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const QualTypePtr &t) {
 struct appTyDefnEF : public switchExprTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnEF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
+  appTyDefnEF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
     if (t) {
       return applyTypeDefns(this->m, this->e, t);
@@ -167,7 +167,7 @@ ExprPtr applyTypeDefns(const ModulePtr &m, cc *e, const ExprPtr &x) {
 struct appTyDefnMF : public switchMDefTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnMF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
+  appTyDefnMF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
     if (t) {
       return applyTypeDefns(this->m, this->e, t);
@@ -470,8 +470,8 @@ struct SafeExpr {
   using Status = SafeSet::Status;
   struct UnsafeDefs {
     UnsafeDefs() = default;
-    UnsafeDefs(std::string var, std::string fn_)
-        : var(std::move(var)), fn(std::move(fn_)), status(Status::UnSafe) {}
+    UnsafeDefs(std::string var_, std::string fn_)
+        : var(std::move(var_)), fn(std::move(fn_)), status(Status::UnSafe) {}
 
     const std::string &varName() const { return var; }
     const std::string &safeFn() const { return fn; }
@@ -558,8 +558,9 @@ struct UnsafeRefs : public SafeExpr::UnsafeDefs {
 
   auto stepFn(std::pair<std::deque<std::string>, std::set<std::string> &> &v)
       -> void {
-    if (v.first.empty())
+    if (v.first.empty()) {
       return;
+    }
     auto e = v.first.front();
     SafeExpr::template with<void>(
         e,
@@ -580,8 +581,9 @@ struct UnsafeRefs : public SafeExpr::UnsafeDefs {
     auto &var = varName();
     std::pair<std::deque<std::string>, std::set<std::string> &> r = {
         {var}, unSafeRefs()};
-    while (not r.first.empty())
+    while (not r.first.empty()) {
       stepFn(r);
+    }
     unSafeRefs().erase(var);
     SafeExpr::template with<void>(
         var,
@@ -595,9 +597,10 @@ struct UnsafeRefs : public SafeExpr::UnsafeDefs {
   auto show(std::ostream &os) -> void {
     os << la().filename() << ", " << la().lineDesc() << ": " << varName()
        << " is not allowed";
-    if (!unSafeRefs().empty())
+    if (!unSafeRefs().empty()) {
       os << ", its transitive closure has disabled expressions: "
          << str::show(unSafeRefs());
+    }
     os << "." << exprDef() << std::endl;
   }
 };
@@ -637,24 +640,22 @@ std::string const &SafeSet::get(std::string const &binding) {
 }
 namespace details {
 struct Bool {
-  static auto mkF() -> Bool { return Bool(0); }
-  static auto mkT() -> Bool { return Bool(1); }
-  Bool(Bool const &) = default;
+  static auto mkF() -> Bool { return {false}; }
+  static auto mkT() -> Bool { return {true}; }
   Bool(bool v) : i(v ? 1 : 0) {}
-  auto operator=(Bool const &) -> Bool & = default;
   auto operator=(bool v) -> Bool & { return (*this = Bool(v)); }
   operator bool() const { return (i != 0); }
 
 private:
-  Bool(int i) : i(i) {}
+  explicit Bool(int i) : i(i) {}
   int i = 0;
 };
 } // namespace details
 
 struct buildTransitiveUnsafePragmaClosure : public switchExprC<details::Bool> {
-  buildTransitiveUnsafePragmaClosure(MVarDef const &mvd) : mvd(mvd) {}
+  explicit buildTransitiveUnsafePragmaClosure(MVarDef mvd) : mvd(std::move(mvd)) {}
 
-  ~buildTransitiveUnsafePragmaClosure() {
+  ~buildTransitiveUnsafePragmaClosure() override {
     SafeExpr::with([&](SafeExpr::Map &m) {
       auto iter = m.find(mvd.varWithArgs()[0]);
       if (iter != m.end()) {
@@ -737,7 +738,7 @@ struct buildTransitiveUnsafePragmaClosure : public switchExprC<details::Bool> {
     for (const auto &cb : cbs) {
       switchOf(cb.exp, *this);
     }
-    ExprPtr de = v->defaultExpr();
+    const ExprPtr& de = v->defaultExpr();
     if (de.get() != nullptr) {
       switchOf(de, *this);
     }
@@ -749,7 +750,7 @@ struct buildTransitiveUnsafePragmaClosure : public switchExprC<details::Bool> {
     for (const auto& sb : v->bindings()) {
       switchOf(sb.exp, *this);
     }
-    ExprPtr de = v->defaultExpr();
+    const ExprPtr& de = v->defaultExpr();
     if (de) {
       switchOf(de, *this);
     }

@@ -46,7 +46,7 @@ struct mfnTraits<R (C::*)(Args...)> {
 template <typename T> struct boolSafeFn : public func<T> {
   using Type = typename func<T>::type;
   Type fn = nullptr;
-  boolSafeFn(Type fn) : fn(fn) {}
+  explicit boolSafeFn(Type fn) : fn(fn) {}
   template <class... Args> auto operator()(Args &&...args) -> decltype(auto) {
     return fn(std::forward<Args>(args)...);
   }
@@ -60,7 +60,7 @@ template <typename... Args>
 struct boolSafeFn<bool(Args...)> : public func<bool(Args...)> {
   using Type = typename func<bool(Args...)>::type;
   Type fn = nullptr;
-  boolSafeFn(Type fn) : fn(fn) {}
+  explicit boolSafeFn(Type fn) : fn(fn) {}
   auto operator()(Args &&...args) -> decltype(auto) {
     const bool r = (fn)(std::forward<Args>(args)...);
     return (0x00 | *rcast<std::uint8_t const *>(&r));
@@ -70,7 +70,7 @@ struct boolSafeFn<bool(Args...)> : public func<bool(Args...)> {
 template <typename... Args>
 struct boolSafeFn<bool (*)(Args...)> : public boolSafeFn<bool(Args...)> {
   using Type = typename func<bool(Args...)>::type;
-  boolSafeFn(Type fn) : boolSafeFn<bool(Args...)>(fn) {}
+  explicit boolSafeFn(Type fn) : boolSafeFn<bool(Args...)>(fn) {}
 };
 
 template <typename X, typename T, T f> struct mfnThunk {};

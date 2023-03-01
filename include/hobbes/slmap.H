@@ -200,18 +200,19 @@ template <typename K, typename V>
     static void write(imagefile*, void* p, const slnode<K,V>& x) { memcpy(p, &x, sizeof(x)); }
     static void read(imagefile*, const void* p, slnode<K,V>* x) { memcpy(x, p, sizeof(*x)); }
   };
-}
+}  // namespace fregion
 
 template <typename K, typename V>
   struct sliterator {
     fregion::imagefile* f;
     slnode<K,V>*        n;
 
-    sliterator(fregion::imagefile* f=nullptr, slnode<K,V>* n=nullptr) : f(f), n(n) { }
+    explicit sliterator(fregion::imagefile* f=nullptr, slnode<K,V>* n=nullptr) : f(f), n(n) { }
     bool operator==(const sliterator<K,V>& rhs) const { return this->n==rhs.n; }
+    bool operator!=(const sliterator<K,V>& rhs) const { return !(*this == rhs); }
     std::pair<K,V>& operator*() { return *reinterpret_cast<std::pair<K,V>*>(&this->n->key); }
     std::pair<K,V>* operator->() { return reinterpret_cast<std::pair<K,V>*>(&this->n->key); }
-    operator bool() const { return this->n != nullptr; }
+    explicit operator bool() const { return this->n != nullptr; }
     
     sliterator<K,V>& operator++() {
       if (this->n->next[0].index==0) {
@@ -329,9 +330,7 @@ template <typename K>
   public:
     using ufileref = uint64_t;
 
-    slrefmap(const std::string& name, fregion::imagefile* f, const ty::desc& refType) {
-      this->f = f;
-
+    slrefmap(const std::string& name, fregion::imagefile* f, const ty::desc& refType) : f(f) {
       // allocate space for this structure and prepare to write
       ty::desc mty = fregion::store<slmapdata<K,ufileref>>::storeType(fregion::store<K>::storeType(), refType);
 
@@ -375,7 +374,7 @@ template <typename K>
     slmapdata<K,ufileref>* d;
   };
 
-}
+}  // namespace hobbes
 
 #endif
 

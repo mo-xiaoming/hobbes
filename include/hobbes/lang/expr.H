@@ -290,7 +290,7 @@ template <typename Case>
 // v (variable reference)
 class Var : public ExprCase<Var> {
 public:
-  Var(const std::string& id, const LexicalAnnotation&);
+  Var(std::string id, const LexicalAnnotation&);
   bool operator==(const Var&) const override;
 
   const std::string& value() const;
@@ -307,7 +307,7 @@ private:
 // local variable definition
 class Let : public ExprCase<Let> {
 public:
-  Let(const std::string& id, const ExprPtr& e, const ExprPtr& b, const LexicalAnnotation&);
+  Let(std::string id, ExprPtr e, ExprPtr b, const LexicalAnnotation&);
   bool operator==(const Let&) const override;
 
   const std::string& var() const;
@@ -335,7 +335,7 @@ public:
   using Binding = std::pair<std::string, ExprPtr>;
   using Bindings = std::vector<Binding>;
 
-  LetRec(const Bindings&, const ExprPtr&, const LexicalAnnotation&);
+  LetRec(Bindings bs, ExprPtr e, const LexicalAnnotation& la);
   bool operator==(const LetRec&) const override;
 
   const Bindings& bindings() const;
@@ -360,7 +360,7 @@ class Fn : public ExprCase<Fn> {
 public:
   using VarNames = std::vector<std::string>;
 
-  Fn(const VarNames& vs, const ExprPtr& e, const LexicalAnnotation&);
+  Fn(VarNames vs, ExprPtr e, const LexicalAnnotation&);
   bool operator==(const Fn&) const override;
 
   const VarNames& varNames() const;
@@ -382,7 +382,7 @@ private:
 // E(E0...EN) (function elimination)
 class App : public ExprCase<App> {
 public:
-  App(const ExprPtr& fn, const Exprs& args, const LexicalAnnotation&);
+  App(ExprPtr fn, Exprs args, const LexicalAnnotation&);
   bool operator==(const App&) const override;
 
   const ExprPtr& fn() const;
@@ -404,7 +404,7 @@ private:
 // E <- E (storage assignment)
 class Assign : public ExprCase<Assign> {
 public:
-  Assign(const ExprPtr& lhs, const ExprPtr& rhs, const LexicalAnnotation&);
+  Assign(ExprPtr lhs, ExprPtr rhs, const LexicalAnnotation&);
   bool operator==(const Assign&) const override;
 
   const ExprPtr& left() const;
@@ -426,7 +426,7 @@ private:
 // [E0,...,EN] (fixed-length array introduction)
 class MkArray : public ExprCase<MkArray> {
 public:
-  MkArray(const Exprs& es, const LexicalAnnotation&);
+  MkArray(Exprs es, const LexicalAnnotation&);
   bool operator==(const MkArray&) const override;
 
   const Exprs& values() const;
@@ -444,7 +444,7 @@ private:
 // |x=E| (variant introduction)
 class MkVariant : public ExprCase<MkVariant> {
 public:
-  MkVariant(const std::string& lbl, const ExprPtr& e, const LexicalAnnotation&);
+  MkVariant(std::string lbl, ExprPtr e, const LexicalAnnotation&);
   bool operator==(const MkVariant&) const override;
 
   const std::string& label() const;
@@ -469,7 +469,7 @@ public:
   using FieldDef = std::pair<std::string, ExprPtr>;
   using FieldDefs = std::vector<FieldDef>;
 
-  MkRecord(const FieldDefs& fs, const LexicalAnnotation&);
+  MkRecord(FieldDefs fs, const LexicalAnnotation&);
   bool operator==(const MkRecord&) const override;
 
   const FieldDefs& fields() const;
@@ -493,7 +493,7 @@ private:
 // E[i] (array index)
 class AIndex : public ExprCase<AIndex> {
 public:
-  AIndex(const ExprPtr&, const ExprPtr&, const LexicalAnnotation&);
+  AIndex(ExprPtr, ExprPtr, const LexicalAnnotation&);
   bool operator==(const AIndex&) const override;
 
   const ExprPtr& array() const;
@@ -525,8 +525,8 @@ public:
   };
   using Bindings = std::vector<Binding>;
 
-  Case(const ExprPtr& v, const Bindings& bs, const LexicalAnnotation&);
-  Case(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const LexicalAnnotation&);
+  Case(ExprPtr v, Bindings bs, const LexicalAnnotation&);
+  Case(ExprPtr v, Bindings bs, ExprPtr def, const LexicalAnnotation&);
   bool operator==(const Case&) const override;
 
   const ExprPtr&  variant() const;
@@ -563,8 +563,8 @@ public:
   };
   using Bindings = std::vector<Binding>;
 
-  Switch(const ExprPtr& v, const Bindings& bs, const LexicalAnnotation&);
-  Switch(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const LexicalAnnotation&);
+  Switch(ExprPtr v, Bindings bs, const LexicalAnnotation&);
+  Switch(ExprPtr v, Bindings bs, ExprPtr def, const LexicalAnnotation&);
   bool operator==(const Switch&) const override;
 
   const ExprPtr&  expr()        const;
@@ -589,7 +589,7 @@ private:
 // E.l (record projection)
 class Proj : public ExprCase<Proj> {
 public:
-  Proj(const ExprPtr& r, const std::string& fn, const LexicalAnnotation&);
+  Proj(ExprPtr r, std::string fn, const LexicalAnnotation&);
   bool operator==(const Proj&) const override;
 
   const ExprPtr& record() const;
@@ -611,7 +611,7 @@ private:
 // E :: T (type casting/assumption)
 class Assump : public ExprCase<Assump> {
 public:
-  Assump(const ExprPtr& e, const QualTypePtr& t, const LexicalAnnotation&);
+  Assump(ExprPtr e, QualTypePtr t, const LexicalAnnotation&);
   bool operator==(const Assump&) const override;
 
   const ExprPtr& expr() const;
@@ -633,7 +633,7 @@ private:
 // pack E (existential type introduction)
 class Pack : public ExprCase<Pack> {
 public:
-  Pack(const ExprPtr& e, const LexicalAnnotation&);
+  Pack(ExprPtr e, const LexicalAnnotation&);
   bool operator==(const Pack&) const override;
 
   const ExprPtr& expr() const;
@@ -651,7 +651,7 @@ private:
 // unpack E in E (existential type elimination)
 class Unpack : public ExprCase<Unpack> {
 public:
-  Unpack(const std::string&, const ExprPtr&, const ExprPtr&, const LexicalAnnotation&);
+  Unpack(std::string, ExprPtr, ExprPtr, const LexicalAnnotation&);
   bool operator==(const Unpack&) const override;
 
   const std::string& varName() const;
@@ -1390,8 +1390,8 @@ Switch::Bindings switchOf(const Switch::Bindings& bs, const switchExpr<ExprPtr>&
 // when asserting that an expression has a monotype, we might find an exceptional circumstance where some type constraints remain unsolved
 class unsolved_constraints : public annotated_error {
 public:
-  unsolved_constraints(const LexicalAnnotation&, const std::string&, const Constraints&);
-  unsolved_constraints(const LexicallyAnnotated&, const std::string&, const Constraints&);
+  unsolved_constraints(const LexicalAnnotation&, const std::string&, Constraints);
+  unsolved_constraints(const LexicallyAnnotated&, const std::string&, Constraints);
 
   const Constraints& constraints() const;
 private:

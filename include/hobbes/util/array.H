@@ -372,6 +372,6 @@ inline std::ostream& operator<<(std::ostream& out, const bit_table& bt) {
   return out;
 }
 
-}
+}  // namespace hobbes
 
 #endif

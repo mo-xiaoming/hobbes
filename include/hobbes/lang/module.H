@@ -39,7 +39,7 @@ template <typename Case>
 
 class MImport : public ModuleDefCase<MImport> {
 public:
-  MImport(const std::string&, const std::string&, const LexicalAnnotation&);
+  MImport(std::string, std::string, const LexicalAnnotation&);
 
   const std::string& path() const;
   const std::string& name() const;
@@ -55,7 +55,7 @@ private:
 class MTypeDef : public ModuleDefCase<MTypeDef> {
 public:
   enum Visibility { Opaque, Transparent };
-  MTypeDef(Visibility, const std::string& tname, const str::seq& targs, const QualTypePtr& t, const LexicalAnnotation&);
+  MTypeDef(Visibility, std::string tname, str::seq targs, QualTypePtr t, const LexicalAnnotation&);
 
   Visibility visibility() const;
   const std::string& name() const;
@@ -74,7 +74,7 @@ private:
 
 class MVarTypeDef : public ModuleDefCase<MVarTypeDef> {
 public:
-  MVarTypeDef(const std::string& vname, const QualTypePtr& qty, const LexicalAnnotation&);
+  MVarTypeDef(std::string vname, QualTypePtr qty, const LexicalAnnotation&);
   const std::string& varName() const;
   const QualTypePtr& varType() const;
 
@@ -90,7 +90,7 @@ using MVarTypeDefs = std::vector<MVarTypeDefPtr>;
 
 class MVarDef : public ModuleDefCase<MVarDef> {
 public:
-  MVarDef(const str::seq& vargl, const ExprPtr& e, const LexicalAnnotation&);
+  MVarDef(const str::seq& vargl, ExprPtr e, const LexicalAnnotation&);
   const str::seq& varWithArgs() const;
   const ExprPtr&  varExpr() const;
 
@@ -111,7 +111,7 @@ using CFunDepDefs = std::vector<CFunDepDef>;
 
 class ClassDef : public ModuleDefCase<ClassDef> {
 public:
-  ClassDef(const Constraints& cs, const std::string& cname, const str::seq& tvars, const CFunDepDefs& fdeps, const MVarTypeDefs& mvtydefs, const LexicalAnnotation&);
+  ClassDef(Constraints cs, std::string cname, str::seq tvars, CFunDepDefs fdeps, MVarTypeDefs mvtydefs, const LexicalAnnotation&);
 
   const Constraints&  constraints() const;
   const std::string&  name() const;
@@ -134,7 +134,7 @@ using ClassDefs = std::vector<ClassDefPtr>;
 
 class InstanceDef : public ModuleDefCase<InstanceDef> {
 public:
-  InstanceDef(const Constraints& cs, const std::string& cname, const MonoTypes& targs, const MVarDefs& mdefs, const LexicalAnnotation&);
+  InstanceDef(Constraints cs, std::string cname, MonoTypes targs, MVarDefs mdefs, const LexicalAnnotation&);
 
   const Constraints& constraints() const;
   const std::string& className() const;
@@ -167,7 +167,7 @@ private:
 
 class MSafePragmaDef : public ModuleDefCase<MSafePragmaDef> {
 public:
-  MSafePragmaDef(const std::string& symbol, const LexicalAnnotation& la) : Base(la), symbol(symbol) {}
+  MSafePragmaDef(std::string  symbol, const LexicalAnnotation& la) : Base(la), symbol(std::move(symbol)) {}
   void show(std::ostream& out) const override { out << "{-# SAFE " << symbol << " #-}"; } ; 
 
   const std::string& symbolValue() const { return symbol; }
@@ -240,7 +240,7 @@ struct switchMDefTyFn : switchMDef<ModuleDefPtr> {
 // a module is a collection of module definitions
 class Module {
 public:
-  Module(const std::string& mname, const ModuleDefs& defs);
+  Module(std::string mname, ModuleDefs defs);
   const std::string& name() const;
   const ModuleDefs&  definitions() const;
 

@@ -7,6 +7,7 @@
 #include <hobbes/util/codec.H>
 #include <hobbes/util/stream.H>
 #include <sstream>
+#include <utility>
 
 namespace hobbes {
 
@@ -148,7 +149,7 @@ bool Double::equiv(const Double& rhs)         const { return this->x == rhs.x; }
 bool Double::lt(const Double& rhs)            const { return this->x < rhs.x; }
 MonoTypePtr Double::primType() const { return Prim::make("double"); }
 
-Var::Var(const std::string& id, const LexicalAnnotation& la) : Base(la), id(id) { }
+Var::Var(std::string id, const LexicalAnnotation& la) : Base(la), id(std::move(id)) { }
 bool Var::operator==(const Var& rhs) const { return this->id == rhs.id; }
 const std::string& Var::value() const { return this->id; }
 void Var::value(const std::string& nid) { this->id = nid; }
@@ -156,7 +157,7 @@ Expr* Var::clone() const { return new Var(this->id,la()); }
 void Var::show(std::ostream& out) const { out << this->id; }
 void Var::showAnnotated(std::ostream& out) const { show(out); showTy(out, type()); }
 
-Let::Let(const std::string& id, const ExprPtr& e, const ExprPtr& b, const LexicalAnnotation& la) : Base(la), id(id), e(e), b(b) { }
+Let::Let(std::string id, ExprPtr e, ExprPtr b, const LexicalAnnotation& la) : Base(la), id(std::move(id)), e(std::move(e)), b(std::move(b)) { }
 bool Let::operator==(const Let& rhs) const { return this->id == rhs.id && *this->e == *rhs.e && *this->b == *rhs.b; }
 
 const std::string& Let::var()      const { return this->id; }
@@ -184,7 +185,7 @@ void Let::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-LetRec::LetRec(const Bindings& bs, const ExprPtr& e, const LexicalAnnotation& la) : Base(la), bs(bs), e(e) { }
+LetRec::LetRec(Bindings bs, ExprPtr e, const LexicalAnnotation& la) : Base(la), bs(std::move(bs)), e(std::move(e)) { }
 const LetRec::Bindings& LetRec::bindings() const { return this->bs; }
 const ExprPtr& LetRec::bodyExpr() const { return this->e; }
 LetRec::Bindings& LetRec::bindings() { return this->bs; }
@@ -253,7 +254,7 @@ void LetRec::showAnnotated(std::ostream& out) const {
   }
 }
 
-Fn::Fn(const VarNames& vs, const ExprPtr& e, const LexicalAnnotation& la) : Base(la), vs(vs), e(e) {
+Fn::Fn(VarNames vs_, ExprPtr e_, const LexicalAnnotation& la) : Base(la), vs(std::move(vs_)), e(std::move(e_)) {
   // to make type-checking homogeneous, we equate the empty parameter list with a parameter list containing just unit
   //   (unit is compiled away to nothing, so it's equivalent)
   if (this->vs.empty()) {
@@ -294,7 +295,7 @@ void Fn::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-App::App(const ExprPtr& fne, const Exprs& argl, const LexicalAnnotation& la) : Base(la), fne(fne), argl(argl) {
+App::App(ExprPtr fn, Exprs args, const LexicalAnnotation& la) : Base(la), fne(std::move(fn)), argl(std::move(args)) {
   // to make type-checking homogeneous, we equate the empty parameter list with a parameter list containing just unit
   //   (unit is compiled away to nothing, so it's equivalent)
   if (this->argl.empty()) {
@@ -362,7 +363,7 @@ void App::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-Assign::Assign(const ExprPtr& lhs, const ExprPtr& rhs, const LexicalAnnotation& la) : Base(la), lhs(lhs), rhs(rhs) {
+Assign::Assign(ExprPtr  lhs, ExprPtr  rhs, const LexicalAnnotation& la) : Base(la), lhs(std::move(lhs)), rhs(std::move(rhs)) {
 }
 bool Assign::operator==(const Assign& rhs) const {
   return (*this->lhs == *rhs.lhs) && (*this->rhs == *rhs.rhs);
@@ -385,7 +386,7 @@ void Assign::showAnnotated(std::ostream& out) const {
   this->rhs->showAnnotated(out);
 }
 
-MkArray::MkArray(const Exprs& es, const LexicalAnnotation& la) : Base(la), es(es) {
+MkArray::MkArray(Exprs es, const LexicalAnnotation& la) : Base(la), es(std::move(es)) {
 }
 bool MkArray::operator==(const MkArray& rhs) const {
   if (this->es.size() != rhs.es.size()) {
@@ -426,7 +427,7 @@ void MkArray::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-MkVariant::MkVariant(const std::string& lbl, const ExprPtr& e, const LexicalAnnotation& la) : Base(la), lbl(lbl), e(e) { }
+MkVariant::MkVariant(std::string  lbl, ExprPtr  e, const LexicalAnnotation& la) : Base(la), lbl(std::move(lbl)), e(std::move(e)) { }
 bool MkVariant::operator==(const MkVariant& rhs) const { return this->lbl == rhs.lbl && *this->e == *rhs.e; }
 const std::string& MkVariant::label() const { return this->lbl; }
 const ExprPtr& MkVariant::value() const { return this->e; }
@@ -445,7 +446,7 @@ void MkVariant::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-MkRecord::MkRecord(const FieldDefs& fs, const LexicalAnnotation& la) : Base(la), fs(fs) { }
+MkRecord::MkRecord(FieldDefs  fs, const LexicalAnnotation& la) : Base(la), fs(std::move(fs)) { }
 bool MkRecord::operator==(const MkRecord& rhs) const {
   if (this->fs.size() != rhs.fs.size()) {
     return false;
@@ -523,7 +524,7 @@ void MkRecord::showTupleAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-AIndex::AIndex(const ExprPtr& arr, const ExprPtr& i, const LexicalAnnotation& la) : Base(la), arr(arr), i(i) { }
+AIndex::AIndex(ExprPtr  arr, ExprPtr  i, const LexicalAnnotation& la) : Base(la), arr(std::move(arr)), i(std::move(i)) { }
 bool AIndex::operator==(const AIndex& rhs) const { return *this->arr == *rhs.arr && *this->i == *rhs.i; }
 const ExprPtr& AIndex::array() const { return this->arr; }
 const ExprPtr& AIndex::index() const { return this->i; }
@@ -546,10 +547,10 @@ void AIndex::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-Case::Case(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const LexicalAnnotation& la) : Base(la), v(v), bs(bs), def(def) {
+Case::Case(ExprPtr  v, Bindings  bs, ExprPtr  def, const LexicalAnnotation& la) : Base(la), v(std::move(v)), bs(std::move(bs)), def(std::move(def)) {
 }
 
-Case::Case(const ExprPtr& v, const Bindings& bs, const LexicalAnnotation& la) : Case(v, bs, ExprPtr(), la) {
+Case::Case(ExprPtr v, Bindings bs, const LexicalAnnotation& la) : Case(std::move(v), std::move(bs), ExprPtr(), la) {
 }
 
 bool Case::operator==(const Case& rhs) const {
@@ -586,12 +587,9 @@ Case::Bindings& Case::bindings()                       { return this->bs; }
 void            Case::defaultExpr(const ExprPtr& ndef) { this->def = ndef; }
 
 bool Case::hasBinding(const std::string& bn) const {
-  for (const auto &b : this->bs) {
-    if (b.selector == bn) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(this->bs.cbegin(), this->bs.cend(), [&bn](const auto& b) {
+    return b.selector == bn;
+  });
 }
 void Case::addBinding(const std::string& selector, const std::string& vname, const ExprPtr& exp) {
   this->bs.push_back(Case::Binding(selector, vname, exp));
@@ -643,7 +641,7 @@ void Case::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-Switch::Switch(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const LexicalAnnotation& la) : Base(la), v(v), bs(bs), def(def) {
+Switch::Switch(ExprPtr  v_, Bindings bs_, ExprPtr def_, const LexicalAnnotation& la) : Base(la), v(std::move(v_)), bs(std::move(bs_)), def(std::move(def_)) {
   // ensure exhaustive selection
   // (only a few primitive types work with no default case)
   bool exhaustive = def != ExprPtr();
@@ -686,7 +684,7 @@ Switch::Switch(const ExprPtr& v, const Bindings& bs, const ExprPtr& def, const L
   }
 }
 
-Switch::Switch(const ExprPtr& v, const Bindings& bs, const LexicalAnnotation& la) : Switch(v, bs, ExprPtr(), la) {
+Switch::Switch(ExprPtr v, Bindings bs, const LexicalAnnotation& la) : Switch(std::move(v), std::move(bs), ExprPtr(), la) {
 }
 
 bool Switch::operator==(const Switch& rhs) const {
@@ -768,7 +766,7 @@ void Switch::showAnnotated(std::ostream& out) const {
 }
 
 
-Proj::Proj(const ExprPtr& r, const std::string& fn, const LexicalAnnotation& la) : Base(la), r(r), fn(fn) { }
+Proj::Proj(ExprPtr  r, std::string  fn, const LexicalAnnotation& la) : Base(la), r(std::move(r)), fn(std::move(fn)) { }
 bool Proj::operator==(const Proj& rhs) const { return *this->r == *rhs.r && this->fn == rhs.fn; }
 const ExprPtr& Proj::record() const { return this->r; }
 const std::string& Proj::field() const { return this->fn; }
@@ -787,7 +785,7 @@ void Proj::showAnnotated(std::ostream& out) const {
   showTy(out, type());
 }
 
-Assump::Assump(const ExprPtr& e, const QualTypePtr& t, const LexicalAnnotation& la) : Base(la), e(e), t(t) { }
+Assump::Assump(ExprPtr  e, QualTypePtr  t, const LexicalAnnotation& la) : Base(la), e(std::move(e)), t(std::move(t)) { }
 bool Assump::operator==(const Assump& rhs) const { return *this->e == *rhs.e && *this->t == *rhs.t; }
 Expr* Assump::clone() const { return new Assump(ExprPtr(this->e->clone()), hobbes::cloneP(this->t), la()); }
 const ExprPtr& Assump::expr() const { return this->e; }
@@ -808,7 +806,7 @@ void Assump::showAnnotated(std::ostream& out) const {
 }
 
 // existential introduction
-Pack::Pack(const ExprPtr& e, const LexicalAnnotation& la) : Base(la), e(e) { }
+Pack::Pack(ExprPtr  e, const LexicalAnnotation& la) : Base(la), e(std::move(e)) { }
 bool Pack::operator==(const Pack& rhs) const { return *this->e == *rhs.e; }
 Expr* Pack::clone() const { return new Pack(ExprPtr(this->e->clone()), la()); }
 const ExprPtr& Pack::expr() const { return this->e; }
@@ -826,7 +824,7 @@ void Pack::showAnnotated(std::ostream& out) const {
 }
 
 // existential elimination
-Unpack::Unpack(const std::string& vn, const ExprPtr& pkg, const ExprPtr& body, const LexicalAnnotation& la) : Base(la), vn(vn), pkg(pkg), body(body) { }
+Unpack::Unpack(std::string  vn, ExprPtr  pkg, ExprPtr  body, const LexicalAnnotation& la) : Base(la), vn(std::move(vn)), pkg(std::move(pkg)), body(std::move(body)) { }
 bool Unpack::operator==(const Unpack& rhs) const { return this->vn == rhs.vn && *this->pkg == *rhs.pkg && *this->body == *rhs.body; }
 Expr* Unpack::clone() const { return new Unpack(this->vn, ExprPtr(this->pkg->clone()), ExprPtr(this->body->clone()), la()); }
 const std::string& Unpack::varName() const { return this->vn; }
@@ -1236,8 +1234,8 @@ struct liftTypeAsAssumpF : public switchExprTyFn {
 };
 
 
-unsolved_constraints::unsolved_constraints(const LexicalAnnotation&  la, const std::string& msg, const Constraints& cs) : annotated_error(la, msg), cs(cs) { }
-unsolved_constraints::unsolved_constraints(const LexicallyAnnotated& la, const std::string& msg, const Constraints& cs) : annotated_error(la, msg), cs(cs) { }
+unsolved_constraints::unsolved_constraints(const LexicalAnnotation&  la, const std::string& msg, Constraints  cs) : annotated_error(la, msg), cs(std::move(cs)) { }
+unsolved_constraints::unsolved_constraints(const LexicallyAnnotated& la, const std::string& msg, Constraints  cs) : annotated_error(la, msg), cs(std::move(cs)) { }
 const Constraints& unsolved_constraints::constraints() const { return this->cs; }
 
 const MonoTypePtr& requireMonotype(const TEnvPtr& tenv, const ExprPtr& e) {

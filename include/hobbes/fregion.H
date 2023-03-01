@@ -1491,7 +1491,7 @@ struct defStructF {
 struct calcSizeF {
   size_t* sz;
   size_t* maxAlign;
-  calcSizeF(size_t* sz, size_t* maxAlign) : sz(sz), maxAlign(maxAlign) { *this->sz = 0; }
+  calcSizeF(size_t* sz_, size_t* maxAlign_) : sz(sz_), maxAlign(maxAlign_) { *this->sz = 0; }
 
   template <typename T>
     void visit(const char*) {
@@ -1757,7 +1757,7 @@ template <typename T>
 template <typename T>
   class wseries : public seriesi {
   public:
-    wseries(imagefile* f, const std::string& seqname, size_t batchSize, ty::desc tdef = store<T>::storeType()) : tdef(std::move(tdef)), f(f), seqname(seqname), batchSize(batchSize), writeCB([](uint64_t){}) {
+    wseries(imagefile* f, std::string seqname_, size_t batchSize, ty::desc tdef_ = store<T>::storeType()) : tdef(std::move(tdef_)), f(f), seqname(std::move(seqname_)), batchSize(batchSize), writeCB([](uint64_t){}) {
       // determine sequence types
       this->stdef = storedSeqType(this->tdef, this->batchSize);
 
@@ -2216,7 +2216,7 @@ private:
 template <typename T>
   class rseries : public seriesi {
   public:
-    rseries(imagefile* f, const std::string& seqname, ty::desc tdef, const binding& b) : tdef(std::move(tdef)), f(f), fwatch(f->path, f->fd), batchSize(inferBatchSize(b.type)) {
+    rseries(imagefile* f, const std::string& seqname, ty::desc tdef_, const binding& b) : tdef(std::move(tdef_)), f(f), fwatch(f->path, f->fd), batchSize(inferBatchSize(b.type)) {
       // determine value and sequence types
       this->stdef = storedSeqType(this->tdef, this->batchSize);
 

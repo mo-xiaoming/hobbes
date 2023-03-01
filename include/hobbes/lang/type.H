@@ -38,17 +38,17 @@ using Constraints = std::vector<ConstraintPtr>;
 // T
 class MonoType {
 public:
-  virtual ~MonoType();
+  virtual ~MonoType() = default;
   using ptr = std::shared_ptr<MonoType>;
 
   virtual void show(std::ostream&) const = 0;
-  bool operator==(const MonoType& rhs) const;
+  [[nodiscard]] std::string toString() const;
+  [[nodiscard]] bool operator==(const MonoType& rhs) const;
 
   // improves performance of case-analysis over instances (to avoid 'dynamic_cast')
-public:
-  int case_id() const;
+  [[nodiscard]] int case_id() const;
 protected:
-  MonoType(int cid);
+  explicit MonoType(int cid);
 
   // memoize type construction
   template <typename Class, typename T, typename ... Args>
@@ -89,7 +89,7 @@ using UnqualifierSetPtr = std::shared_ptr<UnqualifierSet>;
 
 class TEnv {
 public:
-  TEnv(const TEnvPtr& parent);
+  TEnv(TEnvPtr parent);
   TEnv();
 
   bool hasBinding(const std::string& vname) const;
@@ -173,8 +173,8 @@ bool satisfiable(const TEnvPtr& tenv, const Constraints& cs, std::vector<std::pa
 // a polytype (or type scheme) can describe many types
 class PolyType {
 public:
-  PolyType(size_t vs, const QualTypePtr& qt);
-  PolyType(const QualTypePtr& qt);
+  PolyType(size_t vs, QualTypePtr qt);
+  explicit PolyType(QualTypePtr qt);
 
   size_t typeVariables() const;
   QualTypePtr instantiate() const;
@@ -197,8 +197,8 @@ inline std::ostream& operator<<(std::ostream& out, const PolyTypePtr& t) {
 // a qualified type is a monotype with a set of constraints
 class QualType {
 public:
-  QualType(const Constraints& cs, const MonoTypePtr& mt);
-  QualType(const MonoTypePtr& mt);
+  QualType(Constraints cs, MonoTypePtr mt);
+  explicit QualType(MonoTypePtr mt);
 
   const Constraints& constraints() const;
   const MonoTypePtr& monoType() const;
@@ -221,7 +221,7 @@ inline std::ostream& operator<<(std::ostream& out, const QualTypePtr& t) {
 // a constraint qualifies types
 class Constraint {
 public:
-  Constraint(const std::string& cat, const MonoTypes& mts);
+  Constraint(std::string cat, MonoTypes mts);
 
   // the name of the predicate for this constraint
   std::string name() const;
@@ -280,7 +280,7 @@ private:
   MonoTypePtr t;
 
   friend class MonoType;
-  Prim(const std::string&, const MonoTypePtr&);
+  Prim(std::string, MonoTypePtr);
 };
 
 // an opaque pointer to some C++ type
@@ -307,7 +307,7 @@ private:
   bool scontig;
 
   friend class MonoType;
-  OpaquePtr(const std::string&, unsigned int, bool);
+  OpaquePtr(std::string, unsigned int, bool);
 };
 
 // remove the contiguity flag on opaque pointers
@@ -326,7 +326,7 @@ private:
   std::string nm;
 
   friend class MonoType;
-  TVar(const std::string&);
+  explicit TVar(std::string);
 };
 
 // this constructor is ONLY used for polytype instantiation
@@ -380,14 +380,14 @@ private:
   MonoTypePtr ty;
 
   friend class MonoType;
-  Array(const MonoTypePtr&);
+  explicit Array(const MonoTypePtr&);
 };
 
 // the 'coproduct' construction (a variant is _one of_ a set of types)
 class Variant : public MonoTypeCase<Variant> {
 public:
   struct Member {
-    Member(const std::string& selector, const MonoTypePtr& type, unsigned int id);
+    Member(std::string selector, MonoTypePtr type, unsigned int id);
     Member();
     bool operator==(const Member&) const;
     bool operator<(const Member&) const;
@@ -430,14 +430,14 @@ private:
   Members ms;
 
   friend class MonoType;
-  Variant(const Members&);
+  explicit Variant(Members);
 };
 
 // the 'product' construction (a record is _all of_ a set of types)
 class Record : public MonoTypeCase<Record> {
 public:
   struct Member {
-    Member(const std::string& field, const MonoTypePtr& type, int offset = -1);
+    Member(std::string field, MonoTypePtr type, int offset = -1);
     Member();
     bool operator==(const Member&) const;
     bool operator<(const Member&) const;
@@ -495,7 +495,7 @@ public:
   static MonoTypePtr make(const std::string& lbl, const MonoTypePtr& hty, const Members& tty);
 private:
   friend class MonoType;
-  Record(const Members& ms);
+  explicit Record(Members ms);
 };
 
 // determine type alignment (for efficient/correct access in memory)
@@ -520,7 +520,7 @@ private:
   MonoTypePtr rty;
 
   friend class MonoType;
-  Func(const MonoTypePtr&, const MonoTypePtr&);
+  Func(MonoTypePtr, MonoTypePtr);
 };
 
 // an abstraction of type structure suitable for unifying otherwise distinct types
@@ -539,7 +539,7 @@ private:
   MonoTypePtr bty;
 
   friend class MonoType;
-  Exists(const std::string& tname, const MonoTypePtr& bty);
+  Exists(std::string tname, MonoTypePtr bty);
 };
 
 // project out of existential types
@@ -561,7 +561,7 @@ private:
   std::string val;
 
   friend class MonoType;
-  TString(const std::string&);
+  explicit TString(std::string);
 };
 
 class TLong : public MonoTypeCase<TLong> {
@@ -577,7 +577,7 @@ private:
   long x;
 
   friend class MonoType;
-  TLong(long x);
+  explicit TLong(long x);
 };
 
 // a type-level abstraction
@@ -596,7 +596,7 @@ private:
   MonoTypePtr b;
 
   friend class MonoType;
-  TAbs(const str::seq&, const MonoTypePtr&);
+  TAbs(str::seq, MonoTypePtr);
 };
 
 // a type-level application
@@ -615,7 +615,7 @@ private:
   MonoTypes   targs;
 
   friend class MonoType;
-  TApp(const MonoTypePtr&, const MonoTypes&);
+  TApp(MonoTypePtr, MonoTypes);
 };
 
 // a recursive type
@@ -634,7 +634,7 @@ private:
   MonoTypePtr bty;
 
   friend class MonoType;
-  Recursive(const std::string& tname, const MonoTypePtr& bty);
+  Recursive(std::string tname, MonoTypePtr bty);
 };
 
 // expressions in types

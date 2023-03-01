@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <memory>
+#include <vector>
 
 namespace hobbes {
 

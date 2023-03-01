@@ -196,9 +196,9 @@ template <typename T>
 template <typename K>
   class keyseriesdv {
   public:
-    keyseriesdv(cc* c, writer* db, const std::string& name, const MonoTypePtr& vty, size_t bsize = 10000, StoredSeries::StorageMode sm = StoredSeries::Raw) :
-      c(c), db(db), vty(vty), bsize(bsize), sm(sm),
-      pmap(name, db->fileData(), toTD(StoredSeries::seriesTypeDesc(sm, c, vty, bsize)))
+    keyseriesdv(cc* c_, writer* db_, const std::string& name_, MonoTypePtr vty_, size_t bsize_ = 10000, StoredSeries::StorageMode sm_ = StoredSeries::Raw) :
+      c(c_), db(db_), vty(std::move(vty_)), bsize(bsize_), sm(sm_),
+      pmap(name_, db->fileData(), toTD(StoredSeries::seriesTypeDesc(sm, c, vty, bsize)))
     {
       for (const auto& pm : this->pmap) {
         this->dmap[pm.first] = new StoredSeries(this->c, this->db, pm.second, vty, this->bsize, this->sm);

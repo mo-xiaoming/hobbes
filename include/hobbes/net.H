@@ -12,6 +12,7 @@
 #ifndef HOBBES_HNET_H_INCLUDED
 #define HOBBES_HNET_H_INCLUDED
 
+#include <utility>
 #include <vector>
 #include <queue>
 #include <functional>
@@ -117,8 +118,8 @@ inline size_t recvDataPartial(int socket, uint8_t* d, size_t sz) {
 
 // socket connection and session initiation
 struct RPCDef {
-  RPCDef(uint32_t id = 0, const std::string& expr = "", const bytes& willPut = bytes(), const bytes& willGet = bytes()) :
-    id(id), expr(expr), willPut(willPut), willGet(willGet)
+  explicit RPCDef(uint32_t id = 0, std::string expr = "", bytes willPut = bytes(), bytes willGet = bytes()) :
+    id(id), expr(std::move(expr)), willPut(std::move(willPut)), willGet(std::move(willGet))
   {
   }
 
@@ -822,7 +823,7 @@ template <typename ... Fs>
 // support reflective structs
 struct defStructF {
   ty::Struct::Fields* fs;
-  defStructF(ty::Struct::Fields* fs) : fs(fs) { }
+  explicit defStructF(ty::Struct::Fields* fs) : fs(fs) { }
 
   template <typename T>
     void visit(const char* fname) {
