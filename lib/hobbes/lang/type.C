@@ -2242,7 +2242,7 @@ unsigned int sizeOf(const MonoTypePtr& mt) {
 }
 
 bool isPrimName(const std::string& tn) {
-  static const char* prims[] = {
+  static std::string prims[] = {
     /* ::: Set */
     "unit", "void", "bool", "char", "byte", "short", "int", "long", "int128", "float", "double",
 

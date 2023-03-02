@@ -1491,7 +1491,7 @@ struct defStructF {
 struct calcSizeF {
   size_t* sz;
   size_t* maxAlign;
-  calcSizeF(size_t* sz_, size_t* maxAlign_) : sz(sz_), maxAlign(maxAlign_) { *this->sz = 0; }
+  calcSizeF(size_t* sz, size_t* maxAlign) : sz(sz), maxAlign(maxAlign) { *this->sz = 0; }
 
   template <typename T>
     void visit(const char*) {

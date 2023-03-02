@@ -89,7 +89,7 @@ using UnqualifierSetPtr = std::shared_ptr<UnqualifierSet>;
 
 class TEnv {
 public:
-  TEnv(TEnvPtr parent);
+  explicit TEnv(TEnvPtr parent);
   TEnv();
 
   bool hasBinding(const std::string& vname) const;

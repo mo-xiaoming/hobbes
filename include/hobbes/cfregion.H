@@ -1173,16 +1173,16 @@ template <typename T>
     using PModel = typename compress<T>::PModel;
     using CModel = typename compress<T>::CModel;
 
-    crseries(imagefile* f_, const std::string& seqname_, const binding& b_) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f_), batchSize(inferCompressedBatchSize(b_.type)), readState(f_) {
+    crseries(imagefile* f, const std::string& seqname, const binding& b) : tdef(ty::elimFileRefs(store<T>::storeType())), f(f), batchSize(inferCompressedBatchSize(b.type)), readState(f) {
       // determine value and sequence types
       this->stdef = storedCompressedSeqTypeDef(this->tdef, store<PModel>::storeType(), this->batchSize);
 
-      if (!ty::equivModOffset(this->stdef, ty::decode(b_.type))) {
-        throw std::runtime_error("File defines series '" + seqname_ + "' with unexpected type\n  expected: " + ty::show(this->stdef) + "\n  actual:   " + ty::show(ty::decode(b_.type)));
+      if (!ty::equivModOffset(this->stdef, ty::decode(b.type))) {
+        throw std::runtime_error("File defines series '" + seqname + "' with unexpected type\n  expected: " + ty::show(this->stdef) + "\n  actual:   " + ty::show(ty::decode(b.type)));
       }
 
       // load all nodes, prepare to walk in-order
-      auto* n = reinterpret_cast<uint64_t*>(mapFileData(this->f, b_.offset, sizeof(size_t)));
+      auto* n = reinterpret_cast<uint64_t*>(mapFileData(this->f, b.offset, sizeof(size_t)));
       loadReadState(*n);
       unmapFileData(this->f, n, sizeof(size_t));
     }

@@ -98,7 +98,7 @@ ExprPtr applyTypeDefns(const ModulePtr &, cc *, const ExprPtr &);
 struct appTyDefnF : public switchTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
+  appTyDefnF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   MonoTypePtr with(const TVar *v) const override {
     const auto &tn = v->name();
 
@@ -152,7 +152,7 @@ QualTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const QualTypePtr &t) {
 struct appTyDefnEF : public switchExprTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnEF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
+  appTyDefnEF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
     if (t) {
       return applyTypeDefns(this->m, this->e, t);
@@ -167,7 +167,7 @@ ExprPtr applyTypeDefns(const ModulePtr &m, cc *e, const ExprPtr &x) {
 struct appTyDefnMF : public switchMDefTyFn {
   ModulePtr m;
   cc *e;
-  appTyDefnMF(ModulePtr m_, cc *e) : m(std::move(m_)), e(e) {}
+  appTyDefnMF(ModulePtr m, cc *e) : m(std::move(m)), e(e) {}
   QualTypePtr withTy(const QualTypePtr &t) const override {
     if (t) {
       return applyTypeDefns(this->m, this->e, t);
@@ -470,8 +470,8 @@ struct SafeExpr {
   using Status = SafeSet::Status;
   struct UnsafeDefs {
     UnsafeDefs() = default;
-    UnsafeDefs(std::string var_, std::string fn_)
-        : var(std::move(var_)), fn(std::move(fn_)), status(Status::UnSafe) {}
+    UnsafeDefs(std::string var, std::string fn)
+        : var(std::move(var)), fn(std::move(fn)), status(Status::UnSafe) {}
 
     const std::string &varName() const { return var; }
     const std::string &safeFn() const { return fn; }
@@ -653,7 +653,7 @@ private:
 } // namespace details
 
 struct buildTransitiveUnsafePragmaClosure : public switchExprC<details::Bool> {
-  explicit buildTransitiveUnsafePragmaClosure(MVarDef mvd) : mvd(std::move(mvd)) {}
+  explicit buildTransitiveUnsafePragmaClosure(const MVarDef& mvd) : mvd(mvd) {}
 
   ~buildTransitiveUnsafePragmaClosure() override {
     SafeExpr::with([&](SafeExpr::Map &m) {
