@@ -528,7 +528,7 @@ public:
 
   // link symbols across modules :T
   uint64_t getSymbolAddress(const std::string& n) override {
-    if (uint64_t laddr = reinterpret_cast<uint64_t>(this->jit->getSymbolAddress(n))) {
+    if (auto laddr = reinterpret_cast<uint64_t>(this->jit->getSymbolAddress(n))) {
       return laddr;
     }
     if (!n.empty() && n[0] == '_') {
@@ -548,8 +548,8 @@ private:
 #endif
 
 #if LLVM_VERSION_MAJOR >= 11
-jitcc::jitcc(const TEnvPtr& tenv)
-    : tenv(tenv), vtenv(std::make_unique<VTEnv>()), ignoreLocalScope(false),
+jitcc::jitcc(TEnvPtr tenv_)
+    : tenv(std::move(tenv_)), vtenv(std::make_unique<VTEnv>()), ignoreLocalScope(false),
       globals(std::make_unique<Globals>()), globalData(32768 /* min global page size = 32K */),
       constants(std::make_unique<ConstantList>()) {
   llvm::InitializeNativeTarget();
@@ -577,8 +577,8 @@ jitcc::~jitcc() {
 }
 #else
 
-jitcc::jitcc(const TEnvPtr& tenv) :
-  tenv(tenv),
+jitcc::jitcc(TEnvPtr tenv_) :
+  tenv(std::move(tenv_)),
   ignoreLocalScope(false),
   globalData(32768 /* min global page size = 32K */)
 {
@@ -619,13 +619,13 @@ jitcc::jitcc(const TEnvPtr& tenv) :
 
 jitcc::~jitcc() {
   // release low-level functions
-  for (auto f : this->fenv) {
+  for (const auto& f : this->fenv) {
     delete f.second;
   }
 
   // release LLVM resources
 #if LLVM_VERSION_MINOR >= 6 || LLVM_VERSION_MAJOR == 4 || LLVM_VERSION_MAJOR == 6 || LLVM_VERSION_MAJOR >= 8
-  for (auto ee : this->eengines) {
+  for (auto *ee : this->eengines) {
     delete ee;
   }
   delete this->currentModule;
@@ -702,8 +702,8 @@ void* jitcc::getSymbolAddress(const std::string& vn) {
 
   // do we have a compiled function with this name?
 #if LLVM_VERSION_MAJOR == 6 || LLVM_VERSION_MAJOR >= 8
-  for (auto ee : this->eengines) {
-    if (ee->FindFunctionNamed(vn) || ee->FindGlobalVariableNamed(vn)) {
+  for (auto *ee : this->eengines) {
+    if ((ee->FindFunctionNamed(vn) != nullptr) || (ee->FindGlobalVariableNamed(vn) != nullptr)) {
       if (uint64_t faddr = ee->getFunctionAddress(vn)) {
         return reinterpret_cast<void*>(faddr);
       }
@@ -718,11 +718,11 @@ void* jitcc::getSymbolAddress(const std::string& vn) {
 #endif
 
   // shrug
-  return 0;
+  return nullptr;
 }
 
 void jitcc::dump() const {
-  for (auto m : this->modules) {
+  for (auto *m : this->modules) {
 #if LLVM_VERSION_MAJOR == 6 || LLVM_VERSION_MAJOR >= 8
     m->print(llvm::dbgs(), nullptr, /*ShouldPreserveUseListOrder=*/false, /*IsForDebug=*/true);
 #else
@@ -734,14 +734,14 @@ void jitcc::dump() const {
 void* jitcc::getMachineCode(llvm::Function* f, llvm::JITEventListener* listener) {
 #if LLVM_VERSION_MINOR >= 6 || LLVM_VERSION_MAJOR == 4 || LLVM_VERSION_MAJOR == 6 || LLVM_VERSION_MAJOR >= 8
   // try to get the machine code for this function out of an existing compiled module
-  for (auto ee : this->eengines) {
+  for (auto *ee : this->eengines) {
     if (void* pf = ee->getPointerToFunction(f)) {
       return pf;
     }
   }
 
   // we've never seen this function, it must be in the current module
-  if (!this->currentModule) {
+  if (this->currentModule == nullptr) {
     throw std::runtime_error("Internal compiler error, can't derive machine code for unknown function");
   }
 
@@ -749,7 +749,7 @@ void* jitcc::getMachineCode(llvm::Function* f, llvm::JITEventListener* listener)
   std::string err;
   llvm::ExecutionEngine* ee = makeExecutionEngine(this->currentModule, reinterpret_cast<llvm::SectionMemoryManager*>(new jitmm(this)));
 
-  if (listener) {
+  if (listener != nullptr) {
     ee->RegisterJITEventListener(listener);
   }
 
@@ -781,8 +781,8 @@ void* jitcc::getMachineCode(llvm::Function* f, llvm::JITEventListener* listener)
   fpm.doInitialization();
 
   // optimize the module
-  for (auto mf = this->currentModule->begin(); mf != this->currentModule->end(); ++mf) {
-    fpm.run(*mf);
+  for (auto & mf : *this->currentModule) {
+    fpm.run(mf);
   }
 
   // may apply FunctionInliningPass depends upon some "scores"
@@ -793,16 +793,16 @@ void* jitcc::getMachineCode(llvm::Function* f, llvm::JITEventListener* listener)
   ee->finalizeObject();
 
   // now we can't touch this module again
-  this->currentModule = 0;
+  this->currentModule = nullptr;
 
   // and _now_ we must be able to get machine code for this function
   void* pf = ee->getPointerToFunction(f);
 
-  if (listener) {
+  if (listener != nullptr) {
     ee->UnregisterJITEventListener(listener);
   }
 
-  if (!pf) {
+  if (pf == nullptr) {
     throw std::runtime_error("Internal error, failed to derive machine code from head module");
   }
 
@@ -836,8 +836,8 @@ void* jitcc::getMachineCode(llvm::Function* f, llvm::JITEventListener* listener)
 class LenWatch : public llvm::JITEventListener {
 public:
   std::string fname;
-  size_t sz;
-  explicit LenWatch(const std::string &fname) : fname(fname), sz(0) {}
+  size_t sz{};
+  explicit LenWatch(std::string fname) : fname(std::move(fname))  {}
   size_t size() const { return this->sz; }
   void NotifyObjectEmitted(const llvm::object::ObjectFile& o, const llvm::RuntimeDyld::LoadedObjectInfo&) {
     for (auto s : o.symbols()) {
@@ -927,18 +927,15 @@ bool jitcc::isDefined(const std::string& vn) const {
 bool jitcc::isDefined(const std::string& vn) const {
   if (this->globals.find(vn) != this->globals.end()) {
     return true;
-  } else if (this->constants.find(vn) != this->constants.end()) {
-    return true;
-  } else if (lookupOp(vn) != 0) {
-    return true;
-  } else {
-    for (const auto& vb : this->vtenv) {
-      if (vb.find(vn) != vb.end()) {
-        return true;
-      }
-    }
-    return false;
   }
+  if (this->constants.find(vn) != this->constants.end()) {
+    return true;
+  }
+  if (lookupOp(vn) != nullptr) {
+    return true;
+  }
+  return std::any_of(this->vtenv.cbegin(), this->vtenv.cend(),
+                     [&vn](const auto& vb) { return vb.find(vn) != vb.end(); });
 }
 #endif
 
@@ -987,7 +984,7 @@ void jitcc::bindGlobal(const std::string& vn, const MonoTypePtr& ty, void* x) {
   Global g;
   g.type  = ty;
   g.value = x;
-  if (is<Func>(ty)) {
+  if (is<Func>(ty) != nullptr) {
     g.ref.fn =
       llvm::Function::Create(
         reinterpret_cast<llvm::FunctionType*>(toLLVM(ty)),
@@ -1011,7 +1008,7 @@ void jitcc::bindGlobal(const std::string& vn, const MonoTypePtr& ty, void* x) {
                          toLLVM(ty, true),
                          false,
                          llvm::GlobalValue::ExternalLinkage,
-                         0,
+                         nullptr,
                          vn
                        ),
                        sizeof(void*));
@@ -1028,24 +1025,23 @@ void jitcc::bindGlobal(const std::string& vn, const MonoTypePtr& ty, void* x) {
 llvm::Value* jitcc::maybeRefGlobalV(llvm::Value* v) {
   llvm::Module* thisMod = module();
 
-  if (auto f = llvm::dyn_cast<llvm::Function>(v)) {
+  if (auto* f = llvm::dyn_cast<llvm::Function>(v)) {
     if (f->getParent() == thisMod) {
       return f;
-    } else {
-      return externDecl(f, thisMod);
     }
-  } else if (auto gv = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
+    return externDecl(f, thisMod);
+  }
+  if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
     if (gv->getParent() == thisMod) {
       return v;
-    } else if (llvm::GlobalVariable *rgv =
-                   thisMod->getGlobalVariable(gv->getName())) {
-      return rgv;
-    } else {
-      return new llvm::GlobalVariable(*thisMod, gv->getType()->getElementType(), gv->isConstant(), llvm::GlobalVariable::ExternalLinkage, 0, gv->getName());
     }
-  } else {
-    return v;
+    if (llvm::GlobalVariable* rgv = thisMod->getGlobalVariable(gv->getName())) {
+      return rgv;
+    }
+    return new llvm::GlobalVariable(*thisMod, gv->getType()->getElementType(), gv->isConstant(),
+                                    llvm::GlobalVariable::ExternalLinkage, nullptr, gv->getName());
   }
+  return v;
 }
 #endif
 
@@ -1056,10 +1052,10 @@ llvm::GlobalVariable* jitcc::lookupGlobalVar(const std::string& vn) {
 #else
 llvm::GlobalVariable* jitcc::maybeRefGlobal(const std::string& vn) {
   auto gv = this->globals.find(vn);
-  if (gv != this->globals.end() && !is<Func>(gv->second.type)) {
+  if (gv != this->globals.end() && (is<Func>(gv->second.type) == nullptr)) {
     return refGlobal(vn, gv->second.ref.var);
   }
-  return 0;
+  return nullptr;
 }
 #endif
 
@@ -1067,8 +1063,8 @@ llvm::GlobalVariable* jitcc::maybeRefGlobal(const std::string& vn) {
 llvm::GlobalVariable* jitcc::refGlobal(const std::string& vn, llvm::GlobalVariable* gv) {
   llvm::Module* mod = module();
 
-  if (!gv) {
-    return 0;
+  if (gv == nullptr) {
+    return nullptr;
   } else if (gv->getParent() == mod) {
     return gv;
   } else if (llvm::GlobalVariable *rgv = mod->getGlobalVariable(vn)) {
@@ -1079,7 +1075,7 @@ llvm::GlobalVariable* jitcc::refGlobal(const std::string& vn, llvm::GlobalVariab
                     gv->getType()->getElementType(),
                     gv->isConstant(),
                     llvm::GlobalVariable::ExternalLinkage,
-                    0,
+                    nullptr,
                     vn),
                   sizeof(void*));
   }
@@ -1095,7 +1091,7 @@ llvm::GlobalVariable* jitcc::lookupVarRef(const std::string& vn) {
 #else
   for (auto vbs : this->vtenv) {
     if (vbs.find(vn) != vbs.end()) {
-      return 0;
+      return nullptr;
     }
   }
 #endif
@@ -1135,19 +1131,19 @@ llvm::Value* jitcc::loadConstant(const std::string& vn) {
 }
 #endif
 
-void jitcc::defineGlobal(const std::string& vn, const ExprPtr& ue) {
+void jitcc::defineGlobal(const std::string& vn, const ExprPtr& unsweetExp) {
   std::string vname = vn.empty() ? (".global" + freshName()) : vn;
-  this->globalExprs[vn] = ue;
+  this->globalExprs[vn] = unsweetExp;
   using Thunk = void (*)();
-  MonoTypePtr uety = requireMonotype(this->tenv, ue);
+  MonoTypePtr uety = requireMonotype(this->tenv, unsweetExp);
 
   if (isUnit(uety)) {
     // no storage necessary for units
-    Thunk f = reinterpret_cast<Thunk>(reifyMachineCodeForFn(uety, list<std::string>(), list<MonoTypePtr>(), ue));
+    Thunk f = reinterpret_cast<Thunk>(reifyMachineCodeForFn(uety, list<std::string>(), list<MonoTypePtr>(), unsweetExp));
     f();
     releaseMachineCode(reinterpret_cast<void*>(f));
     resetMemoryPool();
-  } else if (llvm::Constant *c = toLLVMConstant(this, vname, ue)) {
+  } else if (llvm::Constant *c = toLLVMConstant(this, vname, unsweetExp)) {
     // make a global constant ...
 #if LLVM_VERSION_MAJOR >= 11
     if (is<Func>(uety) != nullptr) {
@@ -1164,9 +1160,9 @@ void jitcc::defineGlobal(const std::string& vn, const ExprPtr& ue) {
     cv.type  = toLLVM(uety);
     cv.mtype = uety;
 
-    if (is<Func>(uety)) {
+    if (is<Func>(uety) != nullptr) {
       // functions are loaded by name rather than by constant value
-      cv.ref = 0;
+      cv.ref = nullptr;
     } else {
       cv.ref = new llvm::GlobalVariable(*module(), cv.type, true, llvm::GlobalVariable::ExternalLinkage, c, vname);
     }
@@ -1185,13 +1181,13 @@ void jitcc::defineGlobal(const std::string& vn, const ExprPtr& ue) {
     llvm::BasicBlock* ibb = withContext([this](auto&) { return this->builder()->GetInsertBlock(); });
     llvm::Function* initfn = allocFunction("." + vname + "_init", MonoTypes(), primty("unit"));
     if (initfn == nullptr) {
-      throw annotated_error(*ue, "Failed to allocate initializer function for '" + vname + "'.");
+      throw annotated_error(*unsweetExp, "Failed to allocate initializer function for '" + vname + "'.");
     }
     withContext([&](llvm::LLVMContext& c) {
       llvm::BasicBlock* bb = llvm::BasicBlock::Create(c, "entry", initfn);
       this->builder()->SetInsertPoint(bb);
 
-      compile(assign(var(vname, uety, ue->la()), ue, ue->la()));
+      compile(assign(var(vname, uety, unsweetExp->la()), unsweetExp, unsweetExp->la()));
       this->builder()->CreateRetVoid();
     });
 
@@ -1348,8 +1344,7 @@ llvm::Function* jitcc::lookupFunction(const std::string& fn) {
 llvm::Function* jitcc::lookupFunction(const std::string& fn) {
   llvm::Module* thisMod = module();
 
-  for (size_t i = 0; i<this->modules.size(); ++i) {
-    auto m = this->modules[i];
+  for (auto *m : this->modules) {
     if (llvm::Function* f = m->getFunction(fn)) {
       if (m == thisMod) {
         return f;
@@ -1358,7 +1353,7 @@ llvm::Function* jitcc::lookupFunction(const std::string& fn) {
       }
     }
   }
-  return 0;
+  return nullptr;
 }
 #endif
 llvm::Function* jitcc::compileFunction(const std::string& name, const str::seq& argns, const MonoTypes& argtys, const ExprPtr& exp) {

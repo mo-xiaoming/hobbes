@@ -642,8 +642,10 @@ namespace details {
 struct Bool {
   static auto mkF() -> Bool { return {false}; }
   static auto mkT() -> Bool { return {true}; }
+  // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
   Bool(bool v) : i(v ? 1 : 0) {}
   auto operator=(bool v) -> Bool & { return (*this = Bool(v)); }
+  // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
   operator bool() const { return (i != 0); }
 
 private:

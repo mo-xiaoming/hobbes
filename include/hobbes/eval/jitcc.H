@@ -15,6 +15,7 @@
 #endif
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace llvm {
@@ -46,7 +47,7 @@ class ConstantList;
 // a JIT compiler for monotyped expressions
 class jitcc {
 public:
-  jitcc(const TEnvPtr&);
+  explicit jitcc(TEnvPtr);
   ~jitcc();
 
   const TEnvPtr&     typeEnv() const;
@@ -62,7 +63,7 @@ public:
 #endif
 
   // define a global from a primitive expression
-  void defineGlobal(const std::string& vname, const ExprPtr& unsweetExp);
+  void defineGlobal(const std::string& vn, const ExprPtr& unsweetExp);
 
   // define a global on some existing memory
   void bindGlobal(const std::string& vn, const MonoTypePtr& ty, void* x);
@@ -144,7 +145,7 @@ private:
 
 #if LLVM_VERSION_MAJOR < 11
   // the set of allocated modules
-  typedef std::vector<llvm::Module*> Modules;
+  using Modules = std::vector<llvm::Module *>;
   Modules modules;
 #endif
 
@@ -153,7 +154,7 @@ private:
 #else
 #if LLVM_VERSION_MINOR == 6 || LLVM_VERSION_MINOR == 7 || LLVM_VERSION_MINOR == 8 || LLVM_VERSION_MAJOR == 4 || LLVM_VERSION_MAJOR <= 12
   // the set of allocated execution engines (each will own a finalized module from the set of modules)
-  typedef std::vector<llvm::ExecutionEngine*> ExecutionEngines;
+  using ExecutionEngines = std::vector<llvm::ExecutionEngine *>;
   ExecutionEngines eengines;
 #elif LLVM_VERSION_MINOR == 3
   llvm::ExecutionEngine*     eengine;
@@ -177,8 +178,8 @@ private:
 #if LLVM_VERSION_MAJOR >= 11
   std::unique_ptr<VTEnv> vtenv;
 #else
-  typedef std::map<std::string, llvm::Value*> VarBindings;
-  typedef std::vector<VarBindings>            VarBindingStack;
+  using VarBindings = std::map<std::string, llvm::Value *>;
+  using VarBindingStack = std::vector<VarBindings>;
   VarBindingStack vtenv;
 #endif
   bool ignoreLocalScope;
@@ -192,8 +193,8 @@ private:
 
     llvm::Function*    result;
 
-    inline UCF(const std::string& name, const str::seq& argns, const MonoTypes& argtys, const ExprPtr& exp)
-      : name(name), argns(argns), argtys(argtys), exp(exp) { }
+    inline UCF(const std::string& name, const str::seq& argns, MonoTypes  argtys, const ExprPtr& exp)
+      : name(name), argns(argns), argtys(std::move(argtys)), exp(exp) { }
   };
   using UCFS = std::vector<UCF>;
   void unsafeCompileFunctions(UCFS*);
@@ -210,7 +211,7 @@ private:
       llvm::Function*       fn;
     } ref;
   };
-  typedef std::map<std::string, Global> Globals;
+  using Globals = std::map<std::string, Global>;
   Globals globals;
 #endif
 
@@ -229,7 +230,7 @@ private:
     MonoTypePtr           mtype;
     llvm::GlobalVariable* ref;
   };
-  typedef std::map<std::string, Constant> Constants;
+  using Constants = std::map<std::string, Constant>;
   Constants constants;
 #endif
   llvm::Value* loadConstant(const std::string&);
@@ -268,7 +269,7 @@ using Values = std::vector<llvm::Value *>;
 Values compile(jitcc*, const Exprs&);
 Values compileArgs(jitcc*, const Exprs&);
 
-}
+}  // namespace hobbes
 
 #endif
 

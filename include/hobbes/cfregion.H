@@ -42,13 +42,13 @@ struct arithn {
   using freq = uint32_t;
 
   static constexpr uint32_t cbits    = 16;
-  static constexpr code     cmax     = (code(1) << cbits) - code(1);
-  static constexpr code     cfourth  = code(1) << (cbits-2);
+  static constexpr code     cmax     = (static_cast<code>(1U) << cbits) - static_cast<code>(1);
+  static constexpr code     cfourth  = static_cast<code>(1U) << (cbits-2);
   static constexpr code     chalf    = 2*cfourth;
   static constexpr code     c3fourth = 3*cfourth;
 
-  static constexpr uint32_t fbits = 14;
-  static constexpr freq     fmax  = (freq(1) << fbits) - freq(1);
+  static constexpr uint32_t fbits = 14U;
+  static constexpr freq     fmax  = (static_cast<freq>(1) << fbits) - static_cast<freq>(1);
 };
 
 // the serialized state of a batch of compressed data
@@ -1084,7 +1084,6 @@ template <typename T>
         unmapFileData(this->f, headNode, sizeof(size_t));
       }
     }
-    ~cwseries() = default;
     cwseries(const cwseries<T>&) = delete;
     cwseries<T>& operator=(const cwseries<T>&) = delete;
 
@@ -1129,7 +1128,7 @@ template <typename T>
   };
 class cwriter {
 public:
-  cwriter(const std::string& fname) : f(openFile(fname, false)) {
+  explicit cwriter(const std::string& fname) : f(openFile(fname, false)) {
   }
   ~cwriter() {
     closeFile(this->f);
@@ -1267,7 +1266,7 @@ template <typename T>
   };
 class creader {
 public:
-  creader(const std::string& fname) : f(openFile(fname, true)) {
+  explicit creader(const std::string& fname) : f(openFile(fname, true)) {
   }
   ~creader() {
     closeFile(this->f);

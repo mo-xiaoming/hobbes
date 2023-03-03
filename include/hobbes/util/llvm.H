@@ -304,9 +304,9 @@ template <typename Fn> auto withContext(Fn fn) -> decltype(auto) {
   return fn(context());
 }
 
-typedef std::vector<llvm::Type*>     Types;
-typedef std::vector<llvm::Constant*> Constants;
-typedef std::vector<llvm::Value*>    Values;
+using Types = std::vector<llvm::Type *>;
+using Constants = std::vector<llvm::Constant *>;
+using Values = std::vector<llvm::Value *>;
 
 // type utilities
 inline llvm::Type* voidType() {

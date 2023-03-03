@@ -1789,7 +1789,6 @@ template <typename T>
         }
       }
     }
-    ~wseries() = default;
 
     const ty::desc&    typeDef()  const override { return this->tdef; }
     const std::string& name()     const { return this->seqname; }
@@ -1944,7 +1943,6 @@ template <typename ... Wss>
     wsseq(imagefile* f, const std::string& n, Wss& ... wss) : log(f, n, 10000, seqVar<Wss...>::storeType(f, wss...)) {
       seqVar<Wss...>::setWriteCBs(0, [this](uint32_t id, uint64_t p){this->log(std::pair<uint32_t,uint64_t>(id,p));}, wss...);
     }
-    ~wsseq() = default;
     const ty::desc& typeDef()  const override { return this->log.typeDef(); }
   private:
     wseries<std::pair<uint32_t,size_t>> log;

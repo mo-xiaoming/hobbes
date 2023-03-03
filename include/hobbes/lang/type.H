@@ -342,7 +342,7 @@ private:
   int x;
 
   friend class MonoType;
-  TGen(int);
+  explicit TGen(int);
 };
 
 // an array whose length is determined
@@ -495,7 +495,7 @@ public:
   static MonoTypePtr make(const std::string& lbl, const MonoTypePtr& hty, const Members& tty);
 private:
   friend class MonoType;
-  explicit Record(Members ms);
+  explicit Record(Members tms);
 };
 
 // determine type alignment (for efficient/correct access in memory)

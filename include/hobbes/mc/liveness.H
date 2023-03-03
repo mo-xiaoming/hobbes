@@ -33,11 +33,13 @@
 #define HMC_LIVENESS_H_INCLUDED
 
 #include <cassert>
+#include <cstring>
 #include <map>
 #include <set>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+#include <sstream>
 
 namespace hobbes { namespace mc {
 
