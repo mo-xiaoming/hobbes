@@ -90,7 +90,14 @@ bool TEnv::debugConstraintRefine() const { return this->dbgCstRefine || (parent 
 void TEnv::debugConstraintRefine(bool f) { this->dbgCstRefine = f; }
 
 bool TEnv::hasBinding(const std::string& vname) const {
-  return hasImmediateBinding(vname) || (this->parent && this->parent->hasBinding(vname));
+  const auto* p = this;
+  while (p != nullptr) {
+    if (p->hasImmediateBinding(vname)) {
+      return true;
+    }
+    p = p->parent.get();
+  }
+  return false;
 }
 
 bool TEnv::hasImmediateBinding(const std::string& vname) const {
@@ -353,6 +360,12 @@ void PolyType::show(std::ostream& out) const {
   simplifyVarNames(instantiate())->show(out);
 }
 
+std::string PolyType::toString() const {
+  std::ostringstream out;
+  this->show(out);
+  return std::move(out).str();
+}
+
 bool PolyType::operator==(const PolyType& rhs) const {
   return this->vs == rhs.vs && *this->qt == *rhs.qt;
 }
@@ -392,6 +405,12 @@ void QualType::show(std::ostream& out) const {
     out << ") => ";
     this->mt->show(out);
   }
+}
+
+std::string QualType::toString() const {
+  std::ostringstream out;
+  this->show(out);
+  return std::move(out).str();
 }
 
 bool QualType::operator==(const QualType& rhs) const {
@@ -460,6 +479,12 @@ void Constraint::show(std::ostream& out) const {
       mt->show(out);
     }
   }
+}
+
+std::string Constraint::toString() const {
+  std::ostringstream out;
+  this->show(out);
+  return std::move(out).str();
 }
 
 bool Constraint::operator==(const Constraint& rhs) const {

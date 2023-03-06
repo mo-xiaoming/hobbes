@@ -103,7 +103,11 @@ struct ClosureConvertF : public switchExprTyFn {
   }
 
   ExprPtr with(const Let* v) const override {
-    return ExprPtr(new Let(v->var(), switchOf(v->varExpr(), *this), switchOf(v->bodyExpr(), ClosureConvertF(bindFrame(this->tenv, v->var(), tgen(0)), this->roots)), v->la()));
+    return ExprPtr(
+        new Let(v->var(), switchOf(v->varExpr(), *this),
+                switchOf(v->bodyExpr(),
+                         ClosureConvertF(bindFrame(this->tenv, v->var(), tgen(0)), this->roots)),
+                v->la()));
   }
 
   ExprPtr with(const Unpack* v) const override {
