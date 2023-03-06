@@ -2,6 +2,7 @@
 #include <hobbes/lang/type.H>
 #include <hobbes/lang/expr.H>
 #include <hobbes/util/array.H>
+#include <utility>
 
 namespace hobbes {
 
@@ -76,7 +77,7 @@ static bool hasRootBinding(const std::string& vn, const TEnvPtr& tenv, const TEn
 struct ClosureConvertF : public switchExprTyFn {
   TEnvPtr tenv;
   TEnvs   roots;
-  ClosureConvertF(const TEnvPtr& tenv, const TEnvs& roots) : tenv(tenv), roots(roots) { }
+  ClosureConvertF(TEnvPtr  tenv, TEnvs  roots) : tenv(std::move(tenv)), roots(std::move(roots)) { }
   
   VarSet excludeRootVars(const VarSet& vs) const {
     VarSet r;

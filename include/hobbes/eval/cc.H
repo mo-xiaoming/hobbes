@@ -261,6 +261,7 @@ public:
   }
 
 private:
+  // (T)ransparent (Ty)pe alias
   using TTyDef = std::pair<str::seq, MonoTypePtr>;
   using TTyDefs = std::unordered_map<std::string, TTyDef>;
   TTyDefs ttyDefs;

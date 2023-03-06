@@ -28,7 +28,7 @@ struct MoreDefinedType {
 
 class MonoTypeUnifier {
 public:
-  MonoTypeUnifier(const TEnvPtr&);
+  explicit MonoTypeUnifier(const TEnvPtr&);
   MonoTypeUnifier(const MonoTypeUnifier&);
   MonoTypeUnifier& operator=(const MonoTypeUnifier&);
 

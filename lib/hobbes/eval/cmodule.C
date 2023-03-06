@@ -134,6 +134,7 @@ MonoTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const MonoTypePtr &t) {
 
 MonoTypes applyTypeDefns(const ModulePtr &m, cc *e, const MonoTypes &ts) {
   MonoTypes r;
+  r.reserve(ts.size());
   for (const auto &t : ts) {
     r.push_back(applyTypeDefns(m, e, t));
   }
@@ -142,6 +143,7 @@ MonoTypes applyTypeDefns(const ModulePtr &m, cc *e, const MonoTypes &ts) {
 
 QualTypePtr applyTypeDefns(const ModulePtr &m, cc *e, const QualTypePtr &t) {
   Constraints cs;
+  cs.reserve(t->constraints().size());
   for (const auto &c : t->constraints()) {
     cs.push_back(std::make_shared<Constraint>(
         c->name(), applyTypeDefns(m, e, c->arguments())));
@@ -181,6 +183,7 @@ ModuleDefPtr applyTypeDefns(const ModulePtr &m, cc *e, const ModuleDefPtr &md) {
 
 ModuleDefs applyTypeDefns(const ModulePtr &m, cc *e, const ModuleDefs &mds) {
   ModuleDefs r;
+  r.reserve(mds.size());
   for (const auto &md : mds) {
     r.push_back(applyTypeDefns(m, e, md));
   }
@@ -222,6 +225,7 @@ int nameIndex(const NameIndexing &ns, const std::string &vn) {
 
 std::vector<int> nameIndex(const NameIndexing &ns, const str::seq &vns) {
   std::vector<int> r;
+  r.reserve(vns.size());
   for (const auto &vn : vns) {
     r.push_back(nameIndex(ns, vn));
   }

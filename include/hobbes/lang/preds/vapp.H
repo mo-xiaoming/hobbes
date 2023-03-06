@@ -27,7 +27,7 @@ public:
   FunDeps     dependencies(const ConstraintPtr&)                                           const override;
 };
 
-}
+}  // namespace hobbes
 
 #endif
 

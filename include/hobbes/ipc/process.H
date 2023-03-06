@@ -12,7 +12,7 @@ namespace hobbes {
 // resolve process invocation constraints
 class ProcessP : public Unqualifier {
 public:
-  ProcessP(FieldVerifier*);
+  explicit ProcessP(FieldVerifier*);
 
   static std::string constraintName();
 

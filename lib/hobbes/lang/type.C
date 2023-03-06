@@ -66,6 +66,7 @@ std::string showNoSimpl(const MonoTypePtr& e)   { return showNoSimpl(*e); }
 
 str::seq showNoSimpl(const MonoTypes& ts) {
   str::seq r;
+  r.reserve(ts.size());
   for (const auto& t : ts) {
     r.push_back(showNoSimpl(t));
   }
@@ -74,6 +75,7 @@ str::seq showNoSimpl(const MonoTypes& ts) {
 
 str::seq showNoSimpl(const Constraints& cs) {
   str::seq r;
+  r.reserve(cs.size());
   for (const auto& c : cs) {
     r.push_back(showNoSimpl(c));
   }
@@ -88,6 +90,14 @@ TEnv::TEnv() :  unquals(new UnqualifierSet()), dbgCstRefine(false)  {
 }
 bool TEnv::debugConstraintRefine() const { return this->dbgCstRefine || (parent && parent->debugConstraintRefine()); }
 void TEnv::debugConstraintRefine(bool f) { this->dbgCstRefine = f; }
+
+std::string TEnv::toString() const {
+  std::ostringstream out;
+  for (const auto& pe: ptenv) {
+    out << "    " << pe.first << ": " << pe.second->toString() << '\n';
+  }
+  return std::move(out).str();
+}
 
 bool TEnv::hasBinding(const std::string& vname) const {
   const auto* p = this;
@@ -1623,6 +1633,7 @@ Constraints mergeConstraints(const Constraints& lhs, const Constraints& rhs) {
 }
 
 void mergeConstraints(const Constraints& fcs, Constraints* tcs) {
+  tcs->reserve(tcs->size() + fcs.size());
   for (const auto &fc : fcs) {
     tcs->push_back(fc);
   }
@@ -1640,6 +1651,7 @@ TVName freshName() {
 
 Names freshNames(int vs) {
   Names r;
+  r.reserve(vs);
   for (int i = 0; i < vs; ++i) {
     r.push_back(freshName());
   }
@@ -1652,6 +1664,7 @@ MonoTypePtr freshTypeVar() {
 
 MonoTypes freshTypeVars(int vs) {
   MonoTypes r;
+  r.reserve(vs);
   for (int i = 0; i < vs; ++i) {
     r.push_back(freshTypeVar());
   }
@@ -1689,6 +1702,7 @@ Constraints freshen(const Constraints& cs) {
 
 MonoTypes typeVars(const Names& ns) {
   MonoTypes r;
+  r.reserve(ns.size());
   for (const auto &n : ns) {
     r.push_back(TVar::make(n));
   }
@@ -1697,6 +1711,7 @@ MonoTypes typeVars(const Names& ns) {
 
 MonoTypes tgens(int vs) {
   MonoTypes r;
+  r.reserve(vs);
   for (int i = 0; i < vs; ++i) {
     r.push_back(TGen::make(i));
   }

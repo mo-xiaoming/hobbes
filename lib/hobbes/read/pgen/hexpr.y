@@ -940,8 +940,8 @@ cargs: /* nothing */    { $$ = autorelease(new Exprs()); }
      | l0expr           { $$ = autorelease(new Exprs()); $$->push_back(ExprPtr($1)); }
      | cargs "," l0expr { $1->push_back(ExprPtr($3)); $$ = $1; }
 
-qtype : cst "=>" l0mtype { $$ = new QualType(*$1, *$3); }
-      | l0mtype          { $$ = new QualType(Constraints(), *$1); }
+qtype: cst "=>" l0mtype { $$ = new QualType(*$1, *$3); }
+     | l0mtype         { $$ = new QualType(Constraints(), *$1); }
 
 /* to avoid parsing ambiguity, we require all type constraints to be in parens (this could be solved with a better parser) */
 cst: "(" tpreds ")" { $$ = $2; }

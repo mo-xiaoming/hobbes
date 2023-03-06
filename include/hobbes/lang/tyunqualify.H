@@ -79,7 +79,7 @@ QualTypePtr removeConstraint(const ConstraintPtr& c, const QualTypePtr& qt);
 // in the process, new definitions may need to be introduced (in which case they'll be inserted in the supplied array)
 ExprPtr unqualifyTypes(const TEnvPtr& tenv, const ExprPtr& e, Definitions* ds);
 
-}
+}  // namespace hobbes
 
 #endif
 

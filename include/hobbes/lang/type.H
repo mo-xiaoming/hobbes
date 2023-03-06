@@ -119,6 +119,9 @@ public:
 
   using Unqualifiers = std::map<std::string, UnqualifierPtr>;
   const Unqualifiers& unqualifiers() const;
+
+  std::string toString() const;
+
 private:
   TEnvPtr           parent;
   UnqualifierSetPtr unquals; // non-empty iff parent==0
@@ -799,6 +802,7 @@ template <typename T>
 template <typename T>
   std::vector<T> switchOf(const MonoTypes& ts, const switchType<T>& f) {
     std::vector<T> result;
+    result.reserve(ts.size());
     for (const auto &t : ts) {
       result.push_back(switchOf(t, f));
     }
@@ -818,8 +822,9 @@ template <typename K, typename T>
     using KT = std::pair<K, T>;
     using KTS = std::vector<KT>;
     KTS r;
-    for (typename std::vector< std::pair<K, MonoTypePtr> >::const_iterator kt = kts.begin(); kt != kts.end(); ++kt) {
-      r.push_back(KT(kt->first, switchOf(kt->second, f)));
+    r.reserve(kts.size());
+    for (const auto& kt: kts) {
+      r.emplace_back(kt->first, switchOf(kt->second, f));
     }
     return r;
   }
@@ -827,6 +832,7 @@ template <typename K, typename T>
 template <typename T>
   Variant::Members switchOf(const Variant::Members& ms, const switchType<T>& f) {
     Variant::Members r;
+    r.reserve(ms.size());
     for (const auto &m : ms) {
       r.push_back(Variant::Member(m.selector, switchOf(m.type, f), m.id));
     }
@@ -836,6 +842,7 @@ template <typename T>
 template <typename T>
   Record::Members switchOf(const Record::Members& ms, const switchType<T>& f) {
     Record::Members r;
+    r.reserve(ms.size());
     for (const auto &m : ms) {
       r.push_back(Record::Member(m.field, switchOf(m.type, f), m.offset));
     }
@@ -844,6 +851,7 @@ template <typename T>
 
 inline MonoTypes selectTypes(const Variant::Members& ms) {
   MonoTypes r;
+  r.reserve(ms.size());
   for (const auto &m : ms) {
     r.push_back(m.type);
   }
@@ -852,6 +860,7 @@ inline MonoTypes selectTypes(const Variant::Members& ms) {
 
 inline str::seq selectNames(const Variant::Members& ms) {
   str::seq r;
+  r.reserve(ms.size());
   for (const auto& m : ms) {
     r.push_back(m.selector);
   }
@@ -860,6 +869,7 @@ inline str::seq selectNames(const Variant::Members& ms) {
 
 inline MonoTypes selectTypes(const Record::Members& ms) {
   MonoTypes r;
+  r.reserve(ms.size());
   for (const auto &m : ms) {
     r.push_back(m.type);
   }
@@ -868,6 +878,7 @@ inline MonoTypes selectTypes(const Record::Members& ms) {
 
 inline str::seq selectNames(const Record::Members& ms) {
   str::seq r;
+  r.reserve(ms.size());
   for (const auto& m : ms) {
     r.push_back(m.field);
   }
@@ -1115,7 +1126,7 @@ inline MonoTypePtr isMaybe(const MonoTypePtr& t) {
       return ms[1].type;
     }
   }
-  return MonoTypePtr();
+  return {};
 }
 
 inline MonoTypePtr tstrings(const std::vector<std::string>& xs) {
