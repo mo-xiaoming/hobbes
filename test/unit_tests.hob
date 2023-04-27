@@ -1,0 +1,499 @@
+assert :: (a, b) -> ()
+assert a b = if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
+
+
+// negate a boolean
+assert(not(true), false)
+assert(not(false), true)
+
+// bitwise negation of a byte
+assert(bnot(0Xff), 0X00)
+assert(bnot(0X00), 0Xff)
+assert(bnot(0X33), 0Xcc)
+
+// convert a byte to int, zero-extended
+assert(b2i(0X00), 0)
+assert(b2i(0Xf0), 240)
+
+// convert a byte to long, zero-extended
+assert(b2l(0X00), 0L)
+assert(b2l(0Xf0), 240L)
+
+// convert int to double
+assert(i2d(3), 3.0)
+assert(i2d(-3), -3.0)
+
+// convert int to float
+assert(i2f(3), 3.0f)
+assert(i2f(-3), -3.0f)
+
+// convert int to long, sign-extended
+assert(i2l(3), 3L)
+assert(i2l(-3), -3L)
+
+// convert long to int128, sign-extended
+assert(l2i16(3L), 3H)
+assert(l2i16(-3L), -3H)
+
+// convert long to double
+assert(l2d(3L), 3.0)
+assert(l2d(-3L), -3.0)
+
+// convert long to float
+assert(l2f(3L), 3.0f)
+assert(l2f(-3L), -3.0f)
+
+// convert short to int, sign-extended
+assert(s2i(3S), 3)
+assert(s2i(-3S), -3)
+
+// convert float to double
+assert(f2d(3.0f), 3.0)
+assert(f2d(-3.0f), -3.0)
+
+int_max = 2147483647 // 2^31 - 1
+int_half_max = 1073741823 // 2^30 - 1 
+int_min = neg(int_max) - 1 // -2^31, get around parser limitation
+
+// truncate long to int by truncating the high order bits
+assert(tl2i(0L), 0)
+assert(tl2i(-0L), 0)
+assert(tl2i(3L), 3)
+assert(tl2i(-3L), -3)
+assert(tl2i(i2l(int_max)), int_max)
+assert(tl2i(i2l(int_max)+1L), int_min)
+assert(tl2i(i2l(int_max)+2L), int_min+1)
+assert(tl2i(i2l(int_min)), int_min)
+assert(tl2i(i2l(int_min)-1L), int_max)
+assert(tl2i(i2l(int_min)-2L), int_max-1)
+
+short_max = 32767S // 2^15 - 1
+short_min = neg(short_max) - 1S // -2^15, get around parser limitation
+
+// truncate int to short by truncating the high order bits
+assert(ti2s(0), 0S)
+assert(ti2s(-0), 0S)
+assert(ti2s(3), 3S)
+assert(ti2s(-3), -3S)
+assert(ti2s(s2i(short_max)), short_max)
+assert(ti2s(s2i(short_max)+1), short_min)
+assert(ti2s(s2i(short_max)+2), short_min+1)
+assert(ti2s(s2i(short_min)), short_min)
+assert(ti2s(s2i(short_min)-1), short_max)
+assert(ti2s(s2i(short_min)-2), short_max-1)
+
+// truncate int to byte by truncating the high order bits
+assert(ti2b(0), 0X00)
+assert(ti2b(-0), 0X00)
+assert(ti2b(3), 0X03)
+assert(ti2b(-3), 0Xfd)
+assert(ti2b(b2i(0Xff)), 0Xff)
+assert(ti2b(b2i(0Xff)+1), 0X00)
+assert(ti2b(b2i(0Xff)+2), 0X01)
+
+// truncate long to byte by truncating the high order bits
+assert(tl2b(0L), 0X00)
+assert(tl2b(-0L), 0X00)
+assert(tl2b(3L), 0X03)
+assert(tl2b(-3L), 0Xfd)
+assert(tl2b(b2l(0Xff)), 0Xff)
+assert(tl2b(b2l(0Xff)+1), 0X00)
+assert(tl2b(b2l(0Xff)+2), 0X01)
+
+// negate numbers
+assert(sneg(0S), 0S)
+assert(sneg(3S), -3S)
+assert(sneg(-3S), 3S)
+
+assert(ineg(0), 0)
+assert(ineg(3), -3)
+assert(ineg(-3), 3)
+
+assert(lneg(0L), 0L)
+assert(lneg(3L), -3L)
+assert(lneg(-3L), 3L)
+
+assert(i16neg(0H), 0H)
+assert(i16neg(3H), -3H)
+assert(i16neg(-3H), 3H)
+
+assert(fneg(0.0f), 0.0f)
+assert(fneg(-0.0f), 0.0f)
+assert(fneg(3.0f), -3.0f)
+assert(fneg(-3.0f), 3.0f)
+
+assert(dneg(0.0), 0.0)
+assert(dneg(-0.0), 0.0)
+assert(dneg(3.0), -3.0)
+assert(dneg(-3.0), 3.0)
+
+// comparision
+assert(ceq('c', 'c'), true)
+assert(ceq('x', 'c'), false)
+assert(cneq('c', 'c'), false)
+assert(cneq('x', 'c'), true)
+assert(clt('c', 'c'), false)
+assert(clt('x', 'c'), false)
+assert(clt('c', 'x'), true)
+assert(clte('c', 'c'), true)
+assert(clte('x', 'c'), false)
+assert(clte('c', 'x'), true)
+assert(cgt('c', 'c'), false)
+assert(cgt('x', 'c'), true)
+assert(cgt('c', 'x'), false)
+assert(cgte('c', 'c'), true)
+assert(cgte('x', 'c'), true)
+assert(cgte('c', 'x'), false)
+
+assert(beq(0X00, 0X00), true)
+assert(beq(0X00, 0Xff), false)
+assert(bneq(0X00, 0X00), false)
+assert(bneq(0X00, 0Xff), true)
+assert(blt(0X33, 0X33), false)
+assert(blt(0X88, 0X33), false)
+assert(blt(0X33, 0X88), true)
+assert(blte(0X33, 0X33), true)
+assert(blte(0X88, 0X33), false)
+assert(blte(0X33, 0X88), true)
+assert(bgt(0X33, 0X33), false)
+assert(bgt(0X88, 0X33), true)
+assert(bgt(0X33, 0X88), false)
+assert(bgte(0X33, 0X33), true)
+assert(bgte(0X88, 0X33), true)
+assert(bgte(0X33, 0X88), false)
+
+assert(seq(0S, 0S), true)
+assert(seq(0S, 1S), false)
+assert(sneq(0S, 0S), false)
+assert(sneq(0S, 1S), true)
+assert(slt(33S, 33S), false)
+assert(slt(88S, 33S), false)
+assert(slt(33S, 88S), true)
+assert(slt(33S, -88S), false)
+assert(slte(33S, 33S), true)
+assert(slte(88S, 33S), false)
+assert(slte(33S, 88S), true)
+assert(slte(33S, -88S), false)
+assert(sgt(33S, 33S), false)
+assert(sgt(88S, 33S), true)
+assert(sgt(33S, 88S), false)
+assert(sgt(33S, -88S), true)
+assert(sgte(33S, 33S), true)
+assert(sgte(88S, 33S), true)
+assert(sgte(33S, 88S), false)
+assert(sgte(33S, -88S), true)
+
+assert(ieq(0, 0), true)
+assert(ieq(0, 1), false)
+assert(ineq(0, 0), false)
+assert(ineq(0, 1), true)
+assert(ilt(33, 33), false)
+assert(ilt(88, 33), false)
+assert(ilt(33, 88), true)
+assert(ilt(33, -88), false)
+assert(ilte(33, 33), true)
+assert(ilte(88, 33), false)
+assert(ilte(33, 88), true)
+assert(ilte(33, -88), false)
+assert(igt(33, 33), false)
+assert(igt(88, 33), true)
+assert(igt(33, 88), false)
+assert(igt(33, -88), true)
+assert(igte(33, 33), true)
+assert(igte(88, 33), true)
+assert(igte(33, 88), false)
+assert(igte(33, -88), true)
+
+assert(leq(0L, 0L), true)
+assert(leq(0L, 1L), false)
+assert(lneq(0L, 0L), false)
+assert(lneq(0L, 1L), true)
+assert(llt(33L, 33L), false)
+assert(llt(88L, 33L), false)
+assert(llt(33L, 88L), true)
+assert(llt(33L, -88L), false)
+assert(llte(33L, 33L), true)
+assert(llte(88L, 33L), false)
+assert(llte(33L, 88L), true)
+assert(llte(33L, -88L), false)
+assert(lgt(33L, 33L), false)
+assert(lgt(88L, 33L), true)
+assert(lgt(33L, 88L), false)
+assert(lgt(33L, -88L), true)
+assert(lgte(33L, 33L), true)
+assert(lgte(88L, 33L), true)
+assert(lgte(33L, 88L), false)
+assert(lgte(33L, -88L), true)
+
+assert(i16eq(0H, 0H), true)
+assert(i16eq(0H, 1H), false)
+assert(i16neq(0H, 0H), false)
+assert(i16neq(0H, 1H), true)
+assert(i16lt(33H, 33H), false)
+assert(i16lt(88H, 33H), false)
+assert(i16lt(33H, 88H), true)
+assert(i16lt(33H, -88H), false)
+assert(i16lte(33H, 33H), true)
+assert(i16lte(88H, 33H), false)
+assert(i16lte(33H, 88H), true)
+assert(i16lte(33H, -88H), false)
+assert(i16gt(33H, 33H), false)
+assert(i16gt(88H, 33H), true)
+assert(i16gt(33H, 88H), false)
+assert(i16gt(33H, -88H), true)
+assert(i16gte(33H, 33H), true)
+assert(i16gte(88H, 33H), true)
+assert(i16gte(33H, 88H), false)
+assert(i16gte(33H, -88H), true)
+
+assert(feq(0.0f, 0.0f), true)
+assert(feq(0.0f, 1.0f), false)
+assert(fneq(0.0f, 0.0f), false)
+assert(fneq(0.0f, 1.0f), true)
+assert(flt(33.0f, 33.0f), false)
+assert(flt(88.0f, 33.0f), false)
+assert(flt(33.0f, 88.0f), true)
+assert(flt(33.0f, -88.0f), false)
+assert(flte(33.0f, 33.0f), true)
+assert(flte(88.0f, 33.0f), false)
+assert(flte(33.0f, 88.0f), true)
+assert(flte(33.0f, -88.0f), false)
+assert(fgt(33.0f, 33.0f), false)
+assert(fgt(88.0f, 33.0f), true)
+assert(fgt(33.0f, 88.0f), false)
+assert(fgt(33.0f, -88.0f), true)
+assert(fgte(33.0f, 33.0f), true)
+assert(fgte(88.0f, 33.0f), true)
+assert(fgte(33.0f, 88.0f), false)
+assert(fgte(33.0f, -88.0f), true)
+
+assert(deq(0.0, 0.0), true)
+assert(deq(0.0, 1.0), false)
+assert(dneq(0.0, 0.0), false)
+assert(dneq(0.0, 1.0), true)
+assert(dlt(33.0, 33.0), false)
+assert(dlt(88.0, 33.0), false)
+assert(dlt(33.0, 88.0), true)
+assert(dlt(33.0, -88.0), false)
+assert(dlte(33.0, 33.0), true)
+assert(dlte(88.0, 33.0), false)
+assert(dlte(33.0, 88.0), true)
+assert(dlte(33.0, -88.0), false)
+assert(dgt(33.0, 33.0), false)
+assert(dgt(88.0, 33.0), true)
+assert(dgt(33.0, 88.0), false)
+assert(dgt(33.0, -88.0), true)
+assert(dgte(33.0, 33.0), true)
+assert(dgte(88.0, 33.0), true)
+assert(dgte(33.0, 88.0), false)
+assert(dgte(33.0, -88.0), true)
+
+// shifting
+assert(bshl(0X00, 0X01), 0X00)
+assert(bshl(0X01, 0X01), 0X02)
+assert(bshl(0X80, 0X01), 0X00)
+
+assert(blshr(0X00, 0X01), 0X00)
+assert(blshr(0X7f, 0X01), 0X3f)
+assert(blshr(0X8f, 0X01), 0X47)
+
+assert(bashr(0X00, 0X01), 0X00)
+assert(bashr(0X7f, 0X01), 0X3f)
+assert(bashr(0X8f, 0X01), 0Xc7)
+
+assert(ishl(0, 1), 0)
+assert(ishl(1, 1), 2)
+assert(ishl(int_min, 1), 0)
+
+assert(ilshr(0, 1), 0)
+assert(ilshr(int_max, 1), int_half_max)
+assert(ilshr(int_min, 1), int_half_max + 1)
+
+assert(iashr(0, 1), 0)
+assert(iashr(int_max, 1), int_half_max)
+assert(iashr(int_min, 1), int_min + int_half_max + 1)
+
+assert(iand(0, 0), 0)
+assert(iand(0, int_max), 0)
+assert(iand(int_max, 0), 0)
+assert(iand(int_max, int_max), int_max)
+
+assert(ior(0, 0), 0)
+assert(ior(0, int_max), int_max)
+assert(ior(int_max, 0), int_max)
+assert(ior(int_max, int_max), int_max)
+
+assert(ixor(0, 0), 0)
+assert(ixor(0, int_max), int_max)
+assert(ixor(int_max, 0), int_max)
+assert(ixor(int_max, int_max), 0)
+
+long_max = 9223372036854775807L // 2^63 - 1
+long_half_max = 4611686018427387903L // 2^62 - 1
+long_min = neg(long_max) - 1L
+
+assert(lshl(0L, 1L), 0L)
+assert(lshl(1L, 1L), 2L)
+assert(lshl(long_min, 1L), 0L)
+
+assert(llshr(0L, 1L), 0L)
+assert(llshr(long_max, 1L), long_half_max)
+assert(llshr(long_min, 1L), long_half_max + 1L)
+
+assert(lashr(0L, 1L), 0L)
+assert(lashr(long_max, 1L), long_half_max)
+assert(lashr(long_min, 1L), long_min + long_half_max + 1L)
+
+assert(land(0L, 0L), 0L)
+assert(land(0L, long_max), 0L)
+assert(land(long_max, 0L), 0L)
+assert(land(long_max, long_max), long_max)
+
+assert(lor(0L, 0L), 0L)
+assert(lor(0L, long_max), long_max)
+assert(lor(long_max, 0L), long_max)
+assert(lor(long_max, long_max), long_max)
+
+assert(lxor(0L, 0L), 0L)
+assert(lxor(0L, long_max), long_max)
+assert(lxor(long_max, 0L), long_max)
+assert(lxor(long_max, long_max), 0L)
+
+// logic comparisons
+assert(band(0X00, 0X00), 0X00)
+assert(band(0X00, 0Xff), 0X00)
+assert(band(0Xff, 0X00), 0X00)
+assert(band(0Xff, 0Xff), 0Xff)
+
+assert(bor(0X00, 0X00), 0X00)
+assert(bor(0X00, 0Xff), 0Xff)
+assert(bor(0Xff, 0X00), 0Xff)
+assert(bor(0Xff, 0Xff), 0Xff)
+
+assert(bxor(0X00, 0X00), 0X00)
+assert(bxor(0X00, 0Xff), 0Xff)
+assert(bxor(0Xff, 0X00), 0Xff)
+assert(bxor(0Xff, 0Xff), 0X00)
+
+// arithmetic operations
+assert(cadd('+', '+'), 'V')
+assert(csub('V', '+'), '+')
+assert(cmul('+', '+'), '9')
+// don't have sensible test cases of div and rem for chars
+
+assert(badd(0X17, 0X21), 0X38)
+assert(badd(0Xff, 0X01), 0X00)
+
+assert(bsub(0X17, 0X21), 0Xf6)
+assert(bsub(0X00, 0X01), 0Xff)
+
+assert(bmul(0X03, 0X02), 0X06)
+assert(bmul(0Xff, 0X02), 0Xfe)
+
+assert(bdiv(0X06, 0X02), 0X03)
+// div returns signed quotient towards zero
+assert(bdiv(0Xff, 0X02), 0X00)
+
+assert(brem(0X06, 0X02), 0X00)
+// div returns 0X00, so rem returns 0Xff
+assert(brem(0Xff, 0X02), 0Xff)
+
+assert(sadd(3S, 4S), 7S)
+assert(sadd(3S, -4S), -1S)
+
+assert(ssub(3S, 4S), -1S)
+assert(ssub(3S, -4S), 7S)
+
+assert(smul(3S, 4S), 12S)
+assert(smul(3S, -4S), -12S)
+
+assert(sdiv(12S, 4S), 3S)
+assert(sdiv(13S, 4S), 3S)
+// div returns signed quotient towards zero
+assert(sdiv(13S, -4S), -3S)
+
+assert(srem(12S, 4S), 0S)
+assert(srem(13S, 4S), 1S)
+assert(srem(13S, -4S), 1S)
+
+assert(iadd(3, 4), 7)
+assert(iadd(3, -4), -1)
+
+assert(isub(3, 4), -1)
+assert(isub(3, -4), 7)
+
+assert(imul(3, 4), 12)
+assert(imul(3, -4), -12)
+
+assert(idiv(12, 4), 3)
+assert(idiv(13, 4), 3)
+// div ieturns signed quotient towards zero
+assert(idiv(13, -4), -3)
+
+assert(irem(12, 4), 0)
+assert(irem(13, 4), 1)
+assert(irem(13, -4), 1)
+
+assert(ladd(3L, 4L), 7L)
+assert(ladd(3L, -4L), -1L)
+
+assert(lsub(3L, 4L), -1L)
+assert(lsub(3L, -4L), 7L)
+
+assert(lmul(3L, 4L), 12L)
+assert(lmul(3L, -4L), -12L)
+
+assert(ldiv(12L, 4L), 3L)
+assert(ldiv(13L, 4L), 3L)
+// div returns signed quotient towards zero
+assert(ldiv(13L, -4L), -3L)
+
+assert(lrem(12L, 4L), 0L)
+assert(lrem(13L, 4L), 1L)
+assert(lrem(13L, -4L), 1L)
+
+assert(i16add(3H, 4H), 7H)
+assert(i16add(3H, -4H), -1H)
+
+assert(i16sub(3H, 4H), -1H)
+assert(i16sub(3H, -4H), 7H)
+
+assert(i16mul(3H, 4H), 12H)
+assert(i16mul(3H, -4H), -12H)
+
+assert(i16div(12H, 4H), 3H)
+assert(i16div(13H, 4H), 3H)
+// div i16eturns signed quotient towards zero
+assert(i16div(13H, -4H), -3H)
+
+assert(i16rem(12H, 4H), 0H)
+assert(i16rem(13H, 4H), 1H)
+assert(i16rem(13H, -4H), 1H)
+
+assert(fadd(3.0f, 4.0f), 7.0f)
+assert(fadd(3.0f, -4.0f), -1.0f)
+
+assert(fsub(3.0f, 4.0f), -1.0f)
+assert(fsub(3.0f, -4.0f), 7.0f)
+
+assert(fmul(3.0f, 4.0f), 12.0f)
+assert(fmul(3.0f, -4.0f), -12.0f)
+
+assert(fdiv(12.0f, 4.0f), 3.0f)
+assert(fdiv(13.0f, 4.0f), 3.25f)
+assert(fdiv(13.0f, -4.0f), -3.25f)
+assert(fdiv(-13.0f, -4.0f), 3.25f)
+
+assert(dadd(3.0, 4.0), 7.0)
+assert(dadd(3.0, -4.0), -1.0)
+
+assert(dsub(3.0, 4.0), -1.0)
+assert(dsub(3.0, -4.0), 7.0)
+
+assert(dmul(3.0, 4.0), 12.0)
+assert(dmul(3.0, -4.0), -12.0)
+
+assert(ddiv(12.0, 4.0), 3.0)
+assert(ddiv(13.0, 4.0), 3.25)
+assert(ddiv(13.0, -4.0), -3.25)
+assert(ddiv(-13.0, -4.0), 3.25)
