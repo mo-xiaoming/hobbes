@@ -497,3 +497,209 @@ assert(ddiv(12.0, 4.0), 3.0)
 assert(ddiv(13.0, 4.0), 3.25)
 assert(ddiv(13.0, -4.0), -3.25)
 assert(ddiv(-13.0, -4.0), 3.25)
+
+
+// operands
+assert(if true then () else (), ())
+assert(if false then 1 else -1, -1)
+
+assert(id(3), 3)
+assert(id(()), ())
+
+assert(unsafeCast('c')::byte, 0X63)
+
+assert(newPrimZ()::int, 0)
+// length([a])
+assert(length(newArray(42L)::[double]), 42L)
+
+// append([a], [a])
+assert(append("hello", "world"), "helloworld")
+assert(append([1, 2, 3], []), [1, 2, 3])
+
+// TODO: test for unsafeSetLength
+
+// salength([:a|n:]) length of a fix sized array
+assert(salength(newPrimZ()::[:double|42:]), 42)
+// saelem([:a|n:], index) mutable element at index
+do {
+  a = newPrimZ()::[:int|42:];
+  saelem(a, 2L) <- 77;
+  assert((saelem(a, 0L), saelem(a, 2L)), (0, 77));
+}
+// saacopy([:a|n:], [a], length) copy a dyn-sized array to a fixed size array
+// TODO: the `length` should be 5 or 6 if destination is not zeroed out
+do {
+  a = newPrimZ()::[:char|42:]; 
+  saacopy(a, "hello", 5L);
+  assert(a, "hello");
+}
+
+// TODO: does applyCFn even work?
+
+assert(penumShow(|B|::((penum char |A('a'), B('b'), C('c')|))), "|B|")
+
+// TODO: stdstrsize and stdstrelem
+
+assert(packLong('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), 7017280452245743464L) // 0x6162636465666768
+assert(packInt('a', 'b', 'c', 'd'), 1633837924) // 0x61626364
+assert(packShort('a', 'b'), 24930S) // 0x6162
+
+// TODO: cptrrefby(<char>*long) get char from index
+
+// TODO: test region related functions:
+//      malloc
+//      mallocz
+//      printMemoryPool
+//      getMemoryPool
+//      unsafeSetRegion
+//      unsafeMakeMemRegion
+//      unsafeClearMemoryPool
+//      unsafeAbortAtMemUsage
+
+assert(showChar('c'), "'c'")
+assert(showByte(0Xab), "0Xab")
+assert(showByteV(0Xab), "ab")
+assert(showShort(13S), "13S")
+assert(showShort(-13S), "-13S")
+assert(showInt(13), "13")
+assert(showInt(-13), "-13")
+assert(showLong(13L), "13")
+assert(showLong(-13L), "-13")
+assert(showInt128(13H), "13")
+assert(showInt128(-13H), "-13")
+assert(showFloat(3.0f, 0), "3f")
+assert(showFloat(3.0f, 2), "3f")
+assert(showFloat(3.1f, 2), "3.1f")
+assert(showFloat(3.12f, 2), "3.1f")
+assert(showFloat(0.12f, 2), "0.12f")
+assert(showFloat(-0.10f, 2), "-0.1f")
+assert(showDouble(3.0, 0), "3")
+// inconsistent with showFloat due to std::ios::fixed flag
+assert(showDouble(3.0, 2), "3.00")
+assert(showDouble(3.1, 2), "3.10")
+assert(showDouble(3.12, 2), "3.12")
+assert(showDouble(0.12, 2), "0.12")
+assert(showDouble(-0.10, 2), "-0.10")
+// TODO: showString(<std::string>)
+
+// format date and time
+assert(showTimespan(convert(0L)::timespan), "0s")
+assert(showTimespan(convert(3L)::timespan), "3us")
+assert(length(showDateTime(now())), 26L)
+do {
+  x = now();
+  assert(showDateTime(x)[11:], showTime(time(x)));
+  assert(append(showDateTime(x)[0:10], "T00:00:00.000000"), showDateTime(date(x)));
+}
+do {
+  x = now();
+  assert(strfdatetime("%s", now()), strftime("%s", convert(x)::long));
+}
+// replace the time portion of a datetime
+do {
+  x = now();
+  assert(showDateTime(x-1s), showDateTime(datetimeAt(x, time(x-1s))));
+}
+// TODO: gmtoffset: GMT+/- ? timezone
+// TODO: gmtime and localtime
+do {
+  captureStdout();
+  putStr("hello");
+  assert(releaseStdout(), "hello");
+}
+
+assert(readChar("'c'"), 'c')
+assert(readChar("c"), nothing::(()+char))
+
+assert(readByte("0Xab"), 0Xab)
+assert(readByte("0XAB"), 0Xab)
+assert(readByte("ab"), nothing::(()+byte))
+assert(readByte("0xab"), nothing::(()+byte))
+assert(readByte("0Xa"), nothing::(()+byte))
+
+assert(readShort("32767"), short_max)
+assert(readShort("32767S"), short_max)
+assert(readShort("32768S"), nothing::(()+short)) // overflow
+assert(readShort("-32768"), short_min)
+assert(readShort("-32768S"), short_min)
+assert(readShort("-32769S"), nothing::(()+short)) // overflow
+
+assert(readInt("2147483647"), int_max)
+assert(readInt("2147483648"), nothing::(()+int)) // overflow
+assert(readInt("-2147483648"), int_min)
+assert(readInt("-2147483649"), nothing::(()+int)) // overflow
+
+assert(readLong("9223372036854775807"), long_max)
+assert(readLong("9223372036854775807L"), long_max)
+assert(readLong("9223372036854775808L"), nothing::(()+long)) // overflow
+assert(readLong("-9223372036854775808"), long_min)
+assert(readLong("-9223372036854775808L"), long_min)
+assert(readLong("-9223372036854775809L"), nothing::(()+long)) // overflow
+
+assert(readInt128("42"), 42H)
+assert(readInt128("-42"), -42H)
+assert(readInt128("42H"), 42H)
+assert(readInt128("-42H"), -42H)
+assert(readInt128("ABC"), nothing::(()+int128))
+
+assert(readFloat("3.0"), 3.0f)
+assert(readFloat("3.0f"), 3.0f)
+assert(readFloat("-3.0"), -3.0f)
+assert(readFloat("-3.0f"), -3.0f)
+
+assert(readDouble("3.0"), 3.0)
+assert(readDouble("-3.0"), -3.0)
+
+// TODO: stdstringAssign
+
+do {
+  x = random(1.0, 3.0);
+  assert((x <= 3.0 and x >= 1.0), true);
+}
+do {
+  x = lrand(1L, 3L);
+  assert((x <= 3L and x >= 1L), true);
+}
+
+assert(ceil(3.1), 4.0)
+assert(floor(3.1), 3.0)
+assert(truncd(3.1), 3L)
+assert(showDouble(sqrt(3.0) * sqrt(3.0)), "3")
+do {
+  x = log(3.0);
+  result = 1.09861;
+  delta = 0.0001;
+  assert((x <= result + delta and x >= result - delta), true);
+}
+
+// TODO: cstrlen(<char>) and cstrelem(<char>)
+
+assert(decompress(compress(0xabcd)), 0xabcd)
+
+// TODO: unit tests for runEvery?
+
+// TODO: vectorSize and vectorData
+
+
+// TODO: add fd related tests for:
+//    fdReadBool
+//    fdWriteBool
+//    fdReadByte
+//    fdWriteByte
+//    fdReadChar
+//    fdWriteChar
+//    fdReadShort
+//    fdWriteShort
+//    fdReadInt
+//    fdWriteInt
+//    fdReadLong
+//    fdWriteLong
+//    fdReadInt128
+//    fdWriteInt128
+//    fdReadFloat
+//    fdWriteFloat
+//    fdReadDouble
+//    fdWriteDouble
+//
+//    fdWriteChars
+//    fdWriteBytes
