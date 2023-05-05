@@ -2,6 +2,8 @@
 #ifndef HI_REPL_CIO_HPP_INCLUDED
 #define HI_REPL_CIO_HPP_INCLUDED
 
+#include <hobbes/reflect.H>
+
 #include <iostream>
 
 namespace hi {

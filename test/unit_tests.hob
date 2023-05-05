@@ -516,7 +516,13 @@ assert(length(newArray(42L)::[double]), 42L)
 assert(append("hello", "world"), "helloworld")
 assert(append([1, 2, 3], []), [1, 2, 3])
 
-// TODO: test for unsafeSetLength
+do {
+  a = newArray(42L)::[int];
+  unsafeSetLength(a, 3L);
+  assert(length(a), 3L);
+  unsafeSetLength(a, 42L);
+  assert(length(a), 42L);
+}
 
 // salength([:a|n:]) length of a fix sized array
 assert(salength(newPrimZ()::[:double|42:]), 42)
@@ -527,24 +533,25 @@ do {
   assert((saelem(a, 0L), saelem(a, 2L)), (0, 77));
 }
 // saacopy([:a|n:], [a], length) copy a dyn-sized array to a fixed size array
-// TODO: the `length` should be 5 or 6 if destination is not zeroed out
 do {
   a = newPrimZ()::[:char|42:]; 
   saacopy(a, "hello", 5L);
   assert(a, "hello");
 }
 
-// TODO: does applyCFn even work?
+// TODO: how can applyCFn be called directly?
+assert(apply(aCFn, 'c'), 'd')
 
 assert(penumShow(|B|::((penum char |A('a'), B('b'), C('c')|))), "|B|")
 
-// TODO: stdstrsize and stdstrelem
+assert(stdstrsize(aStdString), length("hello world"))
+assert(stdstrelem(aStdString, 0L), 'h')
 
 assert(packLong('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), 7017280452245743464L) // 0x6162636465666768
 assert(packInt('a', 'b', 'c', 'd'), 1633837924) // 0x61626364
 assert(packShort('a', 'b'), 24930S) // 0x6162
 
-// TODO: cptrrefby(<char>*long) get char from index
+assert(cptrrefby(aCStr, 0L), 'h')
 
 // TODO: test region related functions:
 //      malloc
@@ -580,7 +587,8 @@ assert(showDouble(3.1, 2), "3.10")
 assert(showDouble(3.12, 2), "3.12")
 assert(showDouble(0.12, 2), "0.12")
 assert(showDouble(-0.10, 2), "-0.10")
-// TODO: showString(<std::string>)
+
+assert(showString(aStdString), "\"hello world\"")
 
 // format date and time
 assert(showTimespan(convert(0L)::timespan), "0s")
@@ -650,7 +658,11 @@ assert(readFloat("-3.0f"), -3.0f)
 assert(readDouble("3.0"), 3.0)
 assert(readDouble("-3.0"), -3.0)
 
-// TODO: stdstringAssign
+do {
+  a = newArray(42L)::[char];
+  stdstringAssign(aStdString, a);
+  assert(aStdString, a);
+}
 
 do {
   x = random(1.0, 3.0);
@@ -664,7 +676,7 @@ do {
 assert(ceil(3.1), 4.0)
 assert(floor(3.1), 3.0)
 assert(truncd(3.1), 3L)
-assert(showDouble(sqrt(3.0) * sqrt(3.0)), "3")
+assert(showDouble(sqrt(3.0) * sqrt(3.0), 2), "3.00")
 do {
   x = log(3.0);
   result = 1.09861;
@@ -672,34 +684,63 @@ do {
   assert((x <= result + delta and x >= result - delta), true);
 }
 
-// TODO: cstrlen(<char>) and cstrelem(<char>)
+assert(cstrlen(aCStr), 5L)
+assert(cstrelem(aCStr, 0L), 'h')
 
 assert(decompress(compress(0xabcd)), 0xabcd)
 
 // TODO: unit tests for runEvery?
 
-// TODO: vectorSize and vectorData
+assert(vectorSize(unsafeCast(aVec), 4L), 10)
+// TODO: vectorData
 
-
-// TODO: add fd related tests for:
-//    fdReadBool
-//    fdWriteBool
-//    fdReadByte
-//    fdWriteByte
-//    fdReadChar
-//    fdWriteChar
-//    fdReadShort
-//    fdWriteShort
-//    fdReadInt
-//    fdWriteInt
-//    fdReadLong
-//    fdWriteLong
-//    fdReadInt128
-//    fdWriteInt128
-//    fdReadFloat
-//    fdWriteFloat
-//    fdReadDouble
-//    fdWriteDouble
-//
+// TODO: add block date reading/writing tests for:
 //    fdWriteChars
 //    fdWriteBytes
+
+do {
+  f = "/var/tmp/testfile";
+  assert(fileExists(f), false);
+
+  wfd = openForWrite(f);
+  fdWriteBool(wfd, true);
+  fdWriteByte(wfd, 0Xab);
+  fdWriteChar(wfd, 'c');
+  fdWriteShort(wfd, 12S);
+  fdWriteInt(wfd, 42);
+  fdWriteLong(wfd, 34L);
+  fdWriteInt128(wfd, 53H);
+  fdWriteFloat(wfd, 7.2f);
+  fdWriteDouble(wfd, 3.1);
+  fdWriteLong(wfd, 5L);
+  fdWriteChars(wfd, "hello");
+  fdWriteLong(wfd, 4L);
+  fdWriteBytes(wfd, 0xdeadbeef);
+  closefd(wfd);
+
+  rfd = openForRead(f);
+  assert(fdReadBool(rfd), true);
+  assert(fdReadByte(rfd), 0Xab);
+  assert(fdReadChar(rfd), 'c');
+  assert(fdReadShort(rfd), 12S);
+  assert(fdReadInt(rfd), 42);
+  assert(fdReadLong(rfd), 34L);
+  assert(fdReadInt128(rfd), 53H);
+  assert(fdReadFloat(rfd), 7.2f);
+  assert(fdReadDouble(rfd), 3.1);
+  closefd(rfd);
+
+  removeFile(f);
+  assert(fileExists(f), false);
+}
+
+// TODO: ipc related:
+//    unsafeAppendClientReadFn
+//    unsafeClientRead
+//    printConnection
+//    remoteHost
+
+// TODO: signal related:
+//    signals
+//    addFileSignal
+//    fileWatchData

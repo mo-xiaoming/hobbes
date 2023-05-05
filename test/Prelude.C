@@ -2,9 +2,15 @@
 #include <exception>
 #include <hobbes/hobbes.H>
 #include <stdexcept>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "test.H"
 
 using namespace hobbes;
+#if 0
 static cc& c() { static __thread cc* x = nullptr; if (x == nullptr) { x = new cc(); } return *x; }
 
 #define EXPTEST(s) EXPECT_TRUE(c().compileFn<bool()>(s)())
@@ -149,4 +155,61 @@ TEST(Prelude, Long) {
   EXPECT_EXCEPTION_MSG(c().compileFn<long()>("-9223372036854775808L")(), std::exception, "literal 9223372036854775808 is not supported");
   // LONG_MIN - 1
   EXPECT_EXCEPTION_MSG(c().compileFn<long()>("-9223372036854775809L")(), std::exception, "literal 9223372036854775809 is not supported");
+}
+#endif
+
+namespace {
+int openForRead(const hobbes::array<char>* fname) {
+  return ::open(makeStdString(fname).c_str(), O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+}
+
+int openForWrite(const hobbes::array<char>* fname) {
+  return ::open(makeStdString(fname).c_str(), O_CREAT | O_EXCL | O_SYNC | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+}
+
+void closefd(int fd) {
+  ::close(fd);
+}
+
+bool fileExists(const hobbes::array<char>* fname) {
+  return ::access(makeStdString(fname).c_str(), F_OK) == 0;
+}
+
+void removefile(const hobbes::array<char>* fname) {
+  unlink(hobbes::makeStdString(fname).c_str());
+}
+
+char aCFn(char c) {
+  return c + 1;
+}
+}
+
+TEST(Prelude, Predefined) {
+  cc c;
+
+  c.bind("openForRead", openForRead);
+  c.bind("openForWrite", openForWrite);
+  c.bind("closefd", closefd);
+  c.bind("removeFile", removefile);
+  c.bind("fileExists", fileExists);
+
+  int aFixArray[4] = {0};
+  c.bind("aFixArray", aFixArray);
+
+  c.bind("aCFn", aCFn);
+
+  std::string aStdString = "hello world";
+  c.bind("aStdString", &aStdString);
+
+  char aCStr[] = "hello";
+  c.bind("aCStr", aCStr);
+
+  std::vector<int> aVec;
+  aVec.reserve(10);
+  for (int i = 0; i < 10; ++i) {
+    aVec.push_back(i);
+  }
+  c.bind("aVec", &aVec);
+
+  hobbes::compile(&c, c.readModuleFile("./test/unit_tests.hob"));
 }
