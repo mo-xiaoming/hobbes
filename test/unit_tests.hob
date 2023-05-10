@@ -699,10 +699,9 @@ assert(vectorSize(unsafeCast(aVec), 4L), 10)
 //    fdWriteBytes
 
 do {
-  f = "/var/tmp/testfile";
-  assert(fileExists(f), false);
-
-  wfd = openForWrite(f);
+  f = newArray(100L)::[char];
+  wfd = openTempForWrite(f);
+  assert(fileExists(f), true);
   fdWriteBool(wfd, true);
   fdWriteByte(wfd, 0Xab);
   fdWriteChar(wfd, 'c');
@@ -744,3 +743,44 @@ do {
 //    signals
 //    addFileSignal
 //    fileWatchData
+//    LoadFile
+//    load
+//    pload
+//    file
+//    unload
+//    store
+//    pstore
+//    allocate
+//    allocateArray
+//    pallocateArray
+//    capacity
+//    pcapacity
+//    writeFile
+//    signalUpdate
+//    readFile
+//    printFile
+//    pageEntries
+
+//    unsafeWriteToSeries
+//    unsafeWriteUnitToSeries
+
+// TODO: compressed storage related:
+//    ddmMake
+//    ddmInit
+//    ddmDestroy
+//                     
+//    ucReaderMake
+//    ucReaderStep
+//    ucReaderSkipPage
+//    ucReaderEOF
+//    ucReaderFileRef
+//    ucReaderModel
+//    ucReaderRead
+//    ucReaderDestroy
+//                     
+//    ucWriterMake
+//    ucWriterStep
+//    ucWriterModel
+//    ucWriterModelData
+//    ucWriterWrite
+//    ucWriterDestroy

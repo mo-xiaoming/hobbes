@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "hobbes/storage.H"
 #include "test.H"
 
 using namespace hobbes;
@@ -167,6 +168,13 @@ int openForWrite(const hobbes::array<char>* fname) {
   return ::open(makeStdString(fname).c_str(), O_CREAT | O_EXCL | O_SYNC | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }
 
+int openTempForWrite(hobbes::array<char>* name) {
+  char filename[512] = "hobbes_test_XXXXXX";
+  const int fd = ::mkstemp(filename);
+  ::memcpy(name->data, filename, ::strlen(filename));
+  return fd;
+}
+
 void closefd(int fd) {
   ::close(fd);
 }
@@ -189,6 +197,7 @@ TEST(Prelude, Predefined) {
 
   c.bind("openForRead", openForRead);
   c.bind("openForWrite", openForWrite);
+  c.bind("openTempForWrite", openTempForWrite);
   c.bind("closefd", closefd);
   c.bind("removeFile", removefile);
   c.bind("fileExists", fileExists);
