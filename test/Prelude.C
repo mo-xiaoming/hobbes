@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include "hobbes/storage.H"
 #include "test.H"
@@ -220,5 +221,6 @@ TEST(Prelude, Predefined) {
   }
   c.bind("aVec", &aVec);
 
-  hobbes::compile(&c, c.readModuleFile("./test/unit_tests.hob"));
+  char current_filename[] = __FILE__;
+  hobbes::compile(&c, c.readModuleFile(std::string(::dirname(current_filename)) + "/unit_tests.hob"));
 }
