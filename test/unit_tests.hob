@@ -1,6 +1,1048 @@
-assert :: (a, b) -> ()
-assert a b = if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
+assert = \a b.if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
 
+///////////////////////////
+//    native functions
+///////////////////////////
+
+/** alli
+
+  if all elements in the array satisfy the predicate `f` from `begin`, return true
+  else return false
+
+  tempalte <typename T>
+  bool alli(std::function<bool(T)> f, std::size_t begin, array<T>& xs) {
+    return std::all_of(xs.cbegin() + begin, xs.cend(), f);
+  }
+*/
+
+assert(alli(\x.x>3, 1L, [4]), true)
+assert(alli(\x.x>3, 1L, [4, 5]), true)
+assert(alli(\x.x>3, 1L, [4, 3]), false)
+assert(alli(\x.x>3, 1L, [4, 3, 4]), false)
+assert(alli(\x.x>3, 1L, [4, 5, 4]), true)
+
+/** all
+  
+  if all elements in the array satisfy the predicate `f`, return true
+  else return false
+
+  template <typename T>
+  bool all(std::function<bool(T)> f, array<T>& xs) {
+    return std::all_of(xs.cbegin(), xs.cend(), f);
+  }
+*/
+
+assert(all(\x.x>3, []::[int]), true)
+assert(all(\x.x>3, [5]), true)
+assert(all(\x.x>3, [3]), false)
+assert(all(\x.x>3, [3, 4]), false)
+assert(all(\x.x>3, [5, 4]), true)
+
+/** anyi
+
+  if any element in the array satisfies the predicate `f` from `begin`, return true
+  else return false
+
+  template <typename T>
+  bool anyi(std::function<bool(T)> f, std::size_t begin, array<T>& xs) {
+    return std::any_of(xs.cbegin() + begin, xs.cend(), f);
+  }
+*/
+
+assert(anyi(\x.x>3, 1L, [4]), false)
+assert(anyi(\x.x>3, 1L, [4, 5]), true)
+assert(anyi(\x.x>3, 1L, [4, 3]), false)
+assert(anyi(\x.x>3, 1L, [4, 3, 4]), true)
+assert(anyi(\x.x>3, 1L, [4, 5, 4]), true)
+
+/** any
+  
+  if any element in the array satisfies the predicate `f`, return true
+  else return false
+
+  template <typename T>
+  bool any(std::function<bool(T)> f, array<T>& xs) {
+    return std::any_of(xs.cbegin(), xs.cend(), f);
+  }
+*/
+
+assert(any(\x.x>3, []::[int]), false)
+assert(any(\x.x>3, [5]), true)
+assert(any(\x.x>3, [3]), false)
+assert(any(\x.x>3, [3, 4]), true)
+
+
+/** anyiC
+
+  just like `anyi`, but the predicate must be a closure
+*/
+
+assert(anyiC(toClosure(\x.x>3), 1L, [4]), false)
+assert(anyiC(toClosure(\x.x>3), 1L, [4, 5]), true)
+assert(anyiC(toClosure(\x.x>3), 1L, [4, 3]), false)
+assert(anyiC(toClosure(\x.x>3), 1L, [4, 3, 4]), true)
+assert(anyiC(toClosure(\x.x>3), 1L, [4, 5, 4]), true)
+
+/** anyC
+  
+  just like `any`, but the predicate must be a closure
+*/
+
+assert(anyC(toClosure(\x.x>3), []::[int]), false)
+assert(anyC(toClosure(\x.x>3), [5]), true)
+assert(anyC(toClosure(\x.x>3), [3]), false)
+assert(anyC(toClosure(\x.x>3), [3, 4]), true)
+
+
+/** somei
+
+  if some elements in the array satisfy the predicate `f` from `begin`, return `maybe(T)`
+  else return false
+
+  template <typename T>
+  maybe<T> somei(std::function<bool(T)> f, array<T>& xs, std::size_t begin) {
+    const auto it = std::find_if(xs.cbegin() + begin, xs.cend(), f);
+    return (it == xs.cend()) ? nothing<T>() : just<T>(*it);
+  }
+*/
+
+assert(somei(\x.x>3, [4], 0L), 4)
+assert(somei(\x.x>3, [4, 3, 5], 1L), 5)
+assert(somei(\x.x>3, [4, 3, 2, 1], 1L), nothing::(()+int))
+
+/** some
+
+  if some elements in the array satisfy the predicate `f`, return `maybe(T)`
+  else return false
+
+  template <typename T>
+  maybe<T> some(std::function<bool(T)> f, array<T>& xs) {
+    const auto it = std::find_if(xs.cbegin(), xs.cend(), f);
+    return (it == xs.cend()) ? nothing<T>() : just<T>(*it);
+  }
+*/
+
+assert(some(\x.x>3, []::[int]), nothing::(()+int))
+assert(some(\x.x>3, [3, 5]), 5)
+assert(some(\x.x>3, [3, 2, 1]), nothing::(()+int))
+
+/** someiC
+
+  just like `somei`, but the predicate must be a closure
+*/
+
+assert(someiC(toClosure(\x.x>3), [4], 0L), 4)
+assert(someiC(toClosure(\x.x>3), [4, 3, 5], 1L), 5)
+assert(someiC(toClosure(\x.x>3), [4, 3, 2, 1], 1L), nothing::(()+int))
+
+/** someC
+
+  just like `some`, but the predicate must be a closure
+*/
+
+assert(someC(toClosure(\x.x>3), []::[int]), nothing::(()+int))
+assert(someC(toClosure(\x.x>3), [3, 5]), 5)
+assert(someC(toClosure(\x.x>3), [3, 2, 1]), nothing::(()+int))
+
+
+/** amap
+
+  starting from position `begin`, for every element in array `src`, apply `f` to it,
+  and store the result in the corresponding position in array `dst`
+
+  template <typename T, typename U>
+  array<U>& amap(std::function<U(T)> f, std::size_t begin, array<T>& dst, array<U>& src) {
+    std::transform(src.cbegin() + begin, src.cend(), dst.begin() + begin, f);
+    return dst;
+  }
+*/
+
+assert(amap(\x.x+1, 0L, []::[int], []::[int]), []::[int])
+do {
+  b = newArray(1L);
+  copy(b, 0L, [3]);
+  assert(amap(\x.x+1, 1L, b, [4]), b);
+}
+do {
+  b = newArray(2L);
+  copy(b, 0L, [3, 4]);
+  assert(amap(\x.x+1, 0L, b, [4, 5]), [5, 6]);
+}
+do {
+  b = newArray(3L);
+  copy(b, 0L, [3, 4, 5]);
+  assert(amap(\x.x+1, 1L, b, [4, 5, 6]), [3, 6, 7]);
+}
+do {
+  b = newArray(3L);
+  copy(b, 0L, [3, 4, 5]);
+  assert(amap(\x.x+1, 1L, b, [4, 5]), [3, 6, 5]);
+}
+
+/** amapRange
+
+  starting from position `begin` to `end` (exclusive), for every element in array `src`, apply `f` to it,
+  and store the result in the corresponding position in array `dst` starts from index `dstBegin`
+
+  template <typename T, typename U>
+  array<U> amapRange(std::function<U(T)> f, array<T>& src, std::size_t begin, std::size_t end, array<T>& dst, std::size_t dstBegin) {
+    std::transform(src.cbegin() + begin, src.cbegin() + end, dst.begin() + dstBegin, f);
+    return dst;
+  }
+*/
+
+assert(amapRange(\x.x+1, []::[int], 0L, 0L, []::[int], 0L), []::[int])
+do {
+  b = newArray(1L);
+  copy(b, 0L, [33]);
+  assert(amapRange(\x.x+1, [4], 0L, 1L, b, 0L), [5]);
+}
+do {
+  b = newArray(2L);
+  copy(b, 0L, [33, 33]);
+  assert(amapRange(\x.x+1, [4, 5], 0L, 2L, b, 0L), [5, 6]);
+}
+do {
+  b = newArray(3L);
+  copy(b, 0L, [33, 33, 33]);
+  assert(amapRange(\x.x+1, [4, 5, 6], 0L, 2L, b, 1L), [33, 5, 6]);
+}
+
+/** map
+
+  just like `amap`, but the destination array is created by the function
+
+  template <typename T, typename U>
+  array<U> map(std::function<U(T)> f, array<T>& src) {
+    array<U> dst(src.size());
+    std::transform(src.cbegin(), src.cend(), dst.begin(), f);
+    return dst;
+  }
+*/
+
+assert(map(\x.x+1, []::[int]), []::[int])
+assert(map(\x.x+1, [4]), [5])
+assert(map(\x.x+1, [4, 5]), [5, 6])
+
+/** mapRange
+
+  just like `amapRange`, but the destination array is created by the function
+
+  template <typename T, typename U>
+  array<U> mapRange(std::function<U(T)> f, std::size_t begin, std::size_t end, array<T>& src) {
+    array<U> dst(end - begin);
+    std::transform(src.cbegin() + begin, src.cbegin() + end, dst.begin(), f);
+    return dst;
+  }
+*/
+
+assert(mapRange(\x.x+1, 0L, 0L, []::[int]), []::[int])
+assert(mapRange(\x.x+1, 0L, 1L, [4]), [5])
+assert(mapRange(\x.x+1, 0L, 1L, [4, 5]), [5])
+
+/** mapiC
+
+  just like `amap`, but the function must be a closure
+*/
+
+assert(mapiC(toClosure(\x.x+1), 0L, []::[int], []::[int]), []::[int])
+do {
+  b = newArray(1L);
+  copy(b, 0L, [3]);
+  assert(mapiC(toClosure(\x.x+1), 1L, b, [4]), b);
+}
+do {
+  b = newArray(2L);
+  copy(b, 0L, [3, 4]);
+  assert(mapiC(toClosure(\x.x+1), 0L, b, [4, 5]), [5, 6]);
+}
+do {
+  b = newArray(3L);
+  copy(b, 0L, [3, 4, 5]);
+  assert(mapiC(toClosure(\x.x+1), 1L, b, [4, 5, 6]), [3, 6, 7]);
+}
+do {
+  b = newArray(3L);
+  copy(b, 0L, [3, 4, 5]);
+  assert(mapiC(toClosure(\x.x+1), 1L, b, [4, 5]), [3, 6, 5]);
+}
+
+/** mapC
+
+  just like `map`, but the function must be a closure
+*/
+
+assert(mapC(toClosure(\x.x+1), []::[int]), []::[int])
+assert(mapC(toClosure(\x.x+1), [4]), [5])
+assert(mapC(toClosure(\x.x+1), [4, 5]), [5, 6])
+
+/** mapIdxStep
+
+  dst[i] = f(src, i);
+
+  template <typename T, typename U>
+  array<U> mapIdxStep(std::function<U(array<T>&, std::size_t)> f, array<T>& src, std::size_t begin, array<U>& dst) {
+    std::transform(src.cbegin() + begin, src.cend(), dst.begin() + begin, f);
+    return dst;
+  }
+*/
+
+assert(mapIdxStep(\xs i.xs[i]-1, []::[int], 0L, []::[int]), []::[int])
+do {
+  b = newArray(3L);
+  copy(b, 0L, [5, 7, 9]);
+  assert(mapIdxStep(\xs i.xs[i]-1, [3, 4], 1L, b), [5, 3, 9]);
+}
+
+/** mapIdx
+
+  just like `mapIdxStep`, but the destination array is created by the function
+
+  template <typename T, typename U>
+  array<U> mapIdx(std::function<U(array<T>&, std::size_t)> f, array<T>& src) {
+    array<U> dst(src.size());
+    std::transform(src.cbegin(), src.cend(), dst.begin(), f);
+    return dst;
+  }
+*/
+
+assert(mapIdx(\xs i.xs[i]-1, []::[int]), []::[int])
+assert(mapIdx(\xs i.xs[i]-1, [3, 4]), [2, 3])
+
+/** eachStep
+
+  apply `f` to each element of `src` between indices [`begin`, `end`]
+
+  template <typename T>
+  void eachStep(std::function<void(T)> f, array<T>& src, std::size_t begin, std::size_t end) {
+    std::for_each(src.cbegin() + begin, src.cbegin() + end + 1, f);
+  }
+*/
+
+//eachStep(\x.print(x), [3, 4, 5], 1L, 2L) // prints 45
+
+/** each
+
+  just like `eachStep`, but apply `f` on every element of `src`
+
+  template <typename T>
+  void each(std::function<void(T)> f, array<T>& src) {
+    eachStep(f, src, 0, src.size() - 1);
+  }
+*/
+
+//each(\x.print(x), [3, 4, 5]) // prints 345
+
+/** eachRange
+
+  apply `f` to each number between [`begin`, `end`)
+
+  template <typename T>
+  void eachRange(std::function<void(T)> f, T begin, T end) {
+    for (T i = begin; i < end; ++i) {
+      f(i);
+    }
+  }
+*/
+
+// eachRagne(\x.print(x), 1, 3) // prints 12
+
+/** eachiC
+
+  just like `each`, but `f` must be a closure, and has a `begin` index
+
+  template <typename T>
+  void eachiC(std::function<void(T)> f, array<T>& src, T begin) {
+    for (T i = begin; T <= src.size() - 1; ++i) {
+      f(i);
+    }
+  }
+*/
+
+// eachiC(toClosure(print), [3, 4, 5], 1L) // prints 45
+
+/** eachC
+
+  just like `each`, but `f` must be a closure
+
+  template <typename T>
+  void eachC(std::function<void(T)> f, array<T>& src) {
+    for (T i = 0; i <= src.size() - 1; ++i) {
+      f(i);
+    }
+  }
+*/
+
+// eachC(toClosure(print), [3, 4, 5]) // prints 345
+
+/** eachRangeC
+
+  just like `eachRange`, but `f` must be a closure
+
+  template <typename T>
+  void eachRangeC(std::function<void(T)> f, T begin, T end) {
+    for (T i = begin; i < end; ++i) {
+      f(i);
+    }
+  }
+*/
+
+// eachRangeC(toClosure(print), 1, 3) // prints 12
+
+/** foldli
+
+  fold left from index `begin`
+
+  template <typename T, typename Acc>
+  U foldli(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+    return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
+  }
+*/
+
+assert(foldli(\acc x.acc+x, 0, 0L, []::[int]), 0)
+assert(foldli(\acc x.acc+x, 42, 1L, [3]), 42)
+assert(foldli(\acc x.acc+x, 42, 1L, [1, 2, 3]), 42 + 2 + 3)
+
+/** foldliRange
+
+  fold left from index `begin` to `end` (exclusive)
+
+  template <typename T, typename Acc>
+  U foldliRange(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, std::size_t end, array<T>& src) {
+    return std::accumulate(src.cbegin() + begin, src.cbegin() + end, init, f);
+  }
+*/
+
+assert(foldliRange(\acc x.acc+x, 0, 0L, 0L, []::[int]), 0)
+assert(foldliRange(\acc x.acc+x, 42, 0L, 1L, [3]), 42 + 3)
+assert(foldliRange(\acc x.acc+x, 42, 1L, 3L, [3, 4, 5, 6]), 42 + 4 + 5)
+
+/** foldlRange
+
+  same as `foldliRange`, could be a mistake in `foldliRange`'s signature for missing starting index
+*/
+
+assert(foldlRange(\acc x.acc+x, 0, 0L, 0L, []::[int]), 0)
+assert(foldlRange(\acc x.acc+x, 42, 0L, 1L, [3]), 42 + 3)
+assert(foldlRange(\acc x.acc+x, 42, 1L, 3L, [3, 4, 5, 6]), 42 + 4 + 5)
+
+/** copyRange
+
+  copy elements from `src` between indices [`begin`, `end`) to `dst` starts from `dstStartIdx`
+
+  template <typename T>
+  void copyRange(array<T>& dst, std::size_t dstStartIdx, array<T>& src, std::size_t begin, std::size_t end) {
+    std::copy(src.cbegin() + begin, src.cbegin() + end, dst.begin() + dstStartIdx);
+  }
+*/
+
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  copyRange(b, 0L, [3, 4, 5], 1L, 2L);
+  assert(b, [4, 33, 33]);
+}
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  copyRange(b, 1L, [3, 4, 5], 1L, 2L);
+  assert(b, [33, 4, 33]);
+}
+
+/** copyFrom
+
+  copy elements from `src` between `begin` to its end to `dst` starts from `dstStartIdx`
+
+  template <typename T>
+  void copyFrom(array<T>& dst, std::size_t dstStartIdx, array<T>& src, std::size_t begin) {
+    std::copy(src.cbegin() + begin, src.cend(), dst.begin() + dstStartIdx);
+  }
+*/
+
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  copyFrom(b, 0L, [3, 4, 5], 1L);
+  assert(b, [4, 5, 33]);
+}
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  copyFrom(b, 1L, [3, 4, 5], 1L);
+  assert(b, [33, 4, 5]);
+}
+
+/** copy
+
+  copy elements from `src` to `dst` starts from `dstStartIdx`
+
+  template <typename T>
+  void copy(array<T>& dst, std::size_t dstStartIdx, array<T>& src) {
+    std::copy(src.cbegin(), src.cend(), dst.begin() + dstStartIdx);
+  }
+*/
+
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  assert(b, [33, 33, 33]);
+}
+do {
+  b = newArray(3L)::[int];
+  copy(b, 0L, [33, 33, 33]);
+  copy(b, 1L, [3, 4, 5]);
+  assert(b, [33, 3, 4]);
+}
+
+/** concatInto
+
+  concat elements from `src` starts with index `begin`, and copy them into `dst` starts from `dstStartIdx`
+
+  template <typename T>
+  void concatInto(array<array<T>>& src, std::size_t begin, array<T>& dst, std::size_t dstBegin) {
+    for (std::size_t i = begin; i < src.size(); ++i) {
+      std::copy(src[i].cbegin(), src[i].cend(), dst.begin() + dstBegin);
+      dstBegin += src[i].size();
+    }
+  }
+*/
+
+assert(concatInto(["hello", "abc", "defg"], 1L, newArray(7L), 0L), "abcdefg")
+
+/** concat
+
+  create an array contains the result of concated elements from `src`
+
+  template <typename T>
+  array<T> concat(array<array<T>>& src, array<T>& dst) {
+    const auto size = std::accumulate(src.cbegin(), src.cend(), 0, [](std::size_t acc, const array<T>& x) {
+      return acc + x.size();
+    });
+    array<T> result(size);
+    std::size_t dstBegin = 0;
+    for (std::size_t i = 0, dstBegin = 0; i < src.size(); ++i) {
+      std::copy(src[i].cbegin(), src[i].cend(), result.begin() + dstBegin);
+      dstBegin += src[i].size();
+    }
+    return result;
+  }
+*/
+
+assert(concat(["hello", "abc", "defg"]), "helloabcdefg")
+
+/** convert
+
+  convert array of type T to array of type U, if T -> U is convertible
+*/
+
+assert(convert([3S, 4S])::[int], [3, 4])
+
+/** foldl
+
+  fold left
+
+  template <typename T, typename Acc>
+  U foldl(std::function<Acc(Acc, T)> f, Acc init, array<T>& src) {
+    return std::accumulate(src.begin(), src.end(), init, f);
+  }
+*/
+
+assert(foldl(\acc x.acc+x, 0, []::[int]), 0)
+assert(foldl(\acc x.acc+x, 42, [3]), 42 + 3)
+assert(foldl(\acc x.acc+x, 42, [1, 2, 3]), 42 + 1 + 2 + 3)
+
+/** foldri
+
+  fold right from index `begin`-1
+
+  template <typename T, typename Acc>
+  U foldri(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+    return std::accumulate(src.rbegin() + begin, src.rend(), init, f);
+  }
+*/
+
+assert(foldri(\acc x.acc+x, 42, 1L, [3]), 42 + 3)
+assert(foldri(\acc x.acc+x, 42, 1L, [1, 2, 3]), 42 + 1)
+
+/** foldr
+
+  fold right
+
+  template <typename T, typename Acc>
+  U foldr(std::function<Acc(Acc, T)> f, Acc init, array<T>& src) {
+    return std::accumulate(src.rbegin(), src.rend(), init, f);
+  }
+*/
+
+assert(foldr(\acc x.acc+x, 42, []::[int]), 42)
+assert(foldr(\acc x.acc+x, 42, [3]), 42 + 3)
+assert(foldr(\acc x.acc+x, 42, [1, 2, 3]), 42 + 1 + 2 + 3)
+
+/** scanlStep
+
+  scan left from index `begin`
+
+  template <typename T, typename Acc>
+  array<Acc> scanlStep(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+    array<Acc> result(src.size() - begin + 1);
+    std::exclusive_scan(src.cbegin() + begin, src.cend(), result.begin(), f);
+    return result;
+  }
+*/
+
+do {
+  b = newArray(5L);
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(scanlStep(\acc x.acc+x, 0, [1, 2, 3], 0L, b), [0, 1, 3, 6, 33]);
+}
+
+do {
+  b = newArray(5L);
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(scanlStep(\acc x.acc+x, 42, [1, 2, 3], 1L, b), [33, 42, 44, 47, 33]);
+}
+
+/** scanl
+
+  scan left
+
+  template <typename T, typename Acc>
+  array<Acc> scanl(std::function<Acc(Acc, T)> f, Acc init, array<T>& src) {
+    array<Acc> result(src.size() + 1);
+    std::exclusive_scan(src.cbegin(), src.cend(), result.begin(), init, f);
+    return result;
+  }
+*/
+
+assert(scanl(\acc x.acc+x, 42, [1, 2, 3]), [42, 43, 45, 48])
+
+/** foldlT2Step
+
+  fold left from index `begin` over pairs
+
+  template <typename T1, typename T2, typename Acc>
+  U foldlT2Step(std::function<Acc(Acc, std::tuple<T1, T2>> f, Acc init, array<std::tuple<T1, T2>>& src, std::size_t begin) {
+    return std::accumulate(src1.cbegin() + begin, src1.cend(), init, f);
+  }
+*/
+
+assert(foldlT2Step(\acc a b.acc+a+b, 42, [(1, 2), (3, 4), (5, 6)], 1L), 42 + (3+4) + (5+6))
+
+/** foldlT2
+
+  fold left over pairs
+
+  template <typename T1, typename T2, typename Acc>
+  U foldlT2(std::function<Acc(Acc, std::tuple<T1, T2>> f, Acc init, array<std::tuple<T1, T2>>& src) {
+    return std::accumulate(src.cbegin(), src.cend(), init, f);
+  }
+*/
+
+assert(foldlT2(\acc a b.acc+a+b, 42, [(1, 2), (3, 4), (5, 6)]), 42 + (1+2) + (3+4) + (5+6))
+
+/** foldlCT2Step
+
+  just like `foldlT2Step`, but the predicate must be a closure
+*/
+
+assert(foldlCT2Step(toClosure(\x.x.0+(x.1*x.2)), 42, [(1, 2), (3, 4), (5, 6)], 1L), 42 + (3*4) + (5*6))
+
+/** foldlCT2
+
+  just like `foldlT2`, but the predicate must be a closure
+*/
+
+assert(foldlCT2(toClosure(\x.x.0+(x.1*x.2)), 42, [(1, 2), (3, 4), (5, 6)]), 42 + (1*2) + (3*4) + (5*6))
+
+/** findIter
+
+  find the first element in the array that satisfies the predicate, starts from `begin`, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> findIter(std::function<bool(T)> f, array<T>& src, std::size_t begin) {
+    const auto it = std::find_if(src.cbegin() + begin, src.cend(), f);
+    return it == src.cend() ? nothing() : just(*it);
+  }
+*/
+
+assert(findIter(\x.x > 3, [1, 2, 3, 4, 5], 0L), just(4))
+assert(findIter(\x.x == 3, [1, 2, 3, 4, 5], 3L), nothing::(()+int))
+
+/** find
+
+  find the first element in the array that satisfies the predicate, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> find(std::function<bool(T)> f, array<T>& src) {
+    const auto it = std::find_if(src.cbegin(), src.cend(), f);
+    return it == src.cend() ? nothing() : just(*it);
+  }
+*/
+
+assert(find(\x.x > 3, [1, 2, 3, 4, 5]), just(4))
+assert(find(\x.x == 7, [1, 2, 3, 4, 5]), nothing::(()+int))
+
+/** countTrues
+
+  count how many values in the array satisfy the predicate `f`, starts from `begin`
+
+  template <typename T>
+  std::size_t countTrues(std::function<bool(T)> f, std::size_t init, array<bool>& src, std::size_t begin) {
+    return init + std::count_if(src.cbegin() + begin, src.cend(), f);
+  }
+*/
+
+assert(countTrues(\x.x == 3, 42L, [3, 5, 3, 7, 3], 0L), 42L + 3L)
+assert(countTrues(\x.x == 3, 42L, [3, 5, 3, 7, 3], 1L), 42L + 2L)
+assert(countTrues(\x.x == 3, 42L, [1, 2, 4], 1L), 42L)
+
+
+/** countTrue
+
+  count the number of `true` in the array
+
+  template <typename T>
+  std::size_t countTrue(std::function<bool(T)> f, array<bool>& src) {
+    return init + std::count_if(src.cbegin(), src.cend(), f);
+  }
+*/
+
+assert(countTrue(\x.x == 3, [3, 5, 3, 7, 3]), 3L)
+assert(countTrue(\x.x == 3, [1, 2, 4]), 0L)
+assert(countTrue(\x.x == 3, []::[int]), 0L)
+
+/** counts
+
+  counts the total result of `f` on each element with initial value `init`, starts from `begin`
+
+  template <typename T>
+  std::size_t counts(std::function<bool(T)> f, std::size_t init, array<T>& src, std::size_t begin) {
+    return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
+  }
+*/
+
+assert(counts(length, 42L, ["abc", "defg"], 0L), 42L + 7L)
+assert(counts(length, 42L, ["abc", "defg"], 1L), 42L + 4L)
+
+/** count
+
+  counts the total result of `f` on each element with initial value `init`
+
+  template <typename T>
+  std::size_t count(std::function<bool(T)> f, array<T>& src) {
+    return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
+  }
+*/
+
+assert(count(length, ["abc", "defg"]), 7L)
+assert(count(length, ["abc", "defg"]), 7L)
+
+/** sum
+
+  sum the values in the array, starts from `begin`
+
+  template <typename T>
+  T sum(array<T>& src) {
+    return std::accumulate(src.cbegin(), src.cend(), T{});
+  }
+*/
+
+assert(sum([1, 2, 3, 4, 5]), 1 + 2 + 3 + 4 + 5)
+assert(sum([]::[int]), 0)
+
+/** rangeInto
+
+  copy integers from `low` to `high` (inclusive) to array `dst` starts from `begin`
+
+  template <typename T>
+  array<T> rangeInto(T low, T high, array<T>& dst, std::size_t begin) {
+    std::iota(dst.begin() + begin, dst.begin() + begin + (high - low + 1), low);
+  }
+*/
+
+do {
+  b = newArray(5L)::[int];
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(rangeInto(1, 5, b, 0L), [1, 2, 3, 4, 5]);
+}
+do {
+  b = newArray(5L)::[int];
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(rangeInto(1, 5, b, 1L), [33, 1, 2, 3, 4]);
+}
+do {
+  b = newArray(5L)::[int];
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(rangeInto(1, 0, b, 2L), [33, 33, 33, 33, 33]);
+}
+
+/** range
+
+  create an array of integers from `begin` to `end` (inclusive)
+
+  template <typename T>
+  array<T> range(T low, T high) {
+    array<T> result(high - low + 1);
+    std::iota(result.begin(), result.end(), low);
+    return result;
+  }
+*/
+
+assert(range(1, 5), [1, 2, 3, 4, 5])
+assert(range(1, 0), []::[int])
+
+/** arepeat
+
+  fill `dst` with `value` starts from `begin`
+
+  template <typename T>
+  array<T> arepeat(T value, std::size_t begin, array<T>& dst) {
+    for (std::size_t i = 0; i < n; ++i) {
+      dst[i] = value;
+    }
+    return dst;
+  }
+*/
+
+do {
+  b = newArray(5L)::[int];
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(arepeat(1, 0L, b), [1, 1, 1, 1, 1]);
+}
+do {
+  b = newArray(5L)::[int];
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(arepeat(1, 1L, b), [33, 1, 1, 1, 1]);
+}
+
+/** repeat
+
+  create an array of `value` with length `n`
+
+  template <typename T>
+  array<T> repeat(T value, std::size_t n) {
+    array<T> result(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      result[i] = value;
+    }
+    return result;
+  }
+*/
+
+assert(repeat(1, 5L), [1, 1, 1, 1, 1])
+assert(repeat(1, 0L), []::[int])
+
+/** max
+
+  compare two values and return the larger one
+
+  template <typename T>
+  T max(T a, T b) {
+    return std::max(a, b);
+  }
+
+  ** IMPORTANT **
+
+  `max` and `min` works differently in C++, see [alg.sorting.general]/5:
+
+  > A sequence is sorted if, for every iterator `i` and non-negative integer `n`, `*(i+n) < *i` is `false`
+
+  that is, if `x` == `y`, then `std::min(x, y) == x` and `std::max(x, y) == y`,
+  however, in hobbes, `min(x, y) == y` and `max(y, y) `.  Theirs stability pereferences are different
+*/
+
+assert(max(1, 2), 2)
+
+/** min
+
+  compare two values and return the smaller one
+
+  template <typename T>
+  T min(T a, T b) {
+    return std::min(a, b);
+  }
+
+  see ** IMPORTANT ** note in `max`
+*/
+
+assert(min(1, 2), 1)
+
+/** maximum
+
+  find the largest value which is larger than `value` in the array, otherwise return `value`
+
+  template <typename T>
+  T maximum(T value, array<T>& src) {
+      const auto v = std::max_element(src.cbegin(), src.cend());
+      return value > v ? value : v;
+  }
+*/
+
+assert(maximum(1, [1, 2, 3, 4, 5]), 5)
+assert(maximum(6, [1, 2, 3, 4, 5]), 6)
+
+/** minumum
+
+  find the smallest value which is smaller than `value` in the array, otherwise return `value`
+
+  template <typename T>
+  T minimum(T value, array<T>& src) {
+      const auto v = std::min_element(src.cbegin(), src.cend());
+      return value < v ? value : v;
+  }
+*/
+
+assert(minimum(1, [1, 2, 0, 4, 5]), 0)
+assert(minimum(6, [7, 8]), 6)
+
+/** normIdx
+
+  normalize an index to be in the range of [0, size]. Used for slicing, clamp the index to the range of [0, size)
+
+  template <typename T, typename I>
+  T normIdx(array<T>& src, I idx) {
+    return idx < 0 ? std::max(idx + size, 0) : std::min(idx, src.size());
+  }
+*/
+
+assert(normIdx([1, 2, 3, 4, 5], 0), 0)
+assert(normIdx([1, 2, 3, 4, 5], 1), 1)
+assert(normIdx([1, 2, 3, 4, 5], 5), 5)
+assert(normIdx([1, 2, 3, 4, 5], 6), min(5L, 6L))
+assert(normIdx([1, 2, 3, 4, 5], -1), max(0L, 5L-1L))
+assert(normIdx([1, 2, 3, 4, 5], -6), max(0L, 5L-6L))
+
+/** slice
+
+  slice an array with `start` and `end` index
+
+  if index is negative, it will be normalized to be in the range of [0, size] by `normIdx`
+
+  after normalization, if `start` >= `end`, returns a reversed `slice(array, end, start)`
+*/
+
+do {
+  b = [1, 2, 3, 4, 5];
+  assert(slice(b, 0, 5), [1, 2, 3, 4, 5]);
+  assert(slice(b, 1, 3), [2, 3]);
+  assert(slice(b, 1, -1), slice(b, 1, 5-1));
+  assert(slice(b, -2, -1), slice(b, 5-2, 5-1));
+  assert(slice(b, -2, 7), slice(b, 5-2, 5));
+  assert(slice(b, 7, -2), reverse(slice(b, 5-2, 5)));
+}
+
+/** cdelim
+
+  join an array of string with a delimiter
+
+  array<string> cdelim(array<string>& src, string delim) {
+    array<string> result;
+    for (std::size_t i = 0; i <= src.size() - 1; ++i) {
+      result.copy(src[i].cbegin(), src[i].cend(), std::back_inserter(result));
+      result.copy(delim.cbegin(), delim.cend(), std::back_inserter(result));
+    }
+    if (src.size() > 0) {
+      result.copy(src.back().cbegin(), src.back().cend(), std::back_inserter(result));
+    }
+    return result;
+  }
+*/
+
+assert(cdelim(["a", "b", "c"], ","), "a,b,c")
+assert(cdelim(["a", "b", "c"], ""), "abc")
+assert(cdelim(["abc", "bcd", "cdefg"], "<->"), "abc<->bcd<->cdefg")
+
+/** zip
+
+  zip two arrays into an array of pairs
+
+  template <typename T, typename U>
+  array<pair<T, U>> zip(array<T>& a, array<U>& b) {
+    array<std::pair<T, U>> result;
+    std::transform(a.cbegin(), a.cbegin() + std::min(a.size(), b.size()), b.cbegin(), std::back_inserter(result), [](T x, U y) {
+      return std::make_pair(x, y);
+    });
+    return result;
+  }
+*/
+
+assert(zip([1, 2, 3], [4, 5, 6]), [(1, 4), (2, 5), (3, 6)])
+assert(zip([1, 2, 3], [4, 5]), [(1, 4), (2, 5)])
+assert(zip([1, 2], [4, 5, 6]), [(1, 4), (2, 5)])
+
+/** zipWith
+
+  zip two arrays into an array of pairs, and apply a function `f` to each pair
+
+  template <typename T, typename U, typename R>
+  array<R> zipWith(std::function<R(T, U)> f, array<T>& a, array<U>& b) {
+    array<R> result;
+    std::transform(a.cbegin(), a.cbegin() + std::min(a.size(), b.size()), b.cbegin(), std::back_inserter(result), f);
+    return result;
+  }
+*/
+
+assert(zipWith(\x y.x+y, [1, 2, 3], [4, 5, 6]), [5, 7, 9])
+assert(zipWith(\x y.x+y, [1, 2, 3], [4, 5]), [5, 7])
+assert(zipWith(\x y.x+y, [1, 2], [4, 5, 6]), [5, 7])
+
+/** unzipStep
+
+  unzip an array of pairs into two arrays, all arrays start with index `begin` and end with index `end`
+
+  template <typename T, typename U>
+  void unzipStep(array<std::pair<T, U>>& src, array<T>& a, array<U>& b, std::size_t begin, std::size_t end) {
+    while (begin < src.size()) {
+      a[begin](s[begin].first);
+      b[begin](s[begin].second);
+      ++begin;
+    }
+  }
+*/
+
+do {
+  a = [1, 2, 3];
+  b = [4, 5, 6];
+  c = zip(a, b);
+
+  a1 = newArray(size(a));
+  copy(a1, 0L, [33, 33, 33]);
+  b1 = newArray(size(b));
+  copy(b1, 0L, [44, 44, 44]);
+
+  unzipStep(c, a1, b1, 0L, size(c));
+  assert(a1, a);
+  assert(b1, b);
+
+  copy(a1, 0L, [33, 33, 33]);
+  copy(b1, 0L, [44, 44, 44]);
+  unzipStep(c, a1, b1, 1L, size(c)-1);
+  assert(a1, [33, 2, 33]);
+  assert(b1, [44, 5, 44]);
+}
+
+/** unzip
+
+  unzip an array of pairs into two arrays
+
+  template <typename T, typename U>
+  std::pair<array<T>, array<U>> unzip(array<std::pair<T, U>>& src) {
+    array<T> a;
+    array<U> b;
+    for (const auto& s: src) {
+      a.push_back(s.first);
+      b.push_back(s.second);
+    }
+    return std::make_pair(a, b);
+  }
+*/
+
+assert(unzip([(1, 4), (2, 5), (3, 6)]), ([1, 2, 3], [4, 5, 6]))
+assert(unzip([(1, 4), (2, 5)]), ([1, 2], [4, 5]))
+
+///////////////////////////
+//    C++ bindings
+///////////////////////////
 
 // negate a boolean
 assert(not(true), false)
@@ -784,3 +1826,4 @@ do {
 //    ucWriterModelData
 //    ucWriterWrite
 //    ucWriterDestroy
+

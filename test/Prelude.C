@@ -1,14 +1,15 @@
 
-#include <exception>
 #include <hobbes/hobbes.H>
+#include <hobbes/storage.H>
+
 #include <stdexcept>
+#include <fstream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <libgen.h>
 
-#include "hobbes/storage.H"
 #include "test.H"
 
 using namespace hobbes;
@@ -170,7 +171,7 @@ int openForWrite(const hobbes::array<char>* fname) {
 }
 
 int openTempForWrite(hobbes::array<char>* name) {
-  char filename[512] = "hobbes_test_XXXXXX";
+  char filename[512] = ".hobbes_test_XXXXXX";
   const int fd = ::mkstemp(filename);
   ::memcpy(name->data, filename, ::strlen(filename));
   return fd;
@@ -191,6 +192,11 @@ void removefile(const hobbes::array<char>* fname) {
 char aCFn(char c) {
   return c + 1;
 }
+}
+
+namespace hobbes {
+  extern void captureStdout();
+  extern const array<char>* releaseStdout();
 }
 
 TEST(Prelude, Predefined) {
