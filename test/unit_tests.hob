@@ -1040,6 +1040,54 @@ do {
 assert(unzip([(1, 4), (2, 5), (3, 6)]), ([1, 2, 3], [4, 5, 6]))
 assert(unzip([(1, 4), (2, 5)]), ([1, 2], [4, 5]))
 
+/** ArrayIndex
+
+  arrayIndexFrom: anything that can be converted to long
+*/
+
+assert(arrayIndexFrom(42L), 42L)
+assert(arrayIndexFrom(42), 42L)
+assert(arrayIndexFrom(42S), 42L)
+assert(arrayIndexFrom(0X2A), 42L)
+
+/** Function
+
+  apply: apply a function to a value
+*/
+
+assert(apply(\x.x+1, 42), 43)
+assert(apply(toClosure(\x.x+1), 42L), 43L)
+
+/** toClosure
+
+  convert a function to a closure
+*/
+
+assert(apply(toClosure(\x.x+1), 42), 43)
+
+/** Array
+
+  size: number of elements in an array
+  element: element at index
+  elementM: maybe element at index
+  elements: range of elements
+*/
+
+assert(size([1, 2, 3]), 3L)
+assert(element([1, 2, 3], 1L), 2)
+assert(elementM([1, 2, 3], 1L), just(2))
+assert(elementM([1, 2, 3], 100L), nothing::(()+int))
+assert(elements([1, 2, 3], 1L, 3L), [2, 3])
+// TODO: what's the proper behavior here?
+//assert(elements([1, 2, 3], 1L, 5L), [2, 3])
+
+/** Convert
+  
+  convert: convert a value to another type
+*/
+
+assert(convert(42L)::long, 42L)
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
