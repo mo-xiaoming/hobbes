@@ -10,7 +10,7 @@ assert = \a b.if a == b then () else println("assertion failed: " ++ show(a) ++ 
   else return false
 
   tempalte <typename T>
-  bool alli(std::function<bool(T)> f, std::size_t begin, array<T>& xs) {
+  bool alli(std::function<bool(T)> f, long begin, array<T>& xs) {
     return std::all_of(xs.cbegin() + begin, xs.cend(), f);
   }
 */
@@ -44,7 +44,7 @@ assert(all(\x.x>3, [5, 4]), true)
   else return false
 
   template <typename T>
-  bool anyi(std::function<bool(T)> f, std::size_t begin, array<T>& xs) {
+  bool anyi(std::function<bool(T)> f, long begin, array<T>& xs) {
     return std::any_of(xs.cbegin() + begin, xs.cend(), f);
   }
 */
@@ -100,7 +100,7 @@ assert(anyC(toClosure(\x.x>3), [3, 4]), true)
   else return false
 
   template <typename T>
-  maybe<T> somei(std::function<bool(T)> f, array<T>& xs, std::size_t begin) {
+  maybe<T> somei(std::function<bool(T)> f, array<T>& xs, long begin) {
     const auto it = std::find_if(xs.cbegin() + begin, xs.cend(), f);
     return (it == xs.cend()) ? nothing<T>() : just<T>(*it);
   }
@@ -151,7 +151,7 @@ assert(someC(toClosure(\x.x>3), [3, 2, 1]), nothing::(()+int))
   and store the result in the corresponding position in array `dst`
 
   template <typename T, typename U>
-  array<U>& amap(std::function<U(T)> f, std::size_t begin, array<T>& dst, array<U>& src) {
+  array<U>& amap(std::function<U(T)> f, long begin, array<T>& dst, array<U>& src) {
     std::transform(src.cbegin() + begin, src.cend(), dst.begin() + begin, f);
     return dst;
   }
@@ -185,7 +185,7 @@ do {
   and store the result in the corresponding position in array `dst` starts from index `dstBegin`
 
   template <typename T, typename U>
-  array<U> amapRange(std::function<U(T)> f, array<T>& src, std::size_t begin, std::size_t end, array<T>& dst, std::size_t dstBegin) {
+  array<U> amapRange(std::function<U(T)> f, array<T>& src, long begin, long end, array<T>& dst, long dstBegin) {
     std::transform(src.cbegin() + begin, src.cbegin() + end, dst.begin() + dstBegin, f);
     return dst;
   }
@@ -229,7 +229,7 @@ assert(map(\x.x+1, [4, 5]), [5, 6])
   just like `amapRange`, but the destination array is created by the function
 
   template <typename T, typename U>
-  array<U> mapRange(std::function<U(T)> f, std::size_t begin, std::size_t end, array<T>& src) {
+  array<U> mapRange(std::function<U(T)> f, long begin, long end, array<T>& src) {
     array<U> dst(end - begin);
     std::transform(src.cbegin() + begin, src.cbegin() + end, dst.begin(), f);
     return dst;
@@ -281,7 +281,7 @@ assert(mapC(toClosure(\x.x+1), [4, 5]), [5, 6])
   dst[i] = f(src, i);
 
   template <typename T, typename U>
-  array<U> mapIdxStep(std::function<U(array<T>&, std::size_t)> f, array<T>& src, std::size_t begin, array<U>& dst) {
+  array<U> mapIdxStep(std::function<U(array<T>&, long)> f, array<T>& src, long begin, array<U>& dst) {
     std::transform(src.cbegin() + begin, src.cend(), dst.begin() + begin, f);
     return dst;
   }
@@ -299,7 +299,7 @@ do {
   just like `mapIdxStep`, but the destination array is created by the function
 
   template <typename T, typename U>
-  array<U> mapIdx(std::function<U(array<T>&, std::size_t)> f, array<T>& src) {
+  array<U> mapIdx(std::function<U(array<T>&, long)> f, array<T>& src) {
     array<U> dst(src.size());
     std::transform(src.cbegin(), src.cend(), dst.begin(), f);
     return dst;
@@ -314,7 +314,7 @@ assert(mapIdx(\xs i.xs[i]-1, [3, 4]), [2, 3])
   apply `f` to each element of `src` between indices [`begin`, `end`]
 
   template <typename T>
-  void eachStep(std::function<void(T)> f, array<T>& src, std::size_t begin, std::size_t end) {
+  void eachStep(std::function<void(T)> f, array<T>& src, long begin, long end) {
     std::for_each(src.cbegin() + begin, src.cbegin() + end + 1, f);
   }
 */
@@ -394,7 +394,7 @@ assert(mapIdx(\xs i.xs[i]-1, [3, 4]), [2, 3])
   fold left from index `begin`
 
   template <typename T, typename Acc>
-  U foldli(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+  U foldli(std::function<Acc(Acc, T)> f, Acc init, long begin, array<T>& src) {
     return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
   }
 */
@@ -408,7 +408,7 @@ assert(foldli(\acc x.acc+x, 42, 1L, [1, 2, 3]), 42 + 2 + 3)
   fold left from index `begin` to `end` (exclusive)
 
   template <typename T, typename Acc>
-  U foldliRange(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, std::size_t end, array<T>& src) {
+  U foldliRange(std::function<Acc(Acc, T)> f, Acc init, long begin, long end, array<T>& src) {
     return std::accumulate(src.cbegin() + begin, src.cbegin() + end, init, f);
   }
 */
@@ -431,7 +431,7 @@ assert(foldlRange(\acc x.acc+x, 42, 1L, 3L, [3, 4, 5, 6]), 42 + 4 + 5)
   copy elements from `src` between indices [`begin`, `end`) to `dst` starts from `dstStartIdx`
 
   template <typename T>
-  void copyRange(array<T>& dst, std::size_t dstStartIdx, array<T>& src, std::size_t begin, std::size_t end) {
+  void copyRange(array<T>& dst, long dstStartIdx, array<T>& src, long begin, long end) {
     std::copy(src.cbegin() + begin, src.cbegin() + end, dst.begin() + dstStartIdx);
   }
 */
@@ -454,7 +454,7 @@ do {
   copy elements from `src` between `begin` to its end to `dst` starts from `dstStartIdx`
 
   template <typename T>
-  void copyFrom(array<T>& dst, std::size_t dstStartIdx, array<T>& src, std::size_t begin) {
+  void copyFrom(array<T>& dst, long dstStartIdx, array<T>& src, long begin) {
     std::copy(src.cbegin() + begin, src.cend(), dst.begin() + dstStartIdx);
   }
 */
@@ -477,7 +477,7 @@ do {
   copy elements from `src` to `dst` starts from `dstStartIdx`
 
   template <typename T>
-  void copy(array<T>& dst, std::size_t dstStartIdx, array<T>& src) {
+  void copy(array<T>& dst, long dstStartIdx, array<T>& src) {
     std::copy(src.cbegin(), src.cend(), dst.begin() + dstStartIdx);
   }
 */
@@ -499,8 +499,8 @@ do {
   concat elements from `src` starts with index `begin`, and copy them into `dst` starts from `dstStartIdx`
 
   template <typename T>
-  void concatInto(array<array<T>>& src, std::size_t begin, array<T>& dst, std::size_t dstBegin) {
-    for (std::size_t i = begin; i < src.size(); ++i) {
+  void concatInto(array<array<T>>& src, long begin, array<T>& dst, long dstBegin) {
+    for (long i = begin; i < src.size(); ++i) {
       std::copy(src[i].cbegin(), src[i].cend(), dst.begin() + dstBegin);
       dstBegin += src[i].size();
     }
@@ -515,12 +515,12 @@ assert(concatInto(["hello", "abc", "defg"], 1L, newArray(7L), 0L), "abcdefg")
 
   template <typename T>
   array<T> concat(array<array<T>>& src, array<T>& dst) {
-    const auto size = std::accumulate(src.cbegin(), src.cend(), 0, [](std::size_t acc, const array<T>& x) {
+    const auto size = std::accumulate(src.cbegin(), src.cend(), 0, [](long acc, const array<T>& x) {
       return acc + x.size();
     });
     array<T> result(size);
-    std::size_t dstBegin = 0;
-    for (std::size_t i = 0, dstBegin = 0; i < src.size(); ++i) {
+    long dstBegin = 0;
+    for (long i = 0, dstBegin = 0; i < src.size(); ++i) {
       std::copy(src[i].cbegin(), src[i].cend(), result.begin() + dstBegin);
       dstBegin += src[i].size();
     }
@@ -529,13 +529,6 @@ assert(concatInto(["hello", "abc", "defg"], 1L, newArray(7L), 0L), "abcdefg")
 */
 
 assert(concat(["hello", "abc", "defg"]), "helloabcdefg")
-
-/** convert
-
-  convert array of type T to array of type U, if T -> U is convertible
-*/
-
-assert(convert([3S, 4S])::[int], [3, 4])
 
 /** foldl
 
@@ -556,7 +549,7 @@ assert(foldl(\acc x.acc+x, 42, [1, 2, 3]), 42 + 1 + 2 + 3)
   fold right from index `begin`-1
 
   template <typename T, typename Acc>
-  U foldri(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+  U foldri(std::function<Acc(Acc, T)> f, Acc init, long begin, array<T>& src) {
     return std::accumulate(src.rbegin() + begin, src.rend(), init, f);
   }
 */
@@ -583,7 +576,7 @@ assert(foldr(\acc x.acc+x, 42, [1, 2, 3]), 42 + 1 + 2 + 3)
   scan left from index `begin`
 
   template <typename T, typename Acc>
-  array<Acc> scanlStep(std::function<Acc(Acc, T)> f, Acc init, std::size_t begin, array<T>& src) {
+  array<Acc> scanlStep(std::function<Acc(Acc, T)> f, Acc init, long begin, array<T>& src) {
     array<Acc> result(src.size() - begin + 1);
     std::exclusive_scan(src.cbegin() + begin, src.cend(), result.begin(), f);
     return result;
@@ -621,7 +614,7 @@ assert(scanl(\acc x.acc+x, 42, [1, 2, 3]), [42, 43, 45, 48])
   fold left from index `begin` over pairs
 
   template <typename T1, typename T2, typename Acc>
-  U foldlT2Step(std::function<Acc(Acc, std::tuple<T1, T2>> f, Acc init, array<std::tuple<T1, T2>>& src, std::size_t begin) {
+  U foldlT2Step(std::function<Acc(Acc, std::tuple<T1, T2>> f, Acc init, array<std::tuple<T1, T2>>& src, long begin) {
     return std::accumulate(src1.cbegin() + begin, src1.cend(), init, f);
   }
 */
@@ -659,7 +652,7 @@ assert(foldlCT2(toClosure(\x.x.0+(x.1*x.2)), 42, [(1, 2), (3, 4), (5, 6)]), 42 +
   find the first element in the array that satisfies the predicate, starts from `begin`, return `maybe<T>`
 
   template <typename T>
-  maybe<T> findIter(std::function<bool(T)> f, array<T>& src, std::size_t begin) {
+  maybe<T> findIter(std::function<bool(T)> f, array<T>& src, long begin) {
     const auto it = std::find_if(src.cbegin() + begin, src.cend(), f);
     return it == src.cend() ? nothing() : just(*it);
   }
@@ -687,7 +680,7 @@ assert(find(\x.x == 7, [1, 2, 3, 4, 5]), nothing::(()+int))
   count how many values in the array satisfy the predicate `f`, starts from `begin`
 
   template <typename T>
-  std::size_t countTrues(std::function<bool(T)> f, std::size_t init, array<bool>& src, std::size_t begin) {
+  long countTrues(std::function<bool(T)> f, long init, array<bool>& src, long begin) {
     return init + std::count_if(src.cbegin() + begin, src.cend(), f);
   }
 */
@@ -702,7 +695,7 @@ assert(countTrues(\x.x == 3, 42L, [1, 2, 4], 1L), 42L)
   count the number of `true` in the array
 
   template <typename T>
-  std::size_t countTrue(std::function<bool(T)> f, array<bool>& src) {
+  long countTrue(std::function<bool(T)> f, array<bool>& src) {
     return init + std::count_if(src.cbegin(), src.cend(), f);
   }
 */
@@ -716,7 +709,7 @@ assert(countTrue(\x.x == 3, []::[int]), 0L)
   counts the total result of `f` on each element with initial value `init`, starts from `begin`
 
   template <typename T>
-  std::size_t counts(std::function<bool(T)> f, std::size_t init, array<T>& src, std::size_t begin) {
+  long counts(std::function<bool(T)> f, long init, array<T>& src, long begin) {
     return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
   }
 */
@@ -729,7 +722,7 @@ assert(counts(length, 42L, ["abc", "defg"], 1L), 42L + 4L)
   counts the total result of `f` on each element with initial value `init`
 
   template <typename T>
-  std::size_t count(std::function<bool(T)> f, array<T>& src) {
+  long count(std::function<bool(T)> f, array<T>& src) {
     return std::accumulate(src.cbegin() + begin, src.cend(), init, f);
   }
 */
@@ -755,7 +748,7 @@ assert(sum([]::[int]), 0)
   copy integers from `low` to `high` (inclusive) to array `dst` starts from `begin`
 
   template <typename T>
-  array<T> rangeInto(T low, T high, array<T>& dst, std::size_t begin) {
+  array<T> rangeInto(T low, T high, array<T>& dst, long begin) {
     std::iota(dst.begin() + begin, dst.begin() + begin + (high - low + 1), low);
   }
 */
@@ -796,8 +789,8 @@ assert(range(1, 0), []::[int])
   fill `dst` with `value` starts from `begin`
 
   template <typename T>
-  array<T> arepeat(T value, std::size_t begin, array<T>& dst) {
-    for (std::size_t i = 0; i < n; ++i) {
+  array<T> arepeat(T value, long begin, array<T>& dst) {
+    for (long i = 0; i < n; ++i) {
       dst[i] = value;
     }
     return dst;
@@ -820,9 +813,9 @@ do {
   create an array of `value` with length `n`
 
   template <typename T>
-  array<T> repeat(T value, std::size_t n) {
+  array<T> repeat(T value, long n) {
     array<T> result(n);
-    for (std::size_t i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       result[i] = value;
     }
     return result;
@@ -937,7 +930,7 @@ do {
 
   array<string> cdelim(array<string>& src, string delim) {
     array<string> result;
-    for (std::size_t i = 0; i <= src.size() - 1; ++i) {
+    for (long i = 0; i <= src.size() - 1; ++i) {
       result.copy(src[i].cbegin(), src[i].cend(), std::back_inserter(result));
       result.copy(delim.cbegin(), delim.cend(), std::back_inserter(result));
     }
@@ -991,7 +984,7 @@ assert(zipWith(\x y.x+y, [1, 2], [4, 5, 6]), [5, 7])
   unzip an array of pairs into two arrays, all arrays start with index `begin` and end with index `end`
 
   template <typename T, typename U>
-  void unzipStep(array<std::pair<T, U>>& src, array<T>& a, array<U>& b, std::size_t begin, std::size_t end) {
+  void unzipStep(array<std::pair<T, U>>& src, array<T>& a, array<U>& b, long begin, long end) {
     while (begin < src.size()) {
       a[begin](s[begin].first);
       b[begin](s[begin].second);
@@ -1081,12 +1074,254 @@ assert(elements([1, 2, 3], 1L, 3L), [2, 3])
 // TODO: what's the proper behavior here?
 //assert(elements([1, 2, 3], 1L, 5L), [2, 3])
 
-/** Convert
+/** Convert a -> b
   
   convert: convert a value to another type
 */
 
+/// Convert long long
 assert(convert(42L)::long, 42L)
+
+/// Convert [a] [b]
+assert(convert([3S, 4S])::[int], [3, 4])
+
+/** selectElementsInto
+
+  using function `f` to map elements from `src` at [`begin`, `end`),
+  into `dst` starts from `dstBegin`, with step `dstStep`
+
+  template <typename T, typename U>
+  array<T> selectElementsInto(
+          array<T>& src,
+          std::function<U(array<T>&, long)> f,
+          long begin, long end,
+          array<U>& dst, long dstBegin, long dstStep) {
+    for (; begin < end; ++begin, dstBegin += dstStep) {
+      dst[dstBegin](f(src, begin));
+    }
+    return dst;
+  }
+*/
+
+do {
+  a = [1, 2, 3, 4, 5];
+  b = newArray(5L);
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(selectElementsInto(a, \xs i.xs[i]+1, 0L, 5L, b, 0L, 1L), [2, 3, 4, 5, 6]);
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(selectElementsInto(a, \xs i.xs[i]+1, 1L, 4L, b, 0L, 1L), [3, 4, 5, 33, 33]);
+  copy(b, 0L, [33, 33, 33, 33, 33]);
+  assert(selectElementsInto(a, \xs i.xs[i]+1, 1L, 3L, b, 1L, 2L), [33, 3, 33, 4, 33]);
+}
+
+/** verifybound
+
+  verify that `begin` and `end` are in the range of [0, limit]
+
+  template <typename T>
+  maybe<std::tuple<array<T>&, long, long>>
+  verifybound(array<T>& src, long limit, long begin, long end) {
+    if (end < begin() || limit < end || begin < 0) {
+      return nothing();
+    }
+    return just(std::tuple(src, begin, end));
+  }
+*/
+
+assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, -1L, 5L)), true)
+assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, 2L, 4L)), true)
+assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, 4L, 2L)), true)
+assert(verifybound([1, 2, 3, 4, 5], 4L, 1L, 4L), just(([1, 2, 3, 4, 5], 1L, 4L)))
+assert(verifybound([1, 2, 3, 4, 5], 5L, 1L, 4L), just(([1, 2, 3, 4, 5], 1L, 4L)))
+assert(verifybound([1, 2, 3, 4, 5], 5L, 4L, 4L), just(([1, 2, 3, 4, 5], 4L, 4L)))
+
+/** defElementsWith
+
+  if `begin` and `end` are in the range of [0, limit], then returns a new array with `f` applied to each element of `src`,
+  otherwise return an empty array
+
+  template <typename T, typename U>
+  array<U> defElementsWith(array<T>& src, long limit, std::function<U(array<T>&, long)> f, long begin, long end) {
+    if (end < begin() || limit < end || begin < 0) {
+      return array<U>();
+    }
+    array<U> dst(end - begin);
+    for (long i = 0; begin < end; ++begin, ++i) {
+      dst[i](f(src, begin));
+    }
+    return dst;
+  }
+*/
+
+assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, -1L, 5L), []::[int])
+assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, 2L, 4L), []::[int])
+assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, 0L, 2L), [2, 3])
+
+/** getElementByIndex
+
+  if `index` is in the range of [0, size), then returns `just(f(src, index))`, otherwise return `nothing()`
+
+  template <typename T, typename U>
+  maybe<U> getElementByIndex(array<T>& src, std::function<U(array<T>&, long)> f, long index, long len) {
+    return (index < src.size() && index >= 0) ? just(f(src[i])) : nothing();
+  }
+*/
+
+assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 0L, 5L), just(2))
+assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 1L, 5L), just(3))
+assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 5L, 5L), nothing::(()+int))
+assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+int))
+
+/** Array xs x | xs -> x
+
+  size: number of elements in an array
+    template <typename T>
+    long size(array<T>& src) {
+      return src.size();
+    }
+
+  element: element at index
+    template <typename T>
+    T element(array<T>& src, long index) {
+      return src[index];
+    }
+
+  elementM: maybe element at `index`
+    template <typename T>
+    maybe<T> elementM(array<T>& src, long index) {
+      return (index < src.size() && index >= 0) ? just(src[index]) : nothing();
+    }
+
+  elements: range of elements within [`begin`, `end`] if the range is valid
+    template <typename T>
+    array<T> elements(array<T>& src, long begin, long end) {
+      return defElementsWith(src, src.size(), [](array<T>& xs, long i) { return xs[i]; }, begin, end);
+    }
+*/
+
+/// Array [a] a
+assert(size([1, 2, 3]), 3L)
+assert(element([1, 2, 3], 1L), 2)
+assert(elementM([1, 2, 3], 1L), just(2))
+assert(elementM([1, 2, 3], 100L), nothing::(()+int))
+assert(elements([1, 2, 3], 1L, 3L), [2, 3])
+assert(elements([1, 2, 3], 1L, 4L), []::[int])
+
+/// Array [:char|n:] char
+do {
+  a = newPrimZ()::[:char|42:];
+  saacopy(a, "hello", 5L);
+
+  assert(size(a), 5L); // null-terminated string
+  assert(element(a, 1L), 'e');
+  assert(elementM(a, 1L), just('e'));
+  assert(elementM(a, 100L), nothing::(()+char));
+  assert(elements(a, 1L, 3L), "el");
+  assert(elements(a, 1L, 100L), []::[char]);
+}
+
+/// Array [:a|n:] a
+do {
+  a = newPrimZ()::[:int|42:];
+  saacopy(a, [1, 2, 3, 4, 5], 5L);
+
+  assert(size(a), 42L); // full length
+  assert(element(a, 1L), 2);
+  assert(elementM(a, 1L), just(2));
+  assert(elementM(a, 100L), nothing::(()+int));
+  assert(elements(a, 1L, 3L), [2, 3]);
+  assert(elements(a, 1L, 100L), []::[int]);
+}
+
+/// Array std::string char
+assert(size(aStdString), 11L)
+assert(element(aStdString, 1L), 'e')
+assert(elementM(aStdString, 1L), just('e'))
+assert(elementM(aStdString, 100L), nothing::(()+char))
+assert(elements(aStdString, 1L, 3L), "el")
+assert(elements(aStdString, 1L, 100L), []::[char])
+
+/// Array char* char
+assert(size(aCStr), 5L)
+assert(element(aCStr, 1L), 'e')
+assert(elementM(aCStr, 1L), just('e'))
+assert(elementM(aCStr, 100L), nothing::(()+char))
+assert(elements(aCStr, 1L, 3L), "el")
+assert(elements(aCStr, 1L, 100L), []::[char])
+
+/// Array (char* * long) char
+do {
+  a = (aCStr, 5L);
+  assert(size(a), 5L);
+  assert(element(aCStr, 1L), 'e');
+  assert(elementM(aCStr, 1L), just('e'));
+  assert(elementM(aCStr, 100L), nothing::(()+char));
+  assert(elements(aCStr, 1L, 3L), "el");
+  assert(elements(aCStr, 1L, 100L), []::[char]);
+}
+
+/// Array (long * char*) char
+do {
+  a = (5L, aCStr);
+  assert(size(a), 5L);
+  assert(element(aCStr, 1L), 'e');
+  assert(elementM(aCStr, 1L), just('e'));
+  assert(elementM(aCStr, 100L), nothing::(()+char));
+  assert(elements(aCStr, 1L, 3L), "el");
+  assert(elements(aCStr, 1L, 100L), []::[char]);
+}
+
+// TODO: Array a@f e
+
+/// Array (vector t s n) t
+assert(size(aVec), 10L)
+assert(element(aVec, 1L), 1)
+assert(elementM(aVec, 1L), just(1))
+assert(elementM(aVec, 100L), nothing::(()+int))
+assert(elements(aVec, 1L, 3L), [1, 2])
+assert(elements(aVec, 1L, 100L), []::[int])
+
+/** reverse
+
+  return a new copy of reversed `src`
+
+  template <typename T>
+  array<T> reverse(array<T>& src) {
+    array<T> result(src.size());
+    std::reverse_copy(src.cbegin(), src.cend(), result.begin());
+    return result;
+  }
+*/
+
+assert(reverse([1, 2, 3, 4, 5]), [5, 4, 3, 2, 1])
+
+// TODO: ArrayView t a
+
+/** fstrlen
+
+  find the length of a possible null-terminated fix size char array
+
+  template <typename T>
+  long fstrlen(array<T>& s, long begin) {
+    for (; begin < s.size(); ++begin) {
+      if (s[begin] == '\0') {
+        return begin;
+      }
+    }
+    return s.size();
+  }
+*/
+
+do {
+  a = newPrimZ()::[:char|5:];
+  saacopy(a, "hello", 5L);
+  assert(fstrlen(a, 0L), 5L);
+}
+do {
+  a = newPrimZ()::[:char|42:];
+  saacopy(a, "hello", 5L);
+  assert(fstrlen(a, 0L), 5L);
+}
 
 ///////////////////////////
 //    C++ bindings
