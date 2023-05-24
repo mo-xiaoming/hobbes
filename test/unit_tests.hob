@@ -1,5 +1,9 @@
 assert = \a b.if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
 
+type maybeInt = (()+int)
+type maybeLong = (()+long)
+type maybeChar = (()+char)
+
 ///////////////////////////
 //    native functions
 ///////////////////////////
@@ -108,7 +112,7 @@ assert(anyC(toClosure(\x.x>3), [3, 4]), true)
 
 assert(somei(\x.x>3, [4], 0L), 4)
 assert(somei(\x.x>3, [4, 3, 5], 1L), 5)
-assert(somei(\x.x>3, [4, 3, 2, 1], 1L), nothing::(()+int))
+assert(somei(\x.x>3, [4, 3, 2, 1], 1L), nothing::maybeInt)
 
 /** some
 
@@ -122,9 +126,9 @@ assert(somei(\x.x>3, [4, 3, 2, 1], 1L), nothing::(()+int))
   }
 */
 
-assert(some(\x.x>3, []::[int]), nothing::(()+int))
+assert(some(\x.x>3, []::[int]), nothing::maybeInt)
 assert(some(\x.x>3, [3, 5]), 5)
-assert(some(\x.x>3, [3, 2, 1]), nothing::(()+int))
+assert(some(\x.x>3, [3, 2, 1]), nothing::maybeInt)
 
 /** someiC
 
@@ -133,16 +137,16 @@ assert(some(\x.x>3, [3, 2, 1]), nothing::(()+int))
 
 assert(someiC(toClosure(\x.x>3), [4], 0L), 4)
 assert(someiC(toClosure(\x.x>3), [4, 3, 5], 1L), 5)
-assert(someiC(toClosure(\x.x>3), [4, 3, 2, 1], 1L), nothing::(()+int))
+assert(someiC(toClosure(\x.x>3), [4, 3, 2, 1], 1L), nothing::maybeInt)
 
 /** someC
 
   just like `some`, but the predicate must be a closure
 */
 
-assert(someC(toClosure(\x.x>3), []::[int]), nothing::(()+int))
+assert(someC(toClosure(\x.x>3), []::[int]), nothing::maybeInt)
 assert(someC(toClosure(\x.x>3), [3, 5]), 5)
-assert(someC(toClosure(\x.x>3), [3, 2, 1]), nothing::(()+int))
+assert(someC(toClosure(\x.x>3), [3, 2, 1]), nothing::maybeInt)
 
 
 /** amap
@@ -659,7 +663,7 @@ assert(foldlCT2(toClosure(\x.x.0+(x.1*x.2)), 42, [(1, 2), (3, 4), (5, 6)]), 42 +
 */
 
 assert(findIter(\x.x > 3, [1..5], 0L), just(4))
-assert(findIter(\x.x == 3, [1..5], 3L), nothing::(()+int))
+assert(findIter(\x.x == 3, [1..5], 3L), nothing::maybeInt)
 
 /** find
 
@@ -673,7 +677,7 @@ assert(findIter(\x.x == 3, [1..5], 3L), nothing::(()+int))
 */
 
 assert(find(\x.x > 3, [1..5]), just(4))
-assert(find(\x.x == 7, [1..5]), nothing::(()+int))
+assert(find(\x.x == 7, [1..5]), nothing::maybeInt)
 
 /** countTrues
 
@@ -1058,6 +1062,117 @@ assert(apply(toClosure(\x.x+1), 42L), 43L)
 
 assert(apply(toClosure(\x.x+1), 42), 43)
 
+/** atm
+
+  get a maybe value from an array at `index`
+
+  template <template <typename> Array, typename I>
+  maybe<T> atm(Array& src, I index) {
+    const long i = index;
+    if (i > src.size() - 1 || i < 0) {
+      return nothing();
+    }
+    return just(src[i]);
+  }
+*/
+
+assert(atm([1..5], 0L), just(1))
+assert(atm([1..5], -1L), nothing::maybeInt)
+assert(atm([1..5], 10L), nothing::maybeInt)
+
+/** atMay
+
+  like `atm`, but only works on `array<T>`
+*/
+
+assert(atMay([1..5], 0L), just(1))
+assert(atMay([1..5], -1L), nothing::maybeInt)
+assert(atMay([1..5], 10L), nothing::maybeInt)
+
+/** headMay
+
+  get the first element of an array, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> headMay(array<T>& src) {
+    if (src.size() == 0) {
+      return nothing();
+    }
+    return just(src[0]);
+  }
+*/
+
+assert(headMay([1..5]), just(1))
+assert(headMay([]::[int]), nothing::maybeInt)
+
+/** tailMay
+
+  get the last element of an array, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> tailMay(array<T>& src) {
+    if (src.size() == 0) {
+      return nothing();
+    }
+    return just(src[src.size() - 1]);
+  }
+*/
+
+assert(tailMay([1..5]), just([2..5]))
+assert(tailMay([1]), just([]::[int]))
+assert(tailMay([]::[int]), nothing::maybeInt)
+
+/** justOne
+
+  get the only element of an array, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> justOne(array<T>& src) {
+    if (src.size() != 1) {
+      return nothing();
+    }
+    return just(src[0]);
+  }
+*/
+
+assert(justOne([1..5]), nothing::maybeInt)
+assert(justOne([1]), just(1))
+assert(justOne([]::[int]), nothing::maybeInt)
+
+/** justFist
+
+  get the first element of an array, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> justFirst(array<T>& src) {
+    if (src.size() == 0) {
+      return nothing();
+    }
+    return just(src[0]);
+  }
+*/
+
+assert(justFirst([1..5]), just(1))
+assert(justFirst([1]), just(1))
+assert(justFirst([]::[int]), nothing::maybeInt)
+
+/** justLast
+
+  get the last element of an array, return `maybe<T>`
+
+  template <typename T>
+  maybe<T> justLast(array<T>& src) {
+    if (src.size() == 0) {
+      return nothing();
+    }
+    return just(src[src.size() - 1]);
+  }
+*/
+
+assert(justLast([1..5]), just(5))
+assert(justLast([1]), just(1))
+assert(justLast([]::[int]), nothing::maybeInt)
+
 /** Array
 
   size: number of elements in an array
@@ -1069,7 +1184,7 @@ assert(apply(toClosure(\x.x+1), 42), 43)
 assert(size([1..3]), 3L)
 assert(element([1..3], 1L), 2)
 assert(elementM([1..3], 1L), just(2))
-assert(elementM([1..3], 100L), nothing::(()+int))
+assert(elementM([1..3], 100L), nothing::maybeInt)
 assert(elements([1..3], 1L, 3L), [2, 3])
 // TODO: what's the proper behavior here?
 //assert(elements([1..3], 1L, 5L), [2, 3])
@@ -1169,8 +1284,8 @@ assert(defElementsWith([1..5], 3L, \xs i.xs[i]+1, 0L, 2L), [2, 3])
 
 assert(getElementByIndex([1..5], \xs i.xs[i]+1, 0L, 5L), just(2))
 assert(getElementByIndex([1..5], \xs i.xs[i]+1, 1L, 5L), just(3))
-assert(getElementByIndex([1..5], \xs i.xs[i]+1, 5L, 5L), nothing::(()+int))
-assert(getElementByIndex([1..5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+int))
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, 5L, 5L), nothing::maybeInt)
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, -1L, 5L), nothing::maybeInt)
 
 /** Array xs x | xs -> x
 
@@ -1203,7 +1318,7 @@ assert(getElementByIndex([1..5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+int))
 assert(size([1..3]), 3L)
 assert(element([1..3], 1L), 2)
 assert(elementM([1..3], 1L), just(2))
-assert(elementM([1..3], 100L), nothing::(()+int))
+assert(elementM([1..3], 100L), nothing::maybeInt)
 assert(elements([1..3], 1L, 3L), [2, 3])
 assert(elements([1..3], 1L, 4L), []::[int])
 
@@ -1215,7 +1330,7 @@ do {
   assert(size(a), 5L); // null-terminated string
   assert(element(a, 1L), 'e');
   assert(elementM(a, 1L), just('e'));
-  assert(elementM(a, 100L), nothing::(()+char));
+  assert(elementM(a, 100L), nothing::maybeChar);
   assert(elements(a, 1L, 3L), "el");
   assert(elements(a, 1L, 100L), []::[char]);
 }
@@ -1228,7 +1343,7 @@ do {
   assert(size(a), 42L); // full length
   assert(element(a, 1L), 2);
   assert(elementM(a, 1L), just(2));
-  assert(elementM(a, 100L), nothing::(()+int));
+  assert(elementM(a, 100L), nothing::maybeInt);
   assert(elements(a, 1L, 3L), [2, 3]);
   assert(elements(a, 1L, 100L), []::[int]);
 }
@@ -1237,7 +1352,7 @@ do {
 assert(size(aStdString), 11L)
 assert(element(aStdString, 1L), 'e')
 assert(elementM(aStdString, 1L), just('e'))
-assert(elementM(aStdString, 100L), nothing::(()+char))
+assert(elementM(aStdString, 100L), nothing::maybeChar)
 assert(elements(aStdString, 1L, 3L), "el")
 assert(elements(aStdString, 1L, 100L), []::[char])
 
@@ -1245,7 +1360,7 @@ assert(elements(aStdString, 1L, 100L), []::[char])
 assert(size(aCStr), 5L)
 assert(element(aCStr, 1L), 'e')
 assert(elementM(aCStr, 1L), just('e'))
-assert(elementM(aCStr, 100L), nothing::(()+char))
+assert(elementM(aCStr, 100L), nothing::maybeChar)
 assert(elements(aCStr, 1L, 3L), "el")
 assert(elements(aCStr, 1L, 100L), []::[char])
 
@@ -1255,7 +1370,7 @@ do {
   assert(size(a), 5L);
   assert(element(aCStr, 1L), 'e');
   assert(elementM(aCStr, 1L), just('e'));
-  assert(elementM(aCStr, 100L), nothing::(()+char));
+  assert(elementM(aCStr, 100L), nothing::maybeChar);
   assert(elements(aCStr, 1L, 3L), "el");
   assert(elements(aCStr, 1L, 100L), []::[char]);
 }
@@ -1266,7 +1381,7 @@ do {
   assert(size(a), 5L);
   assert(element(aCStr, 1L), 'e');
   assert(elementM(aCStr, 1L), just('e'));
-  assert(elementM(aCStr, 100L), nothing::(()+char));
+  assert(elementM(aCStr, 100L), nothing::maybeChar);
   assert(elements(aCStr, 1L, 3L), "el");
   assert(elements(aCStr, 1L, 100L), []::[char]);
 }
@@ -1277,7 +1392,7 @@ do {
 assert(size(aVec), 10L)
 assert(element(aVec, 1L), 1)
 assert(elementM(aVec, 1L), just(1))
-assert(elementM(aVec, 100L), nothing::(()+int))
+assert(elementM(aVec, 100L), nothing::maybeInt)
 assert(elements(aVec, 1L, 3L), [1, 2])
 assert(elements(aVec, 1L, 100L), []::[int])
 
@@ -1803,6 +1918,14 @@ assert(fmapArrStep(\x.x*2, [1..5], 0L, newArray(5L)), [2, 4, 6, 8, 10])
 /// Map (a -> b, [a]) -> [b]
 assert(fmap(\x.x*2, [1..5]), [2, 4, 6, 8, 10])
 
+/// Map (a -> b, (()+a)) -> (()+b)
+assert(fmap(\x.x*2, just(3)), just(6))
+assert(fmap(\x.x*2, nothing::maybeInt), nothing::maybeInt)
+
+/// Map (a -> b, (c+a)) -> (c+b)
+assert(fmap(\x.x*2, |1=3|::(long+int)), |1=6|::(long+int))
+assert(fmap(\x.x*2, |0=42L|::(long+int)), |0=42L|::(long+int))
+
 /** ffilterArrStep
 
   for each element in `src` starts from `begin`, apply `f`, and set the bit at the same index in `dst`
@@ -1823,6 +1946,15 @@ assert(convert(ffilterArrStep(\x.x%2==0, [1..5], 0L, newBitvec(5L)))::[byte], [0
 
 /// FilterMap (a -> bool, a -> b, [a]) -> [b]
 assert(ffilterMap(\x.x%2==0, \x.x*2, [1..5]), [4, 8])
+
+/// FilterMap (a -> bool, a -> b, (()+a)) -> (()+b)
+assert(ffilterMap(\x.x%2==0, \x.x*2, just(4)), just(8))
+assert(ffilterMap(\x.x%2==0, \x.x*2, just(3)), nothing::maybeInt)
+
+/// FilterMap (a -> bool, a -> b, (c+a)) -> (c+b)
+assert(ffilterMap(\x.x%2==0, \x.x*2, |1=3|::(long+int)), |0=def::long|::(long+int))
+assert(ffilterMap(\x.x%2==0, \x.x*2, |1=4|::(long+int)), |1=8|::(long+int))
+assert(ffilterMap(\x.x%2==0, \x.x*2, |0=42L|::(long+int)), |0=42L|::(long+int))
 
 /** ffilterMMapStep
 
@@ -1854,6 +1986,15 @@ do {
 
 /// FilterMMap (a -> (()+b), [a]) -> [b]
 assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, [1..5]), [2, 4])
+
+/// FilterMMap (a -> (()+b), (()+a)) -> (()+b)
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, just(4)), just(4))
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, just(3)), nothing::maybeInt)
+
+/// FilterMMap (a -> (()+b), (c+a)) -> (c+b)
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |1=3|::(long+int)), |0=def::long|::(long+int))
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |1=4|::(long+int)), |1=4|::(long+int))
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |0=42L|::(long+int)), |0=42L|::(long+int))
 
 /** takeUntilStep
 
@@ -1904,6 +2045,206 @@ assert(takeUntilR(\x.x==3, [1, 2, 3, 4, 3, 2, 1]), ([1, 2, 3, 4], [2, 1]))
 assert(takeUntilR(\x.x==3, [1..5]), ([1, 2], [4, 5]))
 assert(takeUntilR(\x.x==7, [1..5]), ([]::[int], [1..5]))
 assert(takeUntilR(\x.x==1, [1..5]), ([]::[int], [2..5]))
+
+/** just
+
+  `maybe` type has value `x`
+
+  template <typename T>
+  maybe<T> just(T x) {
+    return {x};
+  }
+*/
+
+assert(just(3), |1=3|::maybeInt)
+
+/** nothing
+
+  `maybe` type `nothing`
+
+  template <typename T> constexpr maybe<T> nothing = {};
+*/
+
+assert([nothing, just(3)], [|0=()|, just(3)])
+
+/** either
+
+  either returns the `default`, or apply `f` to the value if `maybe` type `v` has value
+
+  template <typename T, typename U>
+  U either(maybe<T> v, U default, std::function<U(T)> f) {
+    if (v.isJust()) {
+      return f(v.value());
+    }
+    return default;
+  }
+*/
+
+assert(either(just(3), 42, \x.x*2), 6)
+assert(either(nothing::maybeInt, 42, \x.x*2), 42)
+
+/** eitherC
+
+  like `either`, but `f` must be a closure
+*/
+
+assert(eitherC(just(3), 42, toClosure(\x.x*2)), 6)
+assert(eitherC(nothing::maybeInt, 42, toClosure(\x.x*2)), 42)
+
+/** isJust
+
+  return true if `maybe` type `v` has value
+
+  template <typename T>
+  bool isJust(maybe<T> v) {
+    return v.isJust();
+  }
+*/
+
+assert(isJust(just(3)), true)
+assert(isJust(nothing::maybeInt), false)
+
+/** isNothing
+
+  return true if `maybe` type `v` has no value
+
+  template <typename T>
+  bool isNothing(maybe<T> v) {
+    return !v.isJust();
+  }
+*/
+
+assert(isNothing(just(3)), false)
+assert(isNothing(nothing::maybeInt), true)
+
+/** isNull
+
+  like `isNothing`
+*/
+
+assert(isNull(just(3)), false)
+assert(isNull(nothing::maybeInt), true)
+
+/** fromMaybe
+
+  return the value of `maybe` type `v`, or `default` if `v` has no value
+
+  template <typename T>
+  T fromMaybe(T default, maybe<T> v) {
+    return v.isJust() ? v.value() : default;
+  }
+*/
+
+assert(fromMaybe(42, just(3)), 3)
+assert(fromMaybe(42, nothing::maybeInt), 42)
+
+/** mmap
+
+  map a function over a `maybe` type `v`, return `nothing` if `v` has no value
+
+  template <typename T, typename U>
+  maybe<U> mmap(std::function<maybe<U>(T)> f, maybe<T> v) {
+    if (v.isJust()) {
+      return f(v.value());
+    }
+    return {};
+  }
+*/
+
+assert(mmap(\x.just(x*2), just(3)), just(6))
+assert(mmap(\x.just(x*2), nothing::maybeInt), nothing::maybeInt)
+
+/** mmapC
+
+  like `mmap`, but `f` must be a closure
+*/
+
+assert(mmapC(toClosure(\x.just(x*2)), just(3)), just(6))
+assert(mmapC(toClosure(\x.just(x*2)), nothing::maybeInt), nothing::maybeInt)
+
+/** mapm
+
+  like `mmap`
+*/
+
+assert(mapm(\x.just(x*2), just(3)), just(6))
+assert(mapm(\x.just(x*2), nothing::maybeInt), nothing::maybeInt)
+
+/** +
+
+  add
+*/
+
+assert(just(3) + just(4), just(7))
+assert(just(3) + 4, just(7))
+assert(3 + just(4), just(7))
+assert(just(3) + (nothing::maybeInt), just(3))
+assert(3 + (nothing::maybeInt), nothing::maybeInt)
+assert((nothing::maybeInt) + just(4), just(4))
+assert((nothing::maybeInt) + 4, nothing::maybeInt)
+assert((nothing::maybeInt) + (nothing::maybeInt), nothing::maybeInt)
+
+// type doesn't satisfy HasZero
+assert(isJust(just('c') + just('c')), true)
+assert(isJust(just('c') + 'c'), true)
+assert(isJust('c' + just('c')), true)
+assert(isJust(just('c') + (nothing::maybeChar)), false)
+assert(isJust('c' + (nothing::maybeChar)), false)
+assert(isJust((nothing::maybeChar) + just('c')), false)
+assert(isJust((nothing::maybeChar) + 'c'), false)
+
+/** -
+
+  substract
+*/
+assert(just(3) - just(4), just(-1))
+assert(just(3) - 4, just(-1))
+assert(3 - just(4), just(-1))
+assert(just(3) - (nothing::maybeInt), just(3))
+assert(3 - (nothing::maybeInt), nothing::maybeInt)
+assert((nothing::maybeInt) - just(4), just(-4))
+assert((nothing::maybeInt) - 4, nothing::maybeInt)
+assert((nothing::maybeInt) - (nothing::maybeInt), nothing::maybeInt)
+
+// type doesn't satisfy HasZero
+assert(isJust(just('c') - just('c')), true)
+assert(isJust(just('c') - 'c'), true)
+assert(isJust('c' - just('c')), true)
+assert(isJust(just('c') - (nothing::maybeChar)), false)
+assert(isJust('c' - (nothing::maybeChar)), false)
+assert(isJust((nothing::maybeChar) - just('c')), false)
+assert(isJust((nothing::maybeChar) - 'c'), false)
+
+/** *
+
+  multiply
+*/
+assert(just(3) * just(4), just(12))
+assert(just(3) * 4, just(12))
+assert(3 * just(4), just(12))
+assert(just(3) * (nothing::maybeInt), just(3))
+assert(3 * (nothing::maybeInt), nothing::maybeInt)
+assert((nothing::maybeInt) * just(4), just(4))
+assert((nothing::maybeInt) * 4, nothing::maybeInt)
+assert((nothing::maybeInt) * (nothing::maybeInt), nothing::maybeInt)
+
+/** *
+
+  divide
+*/
+assert(just(12) / just(4), just(3))
+assert(just(12) / 4, just(3))
+assert(12 / just(4), just(3))
+assert(just(12) / (nothing::maybeInt), just(12))
+assert(12 / (nothing::maybeInt), nothing::maybeInt)
+assert((nothing::maybeInt) / just(4), just(0)) // 1/4
+assert((nothing::maybeInt) / 4, nothing::maybeInt)
+assert((nothing::maybeInt) / (nothing::maybeInt), nothing::maybeInt)
+
+/** Enum
+
+  TODO: what is this?
+*/
 
 ///////////////////////////
 //    C++ bindings
@@ -2524,7 +2865,7 @@ do {
 }
 
 assert(readChar("'c'"), 'c')
-assert(readChar("c"), nothing::(()+char))
+assert(readChar("c"), nothing::maybeChar)
 
 assert(readByte("0Xab"), 0Xab)
 assert(readByte("0XAB"), 0Xab)
@@ -2540,16 +2881,16 @@ assert(readShort("-32768S"), short_min)
 assert(readShort("-32769S"), nothing::(()+short)) // overflow
 
 assert(readInt("2147483647"), int_max)
-assert(readInt("2147483648"), nothing::(()+int)) // overflow
+assert(readInt("2147483648"), nothing::maybeInt) // overflow
 assert(readInt("-2147483648"), int_min)
-assert(readInt("-2147483649"), nothing::(()+int)) // overflow
+assert(readInt("-2147483649"), nothing::maybeInt) // overflow
 
 assert(readLong("9223372036854775807"), long_max)
 assert(readLong("9223372036854775807L"), long_max)
-assert(readLong("9223372036854775808L"), nothing::(()+long)) // overflow
+assert(readLong("9223372036854775808L"), nothing::maybeLong) // overflow
 assert(readLong("-9223372036854775808"), long_min)
 assert(readLong("-9223372036854775808L"), long_min)
-assert(readLong("-9223372036854775809L"), nothing::(()+long)) // overflow
+assert(readLong("-9223372036854775809L"), nothing::maybeLong) // overflow
 
 assert(readInt128("42"), 42H)
 assert(readInt128("-42"), -42H)
