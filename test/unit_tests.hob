@@ -658,8 +658,8 @@ assert(foldlCT2(toClosure(\x.x.0+(x.1*x.2)), 42, [(1, 2), (3, 4), (5, 6)]), 42 +
   }
 */
 
-assert(findIter(\x.x > 3, [1, 2, 3, 4, 5], 0L), just(4))
-assert(findIter(\x.x == 3, [1, 2, 3, 4, 5], 3L), nothing::(()+int))
+assert(findIter(\x.x > 3, [1..5], 0L), just(4))
+assert(findIter(\x.x == 3, [1..5], 3L), nothing::(()+int))
 
 /** find
 
@@ -672,8 +672,8 @@ assert(findIter(\x.x == 3, [1, 2, 3, 4, 5], 3L), nothing::(()+int))
   }
 */
 
-assert(find(\x.x > 3, [1, 2, 3, 4, 5]), just(4))
-assert(find(\x.x == 7, [1, 2, 3, 4, 5]), nothing::(()+int))
+assert(find(\x.x > 3, [1..5]), just(4))
+assert(find(\x.x == 7, [1..5]), nothing::(()+int))
 
 /** countTrues
 
@@ -740,7 +740,7 @@ assert(count(length, ["abc", "defg"]), 7L)
   }
 */
 
-assert(sum([1, 2, 3, 4, 5]), 1 + 2 + 3 + 4 + 5)
+assert(sum([1..5]), 1 + 2 + 3 + 4 + 5)
 assert(sum([]::[int]), 0)
 
 /** rangeInto
@@ -756,7 +756,7 @@ assert(sum([]::[int]), 0)
 do {
   b = newArray(5L)::[int];
   copy(b, 0L, [33, 33, 33, 33, 33]);
-  assert(rangeInto(1, 5, b, 0L), [1, 2, 3, 4, 5]);
+  assert(rangeInto(1, 5, b, 0L), [1..5]);
 }
 do {
   b = newArray(5L)::[int];
@@ -781,7 +781,7 @@ do {
   }
 */
 
-assert(range(1, 5), [1, 2, 3, 4, 5])
+assert(range(1, 5), [1..5])
 assert(range(1, 0), []::[int])
 
 /** arepeat
@@ -871,8 +871,8 @@ assert(min(1, 2), 1)
   }
 */
 
-assert(maximum(1, [1, 2, 3, 4, 5]), 5)
-assert(maximum(6, [1, 2, 3, 4, 5]), 6)
+assert(maximum(1, [1..5]), 5)
+assert(maximum(6, [1..5]), 6)
 
 /** minumum
 
@@ -898,12 +898,12 @@ assert(minimum(6, [7, 8]), 6)
   }
 */
 
-assert(normIdx([1, 2, 3, 4, 5], 0), 0)
-assert(normIdx([1, 2, 3, 4, 5], 1), 1)
-assert(normIdx([1, 2, 3, 4, 5], 5), 5)
-assert(normIdx([1, 2, 3, 4, 5], 6), min(5L, 6L))
-assert(normIdx([1, 2, 3, 4, 5], -1), max(0L, 5L-1L))
-assert(normIdx([1, 2, 3, 4, 5], -6), max(0L, 5L-6L))
+assert(normIdx([1..5], 0), 0)
+assert(normIdx([1..5], 1), 1)
+assert(normIdx([1..5], 5), 5)
+assert(normIdx([1..5], 6), min(5L, 6L))
+assert(normIdx([1..5], -1), max(0L, 5L-1L))
+assert(normIdx([1..5], -6), max(0L, 5L-6L))
 
 /** slice
 
@@ -915,8 +915,8 @@ assert(normIdx([1, 2, 3, 4, 5], -6), max(0L, 5L-6L))
 */
 
 do {
-  b = [1, 2, 3, 4, 5];
-  assert(slice(b, 0, 5), [1, 2, 3, 4, 5]);
+  b = [1..5];
+  assert(slice(b, 0, 5), [1..5]);
   assert(slice(b, 1, 3), [2, 3]);
   assert(slice(b, 1, -1), slice(b, 1, 5-1));
   assert(slice(b, -2, -1), slice(b, 5-2, 5-1));
@@ -1066,13 +1066,13 @@ assert(apply(toClosure(\x.x+1), 42), 43)
   elements: range of elements
 */
 
-assert(size([1, 2, 3]), 3L)
-assert(element([1, 2, 3], 1L), 2)
-assert(elementM([1, 2, 3], 1L), just(2))
-assert(elementM([1, 2, 3], 100L), nothing::(()+int))
-assert(elements([1, 2, 3], 1L, 3L), [2, 3])
+assert(size([1..3]), 3L)
+assert(element([1..3], 1L), 2)
+assert(elementM([1..3], 1L), just(2))
+assert(elementM([1..3], 100L), nothing::(()+int))
+assert(elements([1..3], 1L, 3L), [2, 3])
 // TODO: what's the proper behavior here?
-//assert(elements([1, 2, 3], 1L, 5L), [2, 3])
+//assert(elements([1..3], 1L, 5L), [2, 3])
 
 /** Convert a -> b
   
@@ -1104,7 +1104,7 @@ assert(convert([3S, 4S])::[int], [3, 4])
 */
 
 do {
-  a = [1, 2, 3, 4, 5];
+  a = [1..5];
   b = newArray(5L);
   copy(b, 0L, [33, 33, 33, 33, 33]);
   assert(selectElementsInto(a, \xs i.xs[i]+1, 0L, 5L, b, 0L, 1L), [2, 3, 4, 5, 6]);
@@ -1128,12 +1128,12 @@ do {
   }
 */
 
-assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, -1L, 5L)), true)
-assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, 2L, 4L)), true)
-assert(isNothing(verifybound([1, 2, 3, 4, 5], 3L, 4L, 2L)), true)
-assert(verifybound([1, 2, 3, 4, 5], 4L, 1L, 4L), just(([1, 2, 3, 4, 5], 1L, 4L)))
-assert(verifybound([1, 2, 3, 4, 5], 5L, 1L, 4L), just(([1, 2, 3, 4, 5], 1L, 4L)))
-assert(verifybound([1, 2, 3, 4, 5], 5L, 4L, 4L), just(([1, 2, 3, 4, 5], 4L, 4L)))
+assert(isNothing(verifybound([1..5], 3L, -1L, 5L)), true)
+assert(isNothing(verifybound([1..5], 3L, 2L, 4L)), true)
+assert(isNothing(verifybound([1..5], 3L, 4L, 2L)), true)
+assert(verifybound([1..5], 4L, 1L, 4L), just(([1..5], 1L, 4L)))
+assert(verifybound([1..5], 5L, 1L, 4L), just(([1..5], 1L, 4L)))
+assert(verifybound([1..5], 5L, 4L, 4L), just(([1..5], 4L, 4L)))
 
 /** defElementsWith
 
@@ -1153,9 +1153,9 @@ assert(verifybound([1, 2, 3, 4, 5], 5L, 4L, 4L), just(([1, 2, 3, 4, 5], 4L, 4L))
   }
 */
 
-assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, -1L, 5L), []::[int])
-assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, 2L, 4L), []::[int])
-assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, 0L, 2L), [2, 3])
+assert(defElementsWith([1..5], 3L, \xs i.xs[i]+1, -1L, 5L), []::[int])
+assert(defElementsWith([1..5], 3L, \xs i.xs[i]+1, 2L, 4L), []::[int])
+assert(defElementsWith([1..5], 3L, \xs i.xs[i]+1, 0L, 2L), [2, 3])
 
 /** getElementByIndex
 
@@ -1167,10 +1167,10 @@ assert(defElementsWith([1, 2, 3, 4, 5], 3L, \xs i.xs[i]+1, 0L, 2L), [2, 3])
   }
 */
 
-assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 0L, 5L), just(2))
-assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 1L, 5L), just(3))
-assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, 5L, 5L), nothing::(()+int))
-assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+int))
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, 0L, 5L), just(2))
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, 1L, 5L), just(3))
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, 5L, 5L), nothing::(()+int))
+assert(getElementByIndex([1..5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+int))
 
 /** Array xs x | xs -> x
 
@@ -1200,12 +1200,12 @@ assert(getElementByIndex([1, 2, 3, 4, 5], \xs i.xs[i]+1, -1L, 5L), nothing::(()+
 */
 
 /// Array [a] a
-assert(size([1, 2, 3]), 3L)
-assert(element([1, 2, 3], 1L), 2)
-assert(elementM([1, 2, 3], 1L), just(2))
-assert(elementM([1, 2, 3], 100L), nothing::(()+int))
-assert(elements([1, 2, 3], 1L, 3L), [2, 3])
-assert(elements([1, 2, 3], 1L, 4L), []::[int])
+assert(size([1..3]), 3L)
+assert(element([1..3], 1L), 2)
+assert(elementM([1..3], 1L), just(2))
+assert(elementM([1..3], 100L), nothing::(()+int))
+assert(elements([1..3], 1L, 3L), [2, 3])
+assert(elements([1..3], 1L, 4L), []::[int])
 
 /// Array [:char|n:] char
 do {
@@ -1223,7 +1223,7 @@ do {
 /// Array [:a|n:] a
 do {
   a = newPrimZ()::[:int|42:];
-  saacopy(a, [1, 2, 3, 4, 5], 5L);
+  saacopy(a, [1..5], 5L);
 
   assert(size(a), 42L); // full length
   assert(element(a, 1L), 2);
@@ -1293,7 +1293,7 @@ assert(elements(aVec, 1L, 100L), []::[int])
   }
 */
 
-assert(reverse([1, 2, 3, 4, 5]), [5, 4, 3, 2, 1])
+assert(reverse([1..5]), [5, 4, 3, 2, 1])
 
 // TODO: ArrayView t a
 
@@ -1322,6 +1322,588 @@ do {
   saacopy(a, "hello", 5L);
   assert(fstrlen(a, 0L), 5L);
 }
+
+/** bvInit
+
+  initialize an array of `T` with `value` from `index`
+
+  void bvInit(array<byte>& src, long index, byte value) {
+    std::fill(src.begin() + index, src.end(), value);
+  }
+*/
+
+do {
+  a = newArray(3L)::[byte];
+  copy(a, 0L, [0X12, 0X34, 0X56]);
+  bvInit(a, 1L, 0X78);
+  assert(a, [0X12, 0X78, 0X78]);
+}
+
+/** newBitvec
+
+  create a new bitvec with `size` bits
+
+  bitvec newBitvec(long size) {
+    array<byte> result(1 + (n - 1) / 8) + 1); // first byte for the remainder
+    result[0] = n % 8;
+    return result;
+  }
+*/
+
+assert(convert(newBitvec(42L))::[byte], [0X02, 0X00, 0X00, 0X00, 0X00, 0X00, 0X00]) // 2 as remainder + 8x6 to contain 42 bits
+
+/** bvLength
+
+  return the length of a bitvec
+
+  long bvLength(bitvec& src) {
+    if (src[0] == 0) {
+      return src.size() * 8;
+    }
+    return (src.size() - 1) * 8 + src[0];
+  }
+*/
+
+assert(bvLength(newBitvec(42L)), 42L)
+assert(bvLength(newBitvec(8L)), 8L)
+assert(bvLength(newBitvec(40L)), 40L)
+
+/** bvIsSet
+
+  return true if the bit at `index` is set
+
+  bool bvIsSet(bitvec& src, long index) {
+    return (src[index / 8 + 1] & (1 << (index % 8))) != 0;
+  }
+*/
+
+do {
+  a = newBitvec(3L);
+  assert(bvIsSet(a, 0L), false);
+  bvSet(a, 0L, true);
+  assert(bvIsSet(a, 0L), true);
+}
+
+/** bvSet
+
+  set the bit at `index` to `value`
+
+  void bvSet(bitvec& src, long index, bool value) {
+    if (value) {
+      src[index / 8 + 1] |= (1 << (index % 8));
+    } else {
+      src[index / 8 + 1] &= ~(1 << (index % 8));
+    }
+  }
+*/
+
+do {
+  a = newBitvec(13L);
+  bvSet(a, 1L, true);
+  assert(convert(a)::[byte], [0X05, 0X02, 0X00]);
+  bvSet(a, 1L, false);
+  assert(convert(a)::[byte], [0X05, 0X00, 0X00]);
+}
+
+/** bvPrintT
+
+  print a bitvec to stdout, range from [begin, end)
+
+  *higher bits get printed first*
+
+  void bvPrintT(bitvec& src, long begin, long end) {
+    for (long i = bvLength(src); i > 0; ++i) {
+      std::cout << (bvIsSet(src, i-1) ? "1" : "0");
+    }
+    std::cout << std::endl;
+  }
+*/
+
+do {
+  a = newBitvec(13L);
+
+  captureStdout();
+  bvPrintT(a, 0L, bvLength(a));
+  assert(releaseStdout(), "0000000000000");
+
+  bvSet(a, 1L, true);
+  captureStdout();
+  bvPrintT(a, 0L, bvLength(a));
+  assert(releaseStdout(), "0100000000000");
+
+  captureStdout();
+  bvPrintT(a, 1L, bvLength(a));
+  assert(releaseStdout(), "100000000000");
+
+  bvSet(a, 9L, true);
+  captureStdout();
+  bvPrintT(a, 0L, bvLength(a));
+  assert(releaseStdout(), "0100000001000");
+}
+
+/** wherePs
+
+  start from the `index` of both `src` and `dst`, set the value of `dst` to the result of predicate `f`
+
+  template <typename T>
+  bitvec& wherePs(std::function<bool(T)> f, array<T>& src, bitvec& dst, long index) {
+    std::transform(src.cbegin() + index, src.cend(), dst.begin() + index, f);
+    return dst;
+  }
+*/
+
+do {
+  a = [1..5];
+  b = newBitvec(5L);
+  wherePs(\x.x%2==0, a, 0L, b);
+  assert(convert(b)::[byte], [0X05, 0X0A]); // 1010
+}
+
+/** whereP
+
+  return a bitvec based on the predicate `f` applied to each element of `src`
+
+  template <typename T>
+  bitvec whereP(std::function<bool(T)> f, array<T>& src) {
+    bitvec result = newBitvec(src.size());
+    std::transform(src.cbegin(), src.cend(), result.begin(), f);
+    return result;
+  }
+*/
+
+do {
+  a = [1..5];
+  b = whereP(\x.x%2==0, a);
+  assert(convert(b)::[byte], [0X05, 0X0A]); // 1010
+}
+
+/** bvCount8
+
+  count the number of bits set in a byte
+
+  long bvCount8(byte b) {
+    long result = 0;
+    for (long i = 0; i < 8; ++i) {
+      result += (b & (1 << i)) != 0;
+    }
+    return result;
+  }
+*/
+
+assert(bvCount8(0X00), 0L)
+assert(bvCount8(0X02), 1L)
+assert(bvCount8(0X03), 2L)
+assert(bvCount8(0X33), 4L)
+assert(bvCount8(0Xff), 8L)
+
+/** selectStep
+
+  select elements from `src` at indices from `indices` into `dst`, starts from `begin`
+
+  template <typename T>
+  void selectStep(array<T>& src, array<long>& indices, array<T>& dst, long begin) {
+    std::transform(indices.cbegin() + begin, indices.cend(), dst.begin() + begin, [&src](long i) { return src[i]; });
+  }
+*/
+
+do {
+  a = [1..5];
+  b = [0L, 2L, 4L];
+  c = newArray(3L);
+  selectStep(a, b, c, 0L);
+  assert(c, [1, 3, 5]);
+}
+do {
+  a = [1..5];
+  b = [0L, 2L, 4L];
+  c = newArray(3L);
+  copy(c, 0L, [33, 33, 33]);
+  selectStep(a, b, c, 1L);
+  assert(c, [33, 3, 5]);
+}
+
+/** select
+
+  select elements from `src` at indices from `indices`
+
+  template <typename T>
+  array<T> select(array<T>& src, array<long>& indices) {
+    array<T> result(indices.size());
+    std::transform(indices.cbegin(), indices.cend(), result.begin(), [&src](long i) { return src[i]; });
+    return result;
+  }
+*/
+
+do {
+  a = [1..5];
+  b = [0L, 2L, 4L];
+  assert(select(a, b), [1, 3, 5]);
+}
+
+/** selectBStep
+
+  select from `src` at indices from `indices`, both starts from `begin` to `end`, into `dst` starts from `dstBegin`
+
+  template <typename T, template<typename T> Array>
+  void selectBStep(Array& src, bitvec& indices, long begin, long end, array<T>& dst, long dstBegin) {
+    std::transform(indices.cbegin() + begin, indices.cend(), dst.begin() + dstBegin, [&src](long i) { return src[i]; });
+  }
+*/
+
+do {
+  a = [1..5];
+  b = newBitvec(5L);
+  bvSet(b, 0L, true);
+  bvSet(b, 2L, true);
+  bvSet(b, 4L, true);
+  c = newArray(3L);
+  selectBStep(a, b, 0L, 5L, c, 0L);
+  assert(c, [1, 3, 5]);
+}
+do {
+  a = [1..5];
+  b = newBitvec(5L);
+  bvSet(b, 0L, true);
+  bvSet(b, 2L, true);
+  bvSet(b, 4L, true);
+  c = newArray(2L);
+  copy(c, 0L, [33, 33]);
+  selectBStep(a, b, 1L, 4L, c, 1L);
+  assert(c, [33, 3]);
+}
+
+/** selectB
+
+  select from `src` at indices from `indices`
+
+  template <typename T, template<typename T> Array>
+  array<T> selectB(Array& src, bitvec& indices) {
+    array<T> result(src.size());
+    std::transform(indices.cbegin(), indices.cend(), result.begin(), [&src](long i) { return src[i]; });
+    return result;
+  }
+*/
+
+do {
+  a = [1..5];
+  b = newBitvec(5L);
+  bvSet(b, 0L, true);
+  bvSet(b, 2L, true);
+  bvSet(b, 4L, true);
+  assert(selectB(a, b), [1, 3, 5]);
+}
+
+/** selectRStep
+
+  select elements from `src` at [`begin`, `end`), to `dst` starts at `dstBegin`
+
+  template <typename T>
+  void selectRStep(array<T>& src, array<T>& dst, long dstBegin, long begin, long end) {
+    std::copy(src.cbegin() + begin, src.cend() + end, dst.begin() + dstBegin);
+  }
+*/
+
+do {
+  a = [1..5];
+  b = newArray(3L);
+  copy(b, 0L, [33, 33, 33]);
+  selectRStep(a, b, 1L, 1L, 3L);
+  assert(b, [33, 2, 3]);
+}
+
+/** selectRange
+
+  select elements from `src` at [`begin`, `end`)
+
+  template <typename T>
+  array<T> selectRange(array<T>& src, long begin, long end) {
+    const auto hi = std::min(src.size(), end);
+    const auto lo = std::max(0L, begin);
+    if (hi <= lo) {
+      return {};
+    }
+    array<T> result(hi - lo);
+    std::copy(src.cbegin() + lo, src.cend() + hi, result.begin());
+    return result;
+  }
+*/
+
+do {
+  a = [1..5];
+  assert(selectRange(a, 1L, 3L), [2, 3]);
+  assert(selectRange(a, 1L, 1L), []::[int]);
+  assert(selectRange(a, 1L, 0L), []::[int]);
+  assert(selectRange(a, 1L, -1L), []::[int]);
+  assert(selectRange(a, 1L, 100L), [2, 3, 4, 5]);
+  assert(selectRange(a, 100L, 100L), []::[int]);
+  assert(selectRange(a, -100L, 100L), a);
+}
+
+/** selectKeyStep
+
+  for a sorted array `m` with type [(K, V)] starts from `mStart`, and a sorted array `keys` with type [K] starts from `keyStart`,
+  select all elements from `m` that has a key in `keys` into `result` starts from `resultStart`
+
+  template <typename K, typename V>
+  long selectKeyStep(array<std::pair<K, V>>& m, long mStart, array<K>& keys, long keyStart, array<std::pair<K, V>>& result, long resultStart) {
+    if (mStart >= m.size() || keyStart >= keys.size()) {
+      return keyStart;
+    }
+    if (m[mStart].first < keys[keyStart]) {
+      return selectKeyStep(m, mStart + 1, keys, keyStart, result, resultStart);
+    }
+    if (keys[keyStart] < m[mStart].first) {
+      return selectKeyStep(m, mStart, keys, keyStart + 1, result, resultStart);
+    }
+    result[resultStart] = m[mStart];
+    return selectKeyStep(m, mStart + 1, keys, keyStart + 1, result, resultStart + 1);
+  }
+*/
+
+do {
+  a = [(1, 1), (1, 2), (2, 2), (4, 4), (5, 5)];
+  b = [1, 3, 5, 6];
+  c = newArray(3L);
+  assert(selectKeyStep(a, 0L, b, 0L, c, 0L), 3L);
+  assert(c, [(1, 1), (5, 5)]);
+}
+
+/** selectKeys
+
+  for a sorted array `m` with type [(K, V)], and a sorted array `keys` with type [K],
+  select all elements from `m` that has a key in `keys`
+
+  template <typename K, typename V>
+  array<std::pair<K, V>> selectKeys(array<std::pair<K, V>>& m, array<K>& keys) {
+    array<std::pair<K, V>> result(std::min(m.size(), keys.size()));
+    selectKeyStep(m, 0L, keys, 0L, result, 0L);
+    return result;
+  }
+*/
+
+do {
+  a = [(1, 1), (1, 2), (2, 2), (3, 3), (4, 4), (5, 5)];
+  b = [1, 3, 5];
+  assert(selectKeys(a, b), [(1, 1), (3, 3), (5, 5)]);
+}
+
+/** selectKeysFrom
+
+  for a sorted array `m` with type [(K, V)], and a sorted array `keys` with type [K],
+  select all elements from `m` that has a key in `keys` starts from `begin`
+
+  template <typename K, typename V>
+  std::pair<long, array<std::pair<K, V>>> selectKeysFrom(array<std::pair<K, V>>& m, array<K>& keys, long begin) {
+    array<std::pair<K, V>> result(std::min(m.size(), keys.size()));
+    const auto n = selectKeyStep(m, begin, keys, 0L, result, 0L);
+    return {n, result};
+  }
+*/
+
+do {
+  a = [(1, 1), (1, 2), (2, 2), (4, 4), (5, 5)];
+  b = [1, 3, 5, 6];
+  assert(selectKeysFrom(a, b, 0L), (3L, [(1, 1), (5, 5)]));
+  assert(selectKeysFrom(a, b, 2L), (3L, [(5, 5)]));
+  assert(selectKeysFrom(a, b, 3L), (3L, []::[(int * int)]));
+}
+
+/** filter
+
+  return a new array with elements from `src` that satisfy the predicate `f`
+
+  template <typename T>
+  array<T> filter(std::function<bool(T)> f, array<T>& src) {
+    array<T> result(src.size());
+    auto it = std::copy_if(src.cbegin(), src.cend(), result.begin(), f);
+    return result;
+  }
+*/
+
+assert(filter(\x.x%2==0, [1..5]), [2, 4])
+assert(filter(\x.x%2==0, [1, 3, 5]), []::[int])
+
+/** filterMapStep
+
+  for each element in `src` starts from `begin`, apply `f`, and write to `result`,
+  returns how many values are written to `result` that is not `nothing()`
+
+  template <typename T, typename U>
+  long filterMapStep(std::function<maybe<U>(T)> f, array<T>& src, begin, array<maybe<U>>& result, long init) {
+    for (; begin < src.size(); ++begin) {
+      result[init] = f(src[begin]);
+      if (r.isJust()) {
+        ++init;
+      }
+    }
+    return init;
+  }
+*/
+
+do {
+  b = newArray(5L);
+  assert(filterMapStep(\x.if x%2==0 then just(x) else nothing, [1..5], 0L, b, 0L), 2L);
+  assert(b, [nothing, just(2), nothing, just(4), nothing]);
+}
+
+/** selectJust
+
+  select all `just` values from `src` stars from `begin`, into `dst` starts from `dstBegin`
+
+  template <typename T>
+  array<T>& selectJust(array<maybe<T>>& src, long begin, array<T>& dst, long dstBegin) {
+    for (; begin < src.size(); ++begin) {
+      if (src[begin].isJust()) {
+        dst[dstBegin++] == src[begin].value();
+      }
+    }
+    return dst;
+  }
+*/
+
+assert(selectJust([nothing, just(3), nothing, just(4), nothing], 0L, newArray(2L), 0L), [3, 4])
+
+/** filterMap
+
+  template <typename T, typename U>
+  array<U> filterMap(std::function<maybe<U>(T)> f, array<T>& src) {
+    array<U> result;
+    result.reserve(src.size());
+    for (auto& x : src) {
+      const auto r = f(x);
+      if (r.isJust()) {
+        result.push_back(r.value());
+      }
+    }
+    return result;
+  }
+*/
+
+assert(filterMap(\x.if x%2==0 then just(x) else nothing, [1..5]), [2, 4])
+assert(filterMap(\x.if x%2==0 then just(x) else nothing, [1, 3, 5]), []::[int])
+
+/** fmapArrStep
+
+  for each element in `src` starts from `begin`, apply `f`, and write to `dst` starts from `begin` as well
+
+  template <typename T, template <typename> Array, typename U>
+  array<U> fmapArrStep(std::function<U(T)> f, Array<T>& src, long begin, array<U>& dst) {
+    std::transform(src.cbegin() + begin, src.cend(), result.begin() + begin, f);
+    return dst;
+  }
+*/
+
+assert(fmapArrStep(\x.x*2, [1..5], 0L, newArray(5L)), [2, 4, 6, 8, 10])
+
+/** Map
+
+  fmap: map a function over a container
+*/
+
+/// Map (a -> b, [a]) -> [b]
+assert(fmap(\x.x*2, [1..5]), [2, 4, 6, 8, 10])
+
+/** ffilterArrStep
+
+  for each element in `src` starts from `begin`, apply `f`, and set the bit at the same index in `dst`
+
+  template <template <typename> Array, typename T>
+  bitvec& ffilterArrStep(std::function<bool(T)> f, Array<T>& src, long begin, bitvec& dst) {
+    std::transform(src.cbegin() + begin, src.cend(), dst.begin() + begin, f);
+    return dst;
+  }
+*/
+
+assert(convert(ffilterArrStep(\x.x%2==0, [1..5], 0L, newBitvec(5L)))::[byte], [0X05, 0X0A]) // 1010
+
+/** FilterMap
+
+  ffilterMap: filter a container with a predicate, and map a function over the result
+*/
+
+/// FilterMap (a -> bool, a -> b, [a]) -> [b]
+assert(ffilterMap(\x.x%2==0, \x.x*2, [1..5]), [4, 8])
+
+/** ffilterMMapStep
+
+  for each element in `src` starts from `begin`, apply `f`, and write to `dst` starts from `begin` as well,
+  return how many values are written to `dst` that is not `nothing()`
+
+  template <template <typename> Array, typename T, typename U>
+  long ffilterMMapStep(std::function<maybe<U>(T)> f, Array<T>& src, long begin, array<maybe<U>>& dst, long init) {
+    for (; begin < src.size(); ++begin) {
+      dst[init] = f(src[begin]);
+      if (dst[init].isJust()) {
+        ++init;
+      }
+    }
+    return init;
+  }
+*/
+
+do {
+  b = newArray(5L);
+  assert(ffilterMMapStep(\x.if x%2==0 then just(x) else nothing, [1..5], 0L, b, 0L), 2L);
+  assert(b, [nothing, just(2), nothing, just(4), nothing]);
+}
+
+/** FilterMMap
+  
+    ffilterMMap: filter a container with a predicate, and map a function over the result
+*/
+
+/// FilterMMap (a -> (()+b), [a]) -> [b]
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, [1..5]), [2, 4])
+
+/** takeUntilStep
+
+  return elements from `src` starts from `begin` until `f` returns true, and the rest elements
+
+  template <typename T>
+  std::pair<array<T>, array<T>> takeUntilStep(std::function<bool(T)> f, array<T>& src, long begin) {
+    for (i = begin; begin < src.size(); ++begin) {
+      if (f(src[begin])) {
+        break;
+      }
+    }
+    return {{src.cbegin() + i, src.cbegin()+begin}, {src.cbegin() + begin+1, src.cbegin()}};
+  }
+*/
+
+assert(takeUntilStep(\x.x==3, [1, 2, 3, 4, 3, 2, 1], 0L), ([1, 2], [4, 3, 2, 1]))
+assert(takeUntilStep(\x.x==3, [1..5], 0L), ([1, 2], [4, 5]))
+assert(takeUntilStep(\x.x==7, [1..5], 0L), ([1..5], []::[int]))
+assert(takeUntilStep(\x.x==1, [1..5], 0L), ([]::[int], [2..5]))
+
+/** takeUntil
+
+  like `takeUntilStep` but always starts from index 0
+*/
+
+assert(takeUntil(\x.x==3, [1, 2, 3, 4, 3, 2, 1]), ([1, 2], [4, 3, 2, 1]))
+assert(takeUntil(\x.x==3, [1..5]), ([1, 2], [4, 5]))
+assert(takeUntil(\x.x==7, [1..5]), ([1..5], []::[int]))
+assert(takeUntil(\x.x==1, [1..5]), ([]::[int], [2..5]))
+
+/** takeUntilRStep
+
+  like `takeUntilStep` but starts from right
+*/
+
+assert(takeUntilRStep(\x.x==3, [1, 2, 3, 4, 3, 2, 1], 6L), ([1, 2, 3, 4], [2, 1]))
+assert(takeUntilRStep(\x.x==3, [1..5], 4L), ([1, 2], [4, 5]))
+assert(takeUntilRStep(\x.x==7, [1..5], 4L), ([]::[int], [1..5]))
+assert(takeUntilRStep(\x.x==1, [1..5], 4L), ([]::[int], [2..5]))
+
+/** takeUntileR
+
+  like `takeUntilRStep` but always starts from the end
+*/
+
+assert(takeUntilR(\x.x==3, [1, 2, 3, 4, 3, 2, 1]), ([1, 2, 3, 4], [2, 1]))
+assert(takeUntilR(\x.x==3, [1..5]), ([1, 2], [4, 5]))
+assert(takeUntilR(\x.x==7, [1..5]), ([]::[int], [1..5]))
+assert(takeUntilR(\x.x==1, [1..5]), ([]::[int], [2..5]))
 
 ///////////////////////////
 //    C++ bindings
