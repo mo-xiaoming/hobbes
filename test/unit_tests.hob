@@ -2246,6 +2246,174 @@ assert((nothing::maybeInt) / (nothing::maybeInt), nothing::maybeInt)
   TODO: what is this?
 */
 
+/** eqLenEqArrs
+
+  compare two arrays within range [`begin`, `a.size()`)
+
+  template <template <typename> Array, typename T>
+  bool eqLenEqArrs(Array<T>& a, Array<T>& b, long begin) {
+    for (; begin < a.size(); ++begin) {
+      if (a[begin] != b[begin]) {
+        return false;
+      }
+    }
+    return true; 
+  }
+*/
+
+assert(eqLenEqArrs([1, 2, 3], [4, 2, 3, 4], 1L), true)
+assert(eqLenEqArrs([1, 2, 3], [4, 2, 4], 1L), false)
+assert(eqLenEqArrs([1, 2, 3], [4, 2, 3], 0L), false)
+
+/** eqLenEquivArrs
+
+  compare two arrays within range [`begin`, `a.size()`)
+
+  template <template <typename> Array, typename T, typename U>
+  bool eqLenEquivArrs(Array<T>& a, Array<U>& b, long begin) {
+    for (; begin < a.size(); ++begin) {
+      if (static_cast<U>(a[begin]) != b[begin]) {
+        return false;
+      }
+    }
+    return true; 
+  }
+*/
+
+assert(eqLenEquivArrs([1L, 2L, 3L], [4, 2, 3, 4], 1L), true)
+assert(eqLenEquivArrs([1L, 2L, 3L], [4, 2, 4], 1L), false)
+assert(eqLenEquivArrs([1L, 2L, 3L], [4, 2, 3], 0L), false)
+
+/** Eq and Equiv
+
+  ===: for same type
+  == : for different types
+*/
+
+assert(() === (), true)
+// TODO: Eq 0?
+assert(true === true, true)
+assert(false === false, true)
+assert(true === false, false)
+assert(false === true, false)
+assert('c' === 'c', true)
+assert('c' === 'x', false)
+assert(0X33 === 0X33, true)
+assert(0X33 === 0X11, false)
+assert(3S === 3S, true)
+assert(3S === 4S, false)
+assert(3 === 3, true)
+assert(3 === 4, false)
+assert(3L === 3L, true)
+assert(3L === 4L, false)
+assert(3.0 === 3.0, true)
+assert(3.0 === 4.0, false)
+assert(3.0f === 3.0f, true)
+assert(3.0f === 4.0f, false)
+assert(3H === 3H, true)
+assert(3H === 4H, false)
+assert(3s === 3s, true)
+assert(3s === 4s, false)
+do {
+  d = now();
+  assert(d === d, true);
+  assert(d === d + 1s, false);
+  t = time(now());
+  assert(t === t, true);
+  assert(t === t + 1s, false);
+}
+assert((3, 3L, 3.7) === (3, 3L, 3.7), true)
+assert((3, 3L, 3.7) === (3, 3L, 1.7), false)
+assert({a=3, b=3L, c=3.7} === {a=3, b=3L, c=3.7}, true)
+assert({a=3, b=3L, c=3.7} === {a=3, b=3L, c=1.7}, false)
+assert(|A=true|::|A:bool, B:int, C:[char]| === |A=true|::|A:bool, B:int, C:[char]|, true)
+assert(|A=true|::|A:bool, B:int, C:[char]| === |A=false|::|A:bool, B:int, C:[char]|, false)
+assert(|A=true|::|A:bool, B:int, C:[char]| === |B=42|::|A:bool, B:int, C:[char]|, false)
+assert([1, 2, 3] === [1, 2, 3], true)
+assert([1, 2, 3] === [1, 2, 4], false)
+assert([1, 2, 3] === [1, 2], false)
+assert([1, 2, 3] === []::[int], false)
+assert(cons(3, cons(4, cons(5, nil()))) === cons(3, cons(4, cons(5, nil()))), true)
+assert(cons(3, cons(4, cons(5, nil()))) === cons(3, cons(4, cons(42, nil()))), false)
+assert(cons(3, cons(4, cons(5, nil()))) === cons(3, cons(4, nil())), false)
+assert(cons(3, cons(4, nil())) === cons(3, cons(4, cons(5, nil()))), false)
+
+assert(just(3) === just(3), true)
+assert(just(3) === just(4), false)
+assert(just(3) === nothing::maybeInt, false)
+assert(nothing::maybeInt === just(3), false)
+assert(nothing::maybeInt === nothing::maybeInt, true)
+
+// TODO: Eq a@f
+
+// whatever Eq must be Equiv
+assert(() == (), true)
+// TODO: Eq 0?
+assert(true == true, true)
+assert(false == false, true)
+assert(true == false, false)
+assert(false == true, false)
+assert('c' == 'c', true)
+assert('c' == 'x', false)
+assert(0X33 == 0X33, true)
+assert(0X33 == 0X11, false)
+assert(3S == 3, true)
+assert(3S == 4, false)
+assert(3 == 3L, true)
+assert(3 == 4L, false)
+assert(3H == 3L, true)
+assert(3H == 4L, false)
+assert(3.0f == 3.0, true)
+assert(3.0 == 4.0f, false)
+assert(3.0 == 3.0f, true)
+assert(3.0f == 4.0, false)
+assert(3H == 3, true)
+assert(3H == 4, false)
+assert(3000ms == 3s, true)
+assert(3000ms == 4s, false)
+do {
+  d = now();
+  assert(d == d, true);
+  assert(d == d + 1s, false);
+  t = time(now());
+  assert(t == t, true);
+  assert(t == t + 1s, false);
+}
+assert((3L, 3L, 3.7) == (3, 3L, 3.7), true)
+assert((3L, 3L, 3.7) == (3, 3L, 1.7), false)
+assert({a=3, b=3L, c=3.7} == {a=3, b=3L, c=3.7}, true)
+assert({a=3, b=3L, c=3.7} == {a=3, b=3L, c=1.7}, false)
+assert(|A=true|::|A:bool, B:int, C:[char]| == |A=true|::|A:bool, B:int, C:[char]|, true)
+assert(|A=true|::|A:bool, B:int, C:[char]| == |A=false|::|A:bool, B:int, C:[char]|, false)
+assert(|A=true|::|A:bool, B:int, C:[char]| == |B=42|::|A:bool, B:int, C:[char]|, false)
+assert([1L, 2L, 3L] == [1, 2, 3], true)
+assert([1L, 2L, 3L] == [1, 2, 4], false)
+assert([1L, 2L, 3L] == [1, 2], false)
+assert([1L, 2L, 3L] == []::[int], false)
+assert(cons(3, cons(4, cons(5, nil()))) == cons(3, cons(4, cons(5, nil()))), true)
+assert(cons(3, cons(4, cons(5, nil()))) == cons(3, cons(4, cons(42, nil()))), false)
+assert(cons(3, cons(4, cons(5, nil()))) == cons(3, cons(4, nil())), false)
+assert(cons(3, cons(4, nil())) == cons(3, cons(4, cons(5, nil()))), false)
+
+// TODO: Equiv a@f b@g
+
+assert(|1=3|::(char+int) == 3, true)
+assert(|1=3|::(int+int) == 3, true)
+assert(|0=3|::(int+int) == 3, true)
+assert(|1=3|::(char+int) == 4, false)
+assert(|0='c'|::(char+int) == 3, false)
+assert(3 == |1=3|::(char+int), true)
+assert(3 == |1=3|::(int+int), true)
+assert(3 == |0=3|::(int+int), true)
+assert(4 == |1=3|::(char+int), false)
+assert(3 == |0='c'|::(char+int), false)
+
+assert(just(3L) == just(3), true)
+assert(just(3L) == just(4), false)
+assert(just(3) == nothing::maybeInt, false)
+assert(nothing::maybeInt == just(3), false)
+assert(nothing::maybeInt == nothing::maybeInt, true)
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
