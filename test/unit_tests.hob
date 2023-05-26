@@ -2434,6 +2434,522 @@ do {
   assert(a, {a=[1, 3], b=[true, false]});
 }
 
+/** pushDownFromTo
+
+
+  template <typename T>
+  void pushDownFromTo(array<T>& a, long begin, long end) {
+    memmove(a.data() + begin + 1, a.data() + begin, (end - begin) * sizeof(T));
+  }
+*/
+
+do {
+  a = [1..5];
+  pushDownFromTo(a, 1L, 3L);
+  assert(a, [1, 2, 2, 3, 5]);
+}
+
+/** lowerBoundFi
+
+  find the first element in `a` that is not less than `x` by `f`, within range [`begin`, `begin` + `count`)
+
+  template <typename T, typename U>
+  long lowerBoundFi(array<T>& a, std::function<U(T)> f, U x, long begin, long count) {
+    return std::lower_bound(
+      a.cbegin() + begin, a.cbegin() + begin + count,
+      x,
+      [f](T t, U x) {
+        return f(t) < x;
+      }
+    ) - a.cbegin();
+  }
+*/
+
+assert(lowerBoundFi([1..5], id, 3, 0L, 5L), 2L) // [1, 2, 3, 4, 5]
+assert(lowerBoundFi([1..5], id, 3, 0L, 2L), 2L) // [1, 2]
+assert(lowerBoundFi([1..5], id, 3, 0L, 1L), 1L) // [1]
+assert(lowerBoundFi([1..5], id, 3, 0L, 0L), 0L) // []
+
+assert(lowerBoundFi([1..5], id, 3, 1L, 5L), 2L) // [2, 3, 4, 5] + 1
+assert(lowerBoundFi([1..5], id, 3, 1L, 2L), 2L) // [2, 3] + 1
+assert(lowerBoundFi([1..5], id, 3, 1L, 1L), 2L) // [2] + 1
+assert(lowerBoundFi([1..5], id, 3, 1L, 0L), 1L) // [] + 1
+
+assert(lowerBoundFi(["hi", "aloha", "hello"], \x.tl2i(length(x)), 3, 0L, 3L), 1L)
+
+/** bsearch
+
+  find the index of first element in `a` that is equal to `x` by `f`
+
+  template <typename T, typename U>
+  long bsearch(array<T>& a, std::function<U(T)> f, U x) {
+    const auto it = std::lower_bound(a.cbegin(), a.cend(), x, [f](T t, U x) {
+      return f(t) < x;
+    });
+    if (it != a.cend() && f(*it) == x) {
+      return it - a.cbegin();
+    }
+    return a.size();
+  }
+*/
+
+assert(bsearch([1..5], id, 3), 2L)
+assert(bsearch([1..5], id, 0), 5L)
+assert(bsearch([1..5], id, 6), 5L)
+assert(bsearch([1, 2, 4, 5], id, 3), 4L)
+
+assert(bsearch(["hi", "aloha", "hello"], \x.tl2i(length(x)), 5), 1L)
+
+/** toArray
+
+  convert a list to array
+*/
+
+assert(toArray(cons(3, cons(4, nil()))), [3, 4])
+assert(toArray(nil()::(^x.(()+(int*x)))), []::[int])
+
+/** foldGroupsInt
+
+  for an array `src`, fold it into an array of pairs, where the key is the result of `keyTransformer`, and the value is the result of `accumulator`
+
+  template <typename T, typename K, typename V>
+  array<std::pair<K, V>> foldGroupsInt(
+          std::function<K(T)> keyTransformer,
+          std::function<V(T, V)> accumulator,
+          array<T>& src,
+          long begin,
+          V init,
+          array<std::pair<K, V>>& dst,
+          long dstBegin) {
+    for (; begin < src.size(); ++begin) {
+      const T v = src[begin];
+      const K key = keyTransformer(v);
+      const auto i = lowerBoundFi(dst, \x.x.first, key, dstBegin, dst.size() - dstBegin);
+      if (i == dstBegin) {
+        dst[i] = {key, accumulator(v, init)};
+        ++dstBegin;
+      } else if (dst[i].first == k) {
+        dst[i].second = accumulator(v, dst[i].second);
+      } else {
+        pushDownFromTo(dst, dstBegin, i);
+        dst[i] = {key, accumulator(v, init)};
+        ++dstBegin;
+      }
+    }
+    dst.setLength(dstBegin);
+    return dst;
+  }
+*/
+
+assert(foldGroupsInt(\x.(x, x+1), \x y.x*y, [1..5], 0L, 42, newArray(5L), 0L), [((1, 2), 1*42), ((2, 3), 2*42), ((3, 4), 3*42), ((4, 5), 4*42), ((5, 6), 5*42)])
+
+/** foldGroups
+
+  for an array `src`, fold it into an array of pairs, where the key is the result of `keyTransformer`, and the value is the result of `accumulator`
+
+  template <typename T, typename K, typename V>
+  array<std::pair<K, V>> foldGroups(
+          std::function<K(T)> keyTransformer,
+          std::function<V(T, V)> accumulator,
+          array<T>& src,
+          V init) {
+    array<std::pair<K, V>> dst(src.size());
+    return foldGroupsInt(keyTransformer, accumulator, src, 0L, init, dst, 0L);
+  }
+*/
+
+assert(foldGroups(\x.(x, x+1), \x y.x*y, [1..5], 42), [((1, 2), 1*42), ((2, 3), 2*42), ((3, 4), 3*42), ((4, 5), 4*42), ((5, 6), 5*42)])
+
+/** foldGroupsCInt
+
+  like `foldGroupsInt`, but `keyTransformer` must be closures
+*/
+
+assert(foldGroupsCInt(toClosure(\x.(x, x+1)), \x y.x*y, [1..5], 0L, 42, newArray(5L), 0L), [((1, 2), 1*42), ((2, 3), 2*42), ((3, 4), 3*42), ((4, 5), 4*42), ((5, 6), 5*42)])
+
+/** foldGroupsC
+
+  like `foldGroups`, but `keyTransformer` must be closures
+*/
+
+assert(foldGroupsC(toClosure(\x.(x, x+1)), \x y.x*y, [1..5], 42), [((1, 2), 1*42), ((2, 3), 2*42), ((3, 4), 3*42), ((4, 5), 4*42), ((5, 6), 5*42)])
+
+/** groupBy
+
+  group an array by the result of `keyTransformer`
+
+  template <typename T, typename K>
+  array<std::pair<K, array<V>>> groupBy(std::function<K(T)> keyTransformer, array<T>& src) {
+    std::map<K, array<T>> m;
+    for (const auto& v : src) {
+      m[keyTransformer(v)].push_back(v);
+    }
+
+    array<std::pair<K, V>> result;
+    std::copy(m.cbegin(), m.cend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(groupBy(id, [5, 1, 2, 3, 2, 4, 5, 5]), [(1, [1]), (2, [2, 2]), (3, [3]), (4, [4]), (5, [5, 5, 5])])
+
+/** groupByC
+
+  like `groupBy`, but `keyTransformer` must be a closure
+*/
+
+assert(groupByC(toClosure(id), [5, 1, 2, 3, 2, 4, 5, 5]), [(1, [1]), (2, [2, 2]), (3, [3]), (4, [4]), (5, [5, 5, 5])])
+
+/** countBy
+
+  count the number of elements in an array by the result of `keyTransformer`
+
+  template <typename T, typename K>
+  array<std::pair<K, long>> countBy(std::function<K(T)> keyTransformer, array<T>& src) {
+    std::map<K, long> m;
+    for (const auto& v : src) {
+      ++m[keyTransformer(v)];
+    }
+
+    array<std::pair<K, long>> result;
+    std::copy(m.cbegin(), m.cend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(countBy(id, [5, 1, 2, 3, 2, 4, 5, 5]), [(1, 1L), (2, 2L), (3, 1L), (4, 1L), (5, 3L)])
+
+/** countByC
+
+  like `countBy`, but `keyTransformer` must be a closure
+*/
+
+assert(countByC(toClosure(id), [5, 1, 2, 3, 2, 4, 5, 5]), [(1, 1L), (2, 2L), (3, 1L), (4, 1L), (5, 3L)])
+
+/** unique
+
+  remove duplicates from an array
+
+  template <typename T>
+  array<T> unique(array<T>& src) {
+    std::set<T> s;
+    for (const auto& v : src) {
+      s.insert(v);
+    }
+
+    array<T> result;
+    std::copy(s.cbegin(), s.cend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(unique([5, 1, 2, 3, 2, 4, 5, 5]), [1, 2, 3, 4, 5])
+
+/** partition
+
+  partition an array into two arrays, where the first array contains elements that doesn't satisfy `predicate`, and the second array contains elements that does
+  the orders in result are reversed
+
+  template <typename T>
+  std::pair<array<T>, array<T>> partition(std::function<bool(T)> predicate, array<T>& src) {
+    array<T> a;
+    array<T> b;
+    for (const auto& v : src) {
+      if (!predicate(v)) {
+        a.push_back(v);
+      } else {
+        b.push_back(v);
+      }
+    }
+    return {a, b};
+  }
+*/
+
+assert(partition(\x.x%2==0, [1..5]), ([5, 3, 1], [4, 2]))
+assert(partition(\x.x%2==0, [1, 3, 5]), ([5, 3, 1], []::[int]))
+assert(partition(\x.x%2==0, [2, 4]), ([]::[int], [4, 2]))
+
+/** partitonC
+
+  like `partition`, but `predicate` must be a closure
+*/
+
+assert(partitionC(toClosure(\x.x%2==0), [1..5]), ([5, 3, 1], [4, 2]))
+assert(partitionC(toClosure(\x.x%2==0), [1, 3, 5]), ([5, 3, 1], []::[int]))
+assert(partitionC(toClosure(\x.x%2==0), [2, 4]), ([]::[int], [4, 2]))
+
+/** almapRange
+
+  map an array within range [`begin`, `end`) by `f` to a list
+
+  template <typename T, typename U>
+  list<U> almapRange(std::function<U(T)> f, array<T>& src, long begin, long end) {
+    array<U> result(count);
+    std::transform(src.cbegin() + begin, src.cbegin() + end, result.begin(), f);
+    return result;
+  }
+*/
+
+assert(toArray(almapRange(i2l, [1..5], 0L, 5L)), [1L..5L])
+
+/** productWith
+
+  compute the product of two arrays by `f`, [[f(x0, y0), f(x0, y1), ...], [f(x1, y0), f(x1, y1), ...], ...]
+
+  template <typename T1, typename T2, typename U>
+  array<T> productWith(std::function<U(T1, T2)> f,  array<T1>& x, array<T2>& y) {
+    array<U> result(x.size() * y.size());
+    for (long i = 0; i < x.size(); ++i) {
+      for (long j = 0; j < y.size(); ++j) {
+        result[i * y.size() + j] = f(x[i], y[j]);
+      }
+    }
+  }
+*/
+
+assert(productWith(\x y.x*y, [1..3], [4..6]), [1*4, 1*5, 1*6, 2*4, 2*5, 2*6, 3*4, 3*5, 3*6])
+
+/** concat
+
+  concatenate an array of arrays
+
+  template <typename T>
+  array<T> concat(array<array<T>>& src) {
+    array<T> result;
+    for (const auto& a : src) {
+      std::copy(a.cbegin(), a.cend(), std::back_inserter(result));
+    }
+    return result;
+  }
+*/
+
+assert(concat([[1..3], [4..6]]), [1..6])
+
+/** mergeGroups
+
+  merge two arrays of pairs by key, for arrays, [(k0, v0), (k1, v1)...] and [(k0, u0), (k2, u2)...],
+  it returns [(k0, v0, u0), (k1, v1, []), (k2, [], u2)...]
+
+  template <typename K, typename T, typename U>
+  list<std::tuple<K, [T], [U]>> mergeGroups(array<std::pair<K, [T]>>& a, long aBegin, array<std::pair<K, [U]>>& b, long bBegin) {
+    std::map<K, std::pair<[T], [U]>> result;
+    for (; aBegin < a.size(); ++aBegin) {
+      const auto& p = a[aBegin];
+      result[p.first].first = p.second;
+    }
+    for (; bBegin < b.size(); ++bBegin) {
+      const auto& p = b[bBegin];
+      result[p.first].second = p.second;
+    }
+    for (const auto& p : result) {
+      yield std::make_tuple(p.first, p.second.first, p.second.second);
+    }
+  }
+*/
+
+assert(toArray(mergeGroups([(1, [2, 3]), (2, [4, 5, 6])], 0L, [(2, [7L, 9L]), (12, [8L, 10L])], 0L)), [(1, [2, 3], []), (2, [4, 5, 6], [7L, 9L]), (12, [], [8L, 10L])])
+
+/** preJoinBy
+
+  merge two arrays together by theirs functors, then returns a merged array with reversed order
+
+  template <typename K, typename T, typename U>
+  array<std::tuple<K, [T], [U]>> preJonBy(
+          std::function<K(T)> keyTransformerA,
+          array<T>& a,
+          std::function<K(U)> keyTransformerB,
+          array<U>& b) {
+    array<std::pair<K, [T]>> aGroups = foldGroups(keyTransformerA, a, []::[T]);
+    array<std::pair<K, [U]>> bGroups = foldGroups(keyTransformerB, b, []::[U]);
+
+    const auto merged = mergeGroups(aGroups, 0L, bGroups, 0L);
+
+    array<std::tuple<K, [T], [U]>> result;
+    std::copy(merged.cbegin(), merged.cend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(preJoinBy(\x.x%2==0, [1..5], \x.x%2L==0L, [6L..10L]), [(false, [5, 3, 1], [9L, 7L]), (true, [4, 2], [10L, 8L, 6L])])
+
+/** joinBy
+
+  merge two arrays together by theirs functors, then returns a merged array with reversed order
+
+  template <typename K, typename T, typename U>
+  array<std::pair<T, U>> joinBy(std::function<K(T)> f1, array<T>& a, std::function<K(U)> f2, array<U>& b) {
+    std::map<std::pair<K, T>, array<U>> m;
+    for (const auto& v : b) {
+      m[{f2(v), v}] = array<U>{};
+    }
+
+    for (const auto& v : a) {
+      const auto& k = f1(v);
+      for (const auto& p : m) {
+        if (p.first.first == k) {
+          m[p.first].push_back(v);
+        }
+      }
+    }
+
+    array<std::pair<T, U>> result;
+    for (const auto& p : m) {
+      for (const auto& v : p.second) {
+        result.push_back({v, p.first.second});
+      }
+    }
+    return result;
+  }
+*/
+
+assert(joinBy(\x.x+1, [1..5], \x.tl2i(2*x), [1L..5L]), [(1, 1L), (3, 2L), (5, 3L)]) // 1+1 == 1*2, 3+1 == 2*2, 5+1 == 3*2
+assert(joinBy(\x.x+1, [1..5], \x.2, [1L..5L]), [(1, 5L), (1, 4L), (1, 3L), (1, 2L), (1, 1L)])
+
+/** outerJoinBy
+
+  like `joinBy`, except for all possible `K`, show its possible paremter `a` or `b` for corresponding `f1` and `f2`, if the corresponding values don't exist, then fill with `aNull` or `bNull`
+*/
+
+assert(
+  outerJoinBy(\x.x+1, [1..5], 33,
+              \x.tl2i(2*x), [1L..5L], 42L),
+  [(2, 1, 1L),
+   (3, 2, 42L),
+   (4, 3, 2L),
+   (5, 4, 42L),
+   (6, 5, 3L),
+   (8, 33, 4L),
+   (10, 33, 5L)]
+)
+
+assert(
+  outerJoinBy(\x.x+1, [1..5], 33,
+              \x.2, [1L..5L], 42L),
+  [(2, 1, 5L),
+   (2, 1, 4L),
+   (2, 1, 3L),
+   (2, 1, 2L),
+   (2, 1, 1L),
+   (3, 2, 42L),
+   (4, 3, 42L),
+   (5, 4, 42L),
+   (6, 5, 42L)]
+)
+
+/** mergeWithStep
+
+  merge two arrays together by `f`, right-biased
+
+  template <typename K, typename T>
+  array<T>& mergeWithStep(
+          std::function<K(T)> f,
+          array<T>& a,
+          long aBegin,
+          array<U>& b,
+          long bBegin,
+          array<T>& dst,
+          long dstBegin) {
+    std::set<K> s;
+    for (; aBegin < a.size(); ++aBegin) {
+      const auto k = f(a[aBegin]);
+      if (!s.contains(k)) {
+        dst[dstBegin++] = a[aBegin];
+      }
+    }
+    for (; bBegin < b.size(); ++ bBegin) {
+      const auto k = f(b[bBegin]);
+      if (!s.contains(k)) {
+        dst[dstBegin++] = b[bBegin];
+      }
+    }
+    return dst;
+  }
+*/
+
+assert(mergeWithStep(id,
+                     [1..5], 0L,
+                     [3..7], 0L,
+                     newArray(7L), 0L),
+        [1..7])
+assert(mergeWithStep(length,
+                     ["hello", "hi"], 0L,
+                     ["aloha", "hey"], 0L,
+                     newArray(30L), 0L),
+      ["aloha", "hi", "hey"])
+
+/** mergeWith
+
+  like `mergeWithStep`, but with all indices starts with 0
+*/
+
+assert(mergeWith(id, [1..5], [3..7]), [1..7])
+assert(mergeWith(length, ["hello", "hi"], ["aloha", "hey"]), ["aloha", "hi", "hey"])
+
+/** cmergeWithStep
+
+  merge two sorted arrays based on `f`, if values are missing, filled with previous value or a default maybe
+  pretty much like matching the closest value from each other
+*/
+
+assert(cmergeWithStep(length, ["hi", "1234", "hello"], 0L, nothing,
+                      length, ["hey", "aloha"], 0L, nothing,
+                      newArray(4L), 0L),
+       [(just("hi"), nothing),            // no match, no previous value
+        (just("hi"), just("hey")),        // no match, has previous value
+        (just("1234"), just("hey")),      // no match, has previous value
+        (just("hello"), just("aloha"))])  // match
+
+/** cmergeWith
+
+  like `cmergeWithStep`, but with sensible default values
+*/
+
+assert(cmergeWith(length, ["hi", "1234", "hello"],
+                  length, ["hey", "aloha"]),
+       [(just("hi"), nothing),            // no match, no previous value
+        (just("hi"), just("hey")),        // no match, has previous value
+        (just("1234"), just("hey")),      // no match, has previous value
+        (just("hello"), just("aloha"))])  // match
+
+/** splitAssocl
+
+  split an array of pairs into two arrays, where the first array contains elements that smaller than 'v', and the second array contains the rest
+
+  template <typename K, typename V>
+  std::pair<array<std::pair<K, V>>, array<std::pair<K, V>>> splitAssocl(array<std::pair<K, V>>& src, K v) {
+    array<std::pair<K, V>> a;
+    array<std::pair<K, V>> b;
+    for (const auto& p : src) {
+      if (p.first < v) {
+        a.push_back(p);
+      } else {
+        b.push_back(p);
+      }
+    }
+    return {a, b};
+  }
+*/
+
+assert(splitAssocl([(1, 0), (2, 0), (7, 0), (4, 0), (5, 0)], 4), ([(1, 0), (2, 0)], [(7, 0), (4, 0), (5, 0)]))
+
+/** selectAssoclRange
+
+  select a range [`begin`, `end`) of elements from a sorted array of pairs
+
+  template <typename K, typename V>
+  array<std::pair<K, V>> selectAssoclRange(array<std::pair<K, V>>& src, K begin, K end) {
+    array<std::pair<K, V>> result;
+    for (const auto& p : src) {
+      if (begin <= p.first && p.first < end) {
+        result.push_back(p);
+      }
+    }
+    return result;
+  }
+*/
+
+assert(selectAssoclRange([(1, 0), (3, 0), (3, 0), (4, 0), (5, 0), (6, 0)], 2, 5), [(3, 0), (3, 0), (4, 0)])
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
