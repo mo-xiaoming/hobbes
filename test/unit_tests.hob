@@ -1189,6 +1189,26 @@ assert(elements([1..3], 1L, 3L), [2, 3])
 // TODO: what's the proper behavior here?
 //assert(elements([1..3], 1L, 5L), [2, 3])
 
+/// Array ("mrope" [a]) a
+// this is very confusing, is it even correct?
+do {
+  a = cons([1..3], cons([4..6], cons([7..9], nil())));
+  assert(toArray(a), [[1..3], [4..6], [7..9]]);
+  assert(size(a), 9L);
+  assert(element(a, 0L), 3); // [3, 2, 1]...[6, 5, 4]...[9, 8, 7]
+  assert(element(a, 1L), 2);
+  assert(element(a, 2L), 1);
+  assert(element(a, 3L), 6);
+  assert(element(a, 4L), 5);
+  assert(element(a, 5L), 4);
+  assert(element(a, 6L), 9);
+  assert(element(a, 7L), 8);
+  assert(element(a, 8L), 7);
+  assert(elementM(a, 9L), nothing::maybeInt);
+  assert(elementM(a, 0L), just(3));
+  assert(elements(a, 1L, 4L), [2, 1, 6]); // [..2, 1]..[6..]..
+}
+
 /** Convert a -> b
   
   convert: convert a value to another type
@@ -1926,6 +1946,12 @@ assert(fmap(\x.x*2, nothing::maybeInt), nothing::maybeInt)
 assert(fmap(\x.x*2, |1=3|::(long+int)), |1=6|::(long+int))
 assert(fmap(\x.x*2, |0=42L|::(long+int)), |0=42L|::(long+int))
 
+/// Map (a -> b, "list" a) -> ("list" b)
+assert(fmap(\x.x*2, cons(1, cons(2, cons(3, nil())))), cons(2, cons(4, cons(6, nil()))))
+
+/// Map (a -> b, "mrope" [a]) -> ("mrope" [b])
+assert(fmap(\x.x ++ "\n", cons("hello", cons("world", nil()))), cons("hello\n", cons("world\n", nil())))
+
 /** ffilterArrStep
 
   for each element in `src` starts from `begin`, apply `f`, and set the bit at the same index in `dst`
@@ -1955,6 +1981,13 @@ assert(ffilterMap(\x.x%2==0, \x.x*2, just(3)), nothing::maybeInt)
 assert(ffilterMap(\x.x%2==0, \x.x*2, |1=3|::(long+int)), |0=def::long|::(long+int))
 assert(ffilterMap(\x.x%2==0, \x.x*2, |1=4|::(long+int)), |1=8|::(long+int))
 assert(ffilterMap(\x.x%2==0, \x.x*2, |0=42L|::(long+int)), |0=42L|::(long+int))
+
+/// FilterMap (a -> bool, a -> b, "list" a) -> ("list" b)
+assert(ffilterMap(\x.x%2==0, \x.x*2, cons(1, cons(2, cons(3, cons(4, nil()))))), cons(4, cons(8, nil())))
+assert(ffilterMap(\x.x%2==0, \x.x*2, cons(1, cons(3, cons(5, nil())))), nil()::(^x.(()+(int*x))))
+
+/// FilterMap (a -> bool, a -> b, "mrope" [a]) -> ("mrope" [b])
+assert(ffilterMap(\x.x%2==0, \x.x*2, cons([1, 2, 3], cons([4, 5, 6], nil()))), cons([4], cons([8, 12], nil())))
 
 /** ffilterMMapStep
 
@@ -1995,6 +2028,14 @@ assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, just(3)), nothing::ma
 assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |1=3|::(long+int)), |0=def::long|::(long+int))
 assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |1=4|::(long+int)), |1=4|::(long+int))
 assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, |0=42L|::(long+int)), |0=42L|::(long+int))
+
+/// FilterMMap (a -> bool, "list" a) -> ("list" b)
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, cons(1, cons(2, cons(3, cons(4, nil()))))), cons(2, cons(4, nil())))
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, cons(1, cons(3, cons(5, nil())))), nil()::(^x.(()+(int*x))))
+
+/// FilterMMap (a -> bool, "mrope" [a]) -> ("mrope" [b])
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, cons([1, 2, 3], cons([4, 5, 6], nil()))), cons([2], cons([4, 6], nil())))
+assert(ffilterMMap(\x.if x%2==0 then just(x) else nothing, cons([1, 3, 3], cons([4, 5, 6], nil()))), cons([], cons([4, 6], nil())))
 
 /** takeUntilStep
 
@@ -2804,6 +2845,10 @@ assert(preJoinBy(\x.x%2==0, [1..5], \x.x%2L==0L, [6L..10L]), [(false, [5, 3, 1],
 
 assert(joinBy(\x.x+1, [1..5], \x.tl2i(2*x), [1L..5L]), [(1, 1L), (3, 2L), (5, 3L)]) // 1+1 == 1*2, 3+1 == 2*2, 5+1 == 3*2
 assert(joinBy(\x.x+1, [1..5], \x.2, [1L..5L]), [(1, 5L), (1, 4L), (1, 3L), (1, 2L), (1, 1L)])
+assert(joinBy(.name, [{name="bob", score=20}, {name="jim", score=50}],
+              .id, [{id="jim", age=6}, {id="bob", age=42}]),
+       [({name="bob", score=20}, {id="bob", age=42}),
+         ({name="jim", score=50}, {id="jim", age=6})])
 
 /** outerJoinBy
 
@@ -2949,6 +2994,342 @@ assert(splitAssocl([(1, 0), (2, 0), (7, 0), (4, 0), (5, 0)], 4), ([(1, 0), (2, 0
 */
 
 assert(selectAssoclRange([(1, 0), (3, 0), (3, 0), (4, 0), (5, 0), (6, 0)], 2, 5), [(3, 0), (3, 0), (4, 0)])
+
+/** sortWith
+
+  sort an array by the result of `f`
+
+  template <typename T, typename U>
+  array<T> sortWith(std::function<U(T)> f, array<T>& src) {
+    array<T> result{src.cbegin(), src.cend()};
+    std::sort(result.begin(), result.end(), [f](T a, T b) {
+      return f(a) < f(b);
+    });
+    return result;
+  }
+*/
+
+assert(sortWith(id, [5, 1, 2, 3, 2, 4, 5, 5]), [1, 2, 2, 3, 4, 5, 5, 5])
+assert(sortWith(.age, [{name="jimmy", age=30, state="AZ"},
+                       {name="bob", age=42, state="CO"},
+                       {name="frank", age=37, state="HI"}]),
+       [{name="jimmy", age=30, state="AZ"},
+        {name="frank", age=37, state="HI"},
+        {name="bob", age=42, state="CO"}])
+
+/** isInArr
+
+  is the value `v` in the array `a` at index `i`?
+
+  template <template <typename> Array, typename T>
+  bool isInArr(long i, T v, Array<T>& a) {
+    return 0 <= i && i < a.size() && a[i] == v;
+  }
+*/
+
+assert(isInArr(1L, 2, [1..5]), true)
+assert(isInArr(2L, 2, [1..5]), false)
+
+/** equivAt
+
+  is the range of [`aBegin`, `a.size()`) of `a` equal to the range of [`bBegin`, `bBegin + (a.zie()-aBegin)`) of `b`?
+
+  template <template <typename> Array, typename T, typename U>
+  bool equivAt(Array<T>& a, long aBegin, Array<U>& b, long bBegin) {
+    return std::search(b.cbegin() + bBegin, b.cend(), a.cbegin() + aBegin, a.cend()) != b.cend();
+  }
+*/
+
+assert(equivAt([1..5], 0L, [1..5], 0L), true)
+assert(equivAt([1..5], 0L, [1..5], 1L), false)
+assert(equivAt([1..5], 0L, [1..4], 0L), false)
+assert(equivAt([1..5], 0L, [1..6], 0L), true)
+assert(equivAt([1..5], 0L, [0..6], 1L), true)
+
+/** subSeqInAt
+
+  is the array `a` a subsequence of the array `b` at index `bBegin`?
+
+  template <typename <typename> Array, typename T>
+  bool subSeqInAt(Array<T>& a, Array<U>& b, long bBegin) {
+    return std::search(b.cbegin() + bBegin, b.cend(), a.cbegin(), a.cend()) != b.cend();
+  }
+*/
+
+assert(subSeqInAt([1..5], [1..5], 0L), true)
+assert(subSeqInAt([1..5], [1..5], 1L), false)
+assert(subSeqInAt([1..5], [1..4], 0L), false)
+assert(subSeqInAt([1..5], [1..6], 0L), true)
+assert(subSeqInAt([1..5], [0..6], 1L), true)
+
+/** Set
+
+  in: is the first value contained in the second value?
+*/
+
+/// Set a Array
+assert((1 in [1..5]), true)
+assert((6 in [1..5]), false)
+
+/// Set Array Array
+assert(([1..3] in [1..5]), true)
+assert(([1..6] in [1..5]), false)
+assert(([3..7] in [1..5]), false)
+
+/// Set a ()
+assert(3 in (), false)
+
+/// Set a (h*t)
+assert(3 in ('c', 3, 5.7), true)
+assert(4 in ('c', 3, 5.7), false)
+assert(3 in ('c', 3L, 5.7), true)
+assert(4 in ('c', 3L, 5.7), false)
+
+/// Set a (a->bool)
+assert(3 in (\x.x%2==0)::(int->bool), false)
+assert(4 in (\x.x%2==0)::(int->bool), true)
+
+/// Set a (()+(Set a t))
+assert(3 in just([3, 4]), true)
+assert(42 in just([3, 4]), false)
+
+/** lmap
+
+  map a list by `f`
+
+  template <typename T, typename U>
+  list<U> lmap(std::function<U(T)> f, list<T>& src) {
+    list<U> result;
+    std::transform(src.cbegin(), src.cend(), std::back_inserter(result), f);
+    return result;
+  }
+*/
+
+assert(toArray(lmap(\x.x*2, cons(1, cons(2, cons(3, nil()))))), [2, 4, 6])
+
+/** lmapC
+
+  like `lmap`, but `f` must be a closure
+*/
+
+assert(toArray(lmapC(toClosure(\x.x*2), cons(1, cons(2, cons(3, nil()))))), [2, 4, 6])
+
+/** lfilter
+
+  filter a list by `predicate`
+
+  template <typename T>
+  list<T> lfilter(std::function<bool(T)> predicate, list<T>& src) {
+    list<T> result;
+    std::copy_if(src.cbegin(), src.cend(), std::back_inserter(result), predicate);
+    return result;
+  }
+*/
+
+assert(toArray(lfilter(\x.x%2==0, cons(1, cons(2, cons(3, nil()))))), [2])
+
+/** lfilterC
+
+  like `lfilter`, but `predicate` must be a closure
+*/
+
+assert(toArray(lfilterC(toClosure(\x.x%2==0), cons(1, cons(2, cons(3, nil()))))), [2])
+
+/** lfoldl
+
+  fold a list from left to right by `f`
+
+  template <typename T, typename U>
+  U lfoldl(std::function<U(T, U)> f, U init, list<T>& src) {
+    return std::accumulate(src.cbegin(), src.cend(), init, f);
+  }
+*/
+
+assert(lfoldl(\x y.x+y, 0, cons(1, cons(2, cons(3, nil())))), 6)
+
+/** lfoldlC
+
+  like `lfoldl`, but `f` must be a closure
+*/
+
+assert(lfoldlC(toClosure2(\x y.x+y), 0, cons(1, cons(2, cons(3, nil())))), 6)
+
+/** lfoldr
+
+  fold a list from right to left by `f`
+
+  template <typename T, typename U>
+  U lfoldr(std::function<U(T, U)> f, U init, list<T>& src) {
+    return std::accumulate(src.crbegin(), src.crend(), init, f);
+  }
+*/
+
+assert(lfoldr(\x y.x+y, 0, cons(1, cons(2, cons(3, nil())))), 6)
+
+/** llength
+
+  get the length of a list
+
+  template <typename T>
+  long llength(list<T>& src) {
+    return std::distance(src.cbegin(), src.cend());
+  }
+*/
+
+assert(llength(cons(1, cons(2, cons(3, nil())))), 3L)
+
+/** lappend
+
+  append `b` to `a`
+
+  template <typename T>
+  list<T> lappend(list<T>& a, list<T>& b) {
+    list<T> result{a};
+    std::copy(b.cbegin(), b.cend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(toArray(
+          lappend(cons(1, cons(2, cons(3, nil()))),
+                  cons(4, cons(5, cons(6, nil()))))
+       ),
+       [1, 2, 3, 4, 5, 6]
+)
+
+/** toArrayStep
+
+  write a list values to an array from `begin`
+
+  template <typename T>
+  array<T>& toArrayStep(array<T>& dst, long dstBegin, list<T>& src) {
+    std::copy(src.cbegin(), src.cend(), dst.begin() + dstBegin);
+    return dst;
+  }
+*/
+
+assert(toArrayStep(newArray(3L), 0L, cons(1, cons(2, cons(3, nil())))), [1, 2, 3])
+
+/** toArray
+
+  write a list values to an array from `begin`
+
+  template <typename T>
+  array<T> toArray(list<T>& src) {
+    array<T> result(src.size());
+    std::copy(src.cbegin(), src.cend(), result.begin());
+    return result;
+  }
+*/
+
+assert(toArray(cons(1, cons(2, cons(3, nil())))), [1, 2, 3])
+
+/** unfold
+
+  unfold a list from `init` by `next` and `transformer` until `stop` is true
+
+  template <typename T, typename U>
+  list<U> unfold(
+            std::function<bool(T)> stop,
+            std::function<U(T)> transformer,
+            std::function<T(T)> next,
+            T init) {
+    list<U> result;
+    for (T v = init; !stop(v); v = next(v)) {
+      result.push_back(transformer(v));
+    }
+    return result;
+  }
+*/
+
+assert(toArray(unfold(\x.x>5, \x.x*2, \x.x+1, 1)), [2, 4, 6, 8, 10])
+
+/** alflatten
+
+  flatten an array of arrays
+
+  template <typename T>
+  array<T> alflatten(list<array<T>>& src) {
+    array<T> result;
+    for (const auto& a : src) {
+      std::copy(a.cbegin(), a.cend(), std::back_inserter(result));
+    }
+    return result;
+  }
+*/
+
+assert(alflatten(cons("hello", cons(" ", cons("world", nil())))), "hello world")
+
+/** lreverse
+
+  reverse a list
+
+  template <typename T>
+  list<T> lreverse(list<T>& src) {
+    list<T> result;
+    std::copy(src.crbegin(), src.crend(), std::back_inserter(result));
+    return result;
+  }
+*/
+
+assert(toArray(lreverse(cons(1, cons(2, cons(3, nil()))))), [3, 2, 1])
+
+/** lfind
+
+  find the first element in a list that satisfies `predicate`
+
+  template <typename T>
+  maybe<T> lfind(std::function<bool(T)> predicate, list<T>& src) {
+    const auto it = std::find_if(src.cbegin(), src.cend(), predicate);
+    return it != src.cend() ? just(*it) : nothing;
+  }
+*/
+
+assert(lfind(\x.x%2==0, cons(1, cons(2, cons(3, cons(4, nil()))))), just(2))
+assert(lfind(\x.x%2==0, cons(1, cons(3, nil()))), nothing::maybeInt)
+
+/** lfindS
+
+  find the first element in a list that satisfies `predicate`, and `transformer` is applied to each element before `predicate`
+
+  template <typename T, typename U>
+  maybe<T> lfindS(
+          U s,
+          std::function<U(U, T)> transformer,
+          std::function<bool(U, T)> predicate,
+          list<T>& src) {
+    for (const auto& v : src) {
+      if (predicate(s, v)) {
+        return just(s, v);
+      }
+      s = transformer(s, v);
+    }
+    return nothing;
+  }
+*/
+
+assert(lfindS(0, \s x.s+x, \s x.x%2==0, cons(1, cons(2, cons(3, cons(4, nil()))))),
+       just((1, 2))) // x=1, 1%2!=0, s=0; s=1
+                     // x=2, 2%2==0, s=1; just(s, x)
+
+/** lselectJust
+
+  create a list of values from a list of maybe
+
+  template <typename T>
+  list<T> lselectJust(list<maybe<T>>& src) {
+    list<T> result;
+    std::copy_if(src.cbegin(), src.cend(), std::back_inserter(result), isJust);
+    return result;
+  }
+*/
+
+assert(toArray(lselectJust(cons(just(1), cons(nothing::maybeInt, cons(just(2), nil()))))), [1, 2])
+
+/** lfindSliceSpan
+
+  the order of output is confusing?
+*/
 
 ///////////////////////////
 //    C++ bindings
