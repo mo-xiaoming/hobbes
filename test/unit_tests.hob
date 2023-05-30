@@ -1,4 +1,11 @@
-assert = \a b.if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
+class Assert a b where
+  assert :: (a, b) -> ()
+instance (Equiv a b, Show a, Show b) => Assert a b where
+  assert a b = if a == b then () else println("assertion failed: " ++ show(a) ++ " != " ++ show(b))
+instance (Equiv a b, Show a) => Assert a b where
+  assert a b = if a == b then () else println("assertion failed: " ++ show(a) ++ " != <unprintable>")
+instance (Equiv a b, Show b) => Assert a b where
+  assert a b = if a == b then () else println("assertion failed: <unprintable> != " ++ show(b))
 
 type maybeInt = (()+int)
 type maybeLong = (()+long)
@@ -1219,6 +1226,205 @@ assert(convert(42L)::long, 42L)
 
 /// Convert [a] [b]
 assert(convert([3S, 4S])::[int], [3, 4])
+
+/// Convert byte int
+assert(convert(0X42)::int, 66)
+
+/// Convert byte long
+assert(convert(0X42)::long, 66)
+
+/// Convert byte int128
+assert(convert(0X42)::int128, 66)
+
+/// Convert short int
+assert(convert(42S)::int, 42)
+
+/// Convert short long
+assert(convert(42S)::long, 42L)
+
+/// Convert short int128
+assert(convert(42S)::int128, 42H)
+
+/// Convert int long
+assert(convert(42)::long, 42L)
+
+/// Convert int int128
+assert(convert(42)::int128, 42H)
+
+/// Convert int double
+assert(convert(42)::double, 42.0)
+
+/// Convert int float
+assert(convert(42)::float, 42.0f)
+
+/// Convert long int128
+assert(convert(42L)::int128, 42H)
+
+/// Convert long double
+assert(convert(42L)::double, 42.0)
+
+/// Convert long float
+assert(convert(42L)::float, 42.0f)
+
+/// Convert record record where Castable
+assert(convert({a=3, b=true})::{a:int, b:bool}, {a=3, b=true})
+assert(convert({a=3, b=true, c=3.7})::{a:int, b:bool}, {a=3, b=true})
+
+/// Convert tuple tuple where Castable
+assert(convert((3, true))::(int*bool), (3, true))
+assert(convert((3, true, 3.7))::(int*bool), (3, true))
+
+/// TODO: Convert a@f a
+
+/// TODO: Convert a@f b where Convert a b
+
+/// Convert a b if ConverInto a b
+assert(convert({a=3, b=true, c=3.7})::{a:long, b:bool}, {a=3L, b=true})
+assert(convert({a=3, b=true})::{a:long, b:bool}, {a=3L, b=true})
+assert(convert((3, true, 3.7))::(long*bool), (3L, true))
+assert(convert((3, true))::(long*bool), (3L, true))
+
+/** Castable
+
+  cast: unsafe cast a value to another type
+*/
+
+/// Castable a ()
+assert(cast(42L)::(), ())
+
+/// Castable record record
+assert(cast({a=3, b=true})::{a:int, b:bool}, {a=3, b=true})
+assert(cast({a=3, b=true, c=3.7})::{a:int, b:bool}, {a=3, b=true})
+
+/// Castable tuple tuple
+assert(cast((3, true))::(int*bool), (3, true))
+assert(cast((3, true, 3.7))::(int*bool), (3, true))
+
+/// TODO: Castable a@f long
+/// TODO: Castable a@? long
+/// TODO: Castable a@f a@?
+
+/// Castable [a] [b] where MemIdentical a b
+assert(cast([(42, ()), (43, ())])::[int], [42, 43])
+assert(cast([(42, true, ()), (43, false, ())])::[int*bool], [(42, true), (43, false)])
+assert(cast([((), 42, true), ((), 43, false)])::[int*bool], [(42, true), (43, false)])
+
+/** MemIdentical
+
+  micast: unsafe cast a value to another type
+*/
+
+/// MemIdentical () ()
+assert(micast(())::(), ())
+
+/// MemIdentical a a
+assert(micast(42)::int, 42)
+
+/// MemIdentical (a*()) a
+//assert(micast((42, ()))::int, 42) // TODO: crash
+
+/// MemIdentical (a*b..*z*()) (a*b..*z)
+assert(micast((42, true, ()))::(int*bool), (42, true))
+
+/// MemIdentical (()*a*b...*z) (a*b...*z)
+assert(micast(((), 42, true))::(int*bool), (42, true))
+
+/** ConvertInto
+
+  convertInto: write a value to another type
+*/
+
+/// ConvertInto a ()
+assert(convertInto(42L, ())::(), ())
+
+/// ConvertInto {a=?, b=?, c=?} {a=?...}
+do {
+  b = newPrim()::{a:long, b:bool};
+  convertInto({a=3, b=true, c=3.7}, b);
+  assert(b, {a=3L, b=true});
+}
+do {
+  b = newPrim()::{a:long, b:bool};
+  convertInto({a=3, b=true}, b);
+  assert(b, {a=3L, b=true});
+}
+
+/// ConvertInto (a*b*c...) (a...)
+do {
+  b = newPrim()::(long*bool);
+  convertInto((3, true, 3.7), b);
+  assert(b, (3L, true));
+}
+do {
+  b = newPrim()::(long*bool);
+  convertInto((3, true, 3.7), b);
+  assert(b, (3L, true));
+}
+
+/** copyToSA
+
+  copy from a dyn-sized array to a fix-sized array, very similiar to `saacopy`
+
+  template <typename T, long N>
+  void copyToSA(array<T, N>& dst, array<T>& src, long begin) {
+    const auto count = std::min(src.size() - begin, N - begin);
+    std::copy_n(src.cbegin() + begin, count, dst.begin() + begin);
+  }
+*/
+
+do {
+  a = [1..5];
+  b = newPrimZ()::[:int|5:];
+  copyToSA(b, a, 0L);
+  assert(b, a);
+}
+do {
+  a = [1..5];
+  b = newPrimZ()::[:int|5:];
+  copyToSA(b, a, 1L);
+  assert(b, [0, 2, 3, 4, 5]);
+}
+do {
+  a = [1..5];
+  b = newPrimZ()::[:int|4:];
+  copyToSA(b, a, 2L);
+  assert(b, [0, 0, 3, 4]);
+}
+do {
+  a = [1..5];
+  b = newPrimZ()::[:int|6:];
+  copyToSA(b, a, 3L);
+  assert(b, [0, 0, 0, 4, 5, 0]);
+}
+
+/** SelectInto
+
+  selectInto: copy a value to another type
+*/
+
+/// SelectInto [a] [:a|n:]
+do {
+  b = newPrimZ()::[:int|5:];
+  selectInto([1..5], b);
+  assert(b, [1..5]);
+}
+
+/// SelectInto () a
+assert(selectInto((), 42L), ())
+
+/// SelectInto record record
+do {
+  b = newPrim()::{a:long, b:bool};
+  selectInto({a=3, b=true}, b);
+  assert(b, {a=3L, b=true});
+}
+
+/// SelectInto record_with_[char] record_with_stdstring
+do {
+  a = {i=47, s="world", b=true};
+  selectInto(a, sass);
+  assert(sass.s, a.s);
+}
 
 /** selectElementsInto
 

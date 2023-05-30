@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 
+#include "hobbes/reflect.H"
 #include "test.H"
 
 using namespace hobbes;
@@ -199,6 +200,10 @@ namespace hobbes {
   extern const array<char>* releaseStdout();
 }
 
+namespace {
+DEFINE_STRUCT(StructHasStdString, (int, i), (std::string, s), (bool, b));
+}
+
 TEST(Prelude, Predefined) {
   cc c;
 
@@ -226,6 +231,12 @@ TEST(Prelude, Predefined) {
     aVec.push_back(i);
   }
   c.bind("aVec", &aVec);
+
+  StructHasStdString sass;
+  sass.i = 42;
+  sass.s = "hello";
+  sass.b = false;
+  c.bind("sass", &sass);
 
   char current_filename[] = __FILE__;
   hobbes::compile(&c, c.readModuleFile(std::string(::dirname(current_filename)) + "/unit_tests.hob"));
