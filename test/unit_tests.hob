@@ -3915,6 +3915,72 @@ assert(lookup(2, just([(1L, "hi"), (2L, "hello"), (3L, "hey")])), just("hello"))
 assert(lookup(4, just([(1L, "hi"), (2L, "hello"), (3L, "hey")])), nothing::maybeChars)
 assert(lookup(2, nothing::(()+[(long*[char])])), nothing::maybeChars)
 
+/** toLower
+
+  convert a char to lower case
+
+  template <typename T>
+  T toLower(T c) {
+    return std::tolower(c);
+  }
+*/
+
+assert(toLower('c'), 'c')
+assert(toLower('C'), 'c')
+
+/** toUpper
+
+  convert a char to upper case
+
+  template <typename T>
+  T toUpper(T c) {
+    return std::toupper(c);
+  }
+*/
+
+assert(toUpper('C'), 'C')
+assert(toUpper('c'), 'C')
+
+/** lcase
+  
+  convert a string to lower case
+
+  template <typename T>
+  std::basic_string<T> lcase(std::basic_string<T>& s) {
+    std::basic_string<T> result;
+    std::transform(s.cbegin(), s.cend(), std::back_inserter(result), [](int c) { return std::tolower(c); });
+    return result;
+  }
+*/
+
+assert(lcase("HELLO"), "hello")
+assert(lcase("hello"), "hello")
+
+/** ucase
+  
+  convert a string to upper case
+
+  template <typename T>
+  std::basic_string<T> ucase(std::basic_string<T>& s) {
+    std::basic_string<T> result;
+    std::transform(s.cbegin(), s.cend(), std::back_inserter(result), [](int c) { return std::toupper(c); });
+    return result;
+  }
+*/
+
+assert(ucase("HELLO"), "HELLO")
+assert(ucase("hello"), "HELLO")
+
+/** ~
+
+  case insensitive string comparison 
+*/
+
+assert("hello" ~ "HELLO", true)
+assert("HeLLo" ~ "hEllO", true)
+assert("hello" ~ "hello", true)
+assert("hello" ~ "helloo", false)
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
