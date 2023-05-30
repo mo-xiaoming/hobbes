@@ -3331,6 +3331,324 @@ assert(toArray(lselectJust(cons(just(1), cons(nothing::maybeInt, cons(just(2), n
   the order of output is confusing?
 */
 
+/** swap
+
+  swap two values in an array
+
+  template <typename T>
+  void swap(array<T>& a, long i, long j) {
+    using std::swap;
+    swap(a[i], a[j]);
+  }
+*/
+
+do {
+  d = [1..3];
+  swap(d, 0L, 2L);
+  assert(d, [3, 2, 1]);
+}
+do {
+  d = [1..3];
+  swap(d, 1L, 1L);
+  assert(d, [1..3]);
+}
+
+/** range
+
+  iota
+
+  template <typename T>
+  array<T> range(T begin, T end) {
+    array<T> result(end - begin + 1);
+    std::iota(result.begin(), result.end(), begin);
+    return result;
+  }
+*/
+
+assert(range(1, 5), [1..5])
+
+/** sibrPartition
+
+  partition an array by `f`, the result is an array of indices of `src` sorted by `f`
+
+  template <typename T>
+  long sibrPartition(std::function<bool(T, T)> f, array<T>& src, array<long>& indices, long pivot, long begin, long end, long WTF) {
+    long i = begin;
+    long j = end - 1;
+    while (i < j) {
+      while (i < end && f(src[indices[i]], src[pivot])) {
+        ++i;
+      }
+      while (j >= begin && f(src[pivot], src[indices[j]])) {
+        --j;
+      }
+      if (i < j) {
+        swap(indices, i, j);
+      }
+    }
+    return i;
+  }
+*/
+
+do {
+  a = [1..5];
+  b = [0L..4L];
+
+  assert(sibrPartition(\x y.x>y, a, b, 2L, 0L, 5L, 0L), 2L);
+  assert(b, [3, 4, 2, 0, 1]);
+}
+
+/** sortiByRange
+
+  sort a range of indices of `src` sorted by `f`
+
+  template <typename T>
+  void sortiByRange(std::function<bool(T, T)> f, array<T>& src, array<long>& indices, long begin, long end) {
+    std::sort(indices.begin() + begin, indices.begin() + end, [&f, &src](long i, long j) {
+      return f(src[i], src[j]);
+    });
+  }
+*/
+
+do {
+  a = [1..5];
+  b = [0L..4L];
+
+  sortiByRange(\x y.x>y, a, b, 0L, 5L);
+  assert(b, [4, 3, 2, 1, 0]);
+}
+do {
+  a = [1..5];
+  b = [0L..4L];
+
+  sortiByRange(\x y.x>y, a, b, 1L, 4L);
+  assert(b, [0, 3, 2, 1, 4]);
+}
+
+/** sortiBy
+
+  return an array of indices of `src` sorted by `f`
+
+  template <typename T>
+  array<long> sortiBy(std::function<bool(T, T)> f, array<T>& src) {
+    array<long> result(src.size());
+    std::iota(result.begin(), result.end(), 0L);
+    std::sort(result.begin(), result.end(), [&f, &src](long i, long j) {
+      return f(src[i], src[j]);
+    });
+    return result;
+  }
+*/
+
+assert(sortiBy(\x y.x>y, [1..5]), [4, 3, 2, 1, 0])
+assert(sortiBy(\x y.x<y, [1..5]), [0..4])
+
+/** sortiWith
+
+  return an array of indices of `src` sorted by `projection`
+
+  template <typename T, typename U>
+  array<long> sortiWith(std::function<U(T)> projection, array<T>& src) {
+    array<long> result(src.size());
+    std::iota(result.begin(), result.end(), 0L);
+    std::sort(result.begin(), result.end(), [&projection, &src](long i, long j) {
+      return projection(src[i]) < projection(src[j]);
+    });
+    return result;
+  }
+*/
+
+assert(sortiWith(length, ["hi", "hello", "hey", "aloha"]), [0, 2, 3, 1])
+
+/** sortiWithRange
+
+  sort a range of indices of `src` sorted by `projection`
+
+  template <typename T, typename U>
+  void sortiWithRange(std::function<U(T)> projection, array<T>& src, array<long>& indices, long begin, long end) {
+    std::sort(indices.begin() + begin, indices.begin() + end, [&projection, &src](long i, long j) {
+      return projection(src[i]) < projection(src[j]);
+    });
+  }
+*/
+
+do {
+  a = ["hi", "hello", "hey", "aloha"];
+  b = [0L..3L];
+
+  sortiWithRange(length, a, b, 0L, 4L);
+  assert(b, [0, 2, 3, 1]);
+}
+
+/** siwrPartition
+
+  partition an array by `projection`, the result is an array of indices of `src` sorted by `projection`
+
+  template <typename T, typename U>
+  long siwrPartition(std::function<U(T)> projection, array<T>& src, array<long>& indices, long pivot, long begin, long end, long WTF) {
+    long i = begin;
+    long j = end - 1;
+    while (i < j) {
+      while (i < end && projection(src[indices[i]]) < projection(src[pivot])) {
+        ++i;
+      }
+      while (j >= begin && projection(src[pivot]) < projection(src[indices[j]])) {
+        --j;
+      }
+      if (i < j) {
+        swap(indices, i, j);
+      }
+    }
+    return i;
+  }
+*/
+
+do {
+  a = ["hi", "hello", "hey", "aloha"];
+  b = [0L..3L];
+
+  assert(siwrPartition(length, a, b, 2L, 0L, 4L, 0L), 1L);
+  assert(b, [0, 2, 1, 3]);
+}
+
+/** sorti
+
+  template <typename T>
+  array<long> sorti(array<T>& src) {
+    array<long> result(src.size());
+    std::iota(result.begin(), result.end(), 0L);
+    std::sort(result.begin(), result.end(), [&src](long i, long j) {
+      return src[i] < src[j];
+    });
+    return result;
+  }
+*/
+
+assert(sorti([1..5]), [0..4])
+assert(sorti([5, 4, 3, 2, 1]), [4, 3, 2, 1, 0])
+
+/** sortiRange
+
+  sort a range of indices of `src`
+
+  template <typename T>
+  void sortiRange(int WTF, array<T>& src, array<long>& indices, long begin, long end) {
+    std::sort(indices.begin() + begin, indices.begin() + end, [&src](long i, long j) {
+      return src[i] < src[j];
+    });
+  }
+*/
+
+do {
+  a = [5, 4, 3, 2, 1];
+  b = [0L..4L];
+
+  sortiRange(0, a, b, 0L, 5L);
+  assert(b, [4, 3, 2, 1, 0]);
+}
+do {
+  a = [5, 4, 3, 2, 1];
+  b = [0L..4L];
+
+  sortiRange(0, a, b, 1L, 4L);
+  assert(b, [0, 3, 2, 1, 4]);
+}
+
+/** sirPartition
+
+  partition an array, the result is an array of indices of `src` sorted by `src`
+
+  template <typename T>
+  long sirPartition(array<T>& src, array<long>& indices, long pivot, long begin, long end, long WTF) {
+    long i = begin;
+    long j = end - 1;
+    while (i < j) {
+      while (i < end && src[indices[i]] < src[pivot]) {
+        ++i;
+      }
+      while (j >= begin && src[pivot] < src[indices[j]]) {
+        --j;
+      }
+      if (i < j) {
+        swap(indices, i, j);
+      }
+    }
+    return i;
+  }
+*/
+
+do {
+  a = [5, 4, 3, 2, 1];
+  b = [0L..4L];
+
+  assert(sirPartition(a, b, 2L, 0L, 5L, 0L), 2L);
+  assert(b, [3, 4, 2, 0, 1]);
+}
+
+/** sortBy
+
+  sort an array by `f`
+
+  template <typename T>
+  array<T> sortBy(std::function<bool(T, T)> f, array<T>& src) {
+    array<T> result{src};
+    std::sort(result.begin(), result.end(), f);
+    return result;
+  }
+*/
+
+assert(sortBy(\x y.x>y, [1..5]), [5, 4, 3, 2, 1])
+assert(sortBy(\x y.x<y, [1..5]), [1..5])
+
+/** sortWith
+  
+  sort an array by `projection`
+
+  template <typename T, typename U>
+  array<T> sortWith(std::function<U(T)> projection, array<T>& src) {
+    array<T> result{src};
+    std::sort(result.begin(), result.end(), [&projection](T a, T b) {
+      return projection(a) < projection(b);
+    });
+    return result;
+  }
+*/
+
+assert(sortWith(length, ["hi", "hello", "hey", "aloha"]), ["hi", "hey", "aloha", "hello"])
+
+/** sort
+
+  sort an array
+
+  template <typename T>
+  array<T> sort(array<T>& src) {
+    array<T> result{src};
+    std::sort(result.begin(), result.end());
+    return result;
+  }
+*/
+
+assert(sort([5, 4, 3, 2, 1]), [1..5])
+
+/** sortedSubRange
+
+  select a range [`lo`, `hi`) of values from a sorted array
+
+  template <typename T, typename U>
+  array<T> sortedSubRange(std::function<U(T)> f, U lo, U hi, array<T>& src) {
+    const auto begin = std::lower_bound(src.cbegin(), src.cend(), lo, [&f](T a, U b) {
+      return f(a) < b;
+    });
+    const auto end = std::upper_bound(src.cbegin(), src.cend(), hi, [&f](U a, T b) {
+      return a < f(b);
+    });
+    return array<T>(begin, end);
+  }
+*/
+
+assert(sortedSubRange(id, 2, 4, [1..5]), [2, 3])
+assert(sortedSubRange(length, 2L, 4L, ["hi", "hey", "1234", "hello", "aloha"]), ["hi", "hey"])
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
