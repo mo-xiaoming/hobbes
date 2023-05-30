@@ -10,6 +10,7 @@ instance (Equiv a b, Show b) => Assert a b where
 type maybeInt = (()+int)
 type maybeLong = (()+long)
 type maybeChar = (()+char)
+type maybeChars = (()+[char])
 
 ///////////////////////////
 //    native functions
@@ -3854,6 +3855,65 @@ assert(sort([5, 4, 3, 2, 1]), [1..5])
 
 assert(sortedSubRange(id, 2, 4, [1..5]), [2, 3])
 assert(sortedSubRange(length, 2L, 4L, ["hi", "hey", "1234", "hello", "aloha"]), ["hi", "hey"])
+
+/** Slookup
+
+  'static' lookup
+*/
+
+instance SLookup [a] "head_of_array" (()+a) where
+  slookup = headMay
+
+assert([1..5].head_of_array, just(1))
+assert(([]::[int]).head_of_array, nothing::maybeInt)
+
+/** lookupAssoci
+
+  lookup a value by a `key` in an array of pairs starts from `begin`
+
+  template <typename K, typename V, typename T>
+  maybe<V> lookupAssoci(T v, array<std::pair<K, V>>& src, long begin) {
+    const auto it = std::find_if(src.cbegin() + begin, src.cend(), [&v](std::pair<K, V> p) {
+      return p.first == static_cast<K>(v);
+    });
+    return it != src.cend() ? just(it->second) : nothing;
+  }
+*/
+
+assert(lookupAssoci(2, [(1L, "hi"), (2L, "hello"), (3L, "hey")], 0L), just("hello"))
+assert(lookupAssoci(4, [(1L, "hi"), (2L, "hello"), (3L, "hey")], 0L), nothing::maybeChars)
+
+/** lookupElemi
+
+  lookup an index of a value in an array, if the value is not in the array, return the size of the array
+
+  template <typename T>
+  long lookupElemi(T v, array<T>& src, long begin) {
+    const auto it = std::find(src.cbegin() + begin, src.cend(), v);
+    return it != src.cend() ? std::distance(src.cbegin(), it) : src.size();
+  }
+*/
+
+assert(lookupElemi(2, [1..5], 0L), 1L)
+assert(lookupElemi(6, [1..5], 0L), 5L)
+
+/** Lookup
+
+  lookup: lookup a value by a `key` in an array of pairs
+*/
+
+/// Lookup a [b*c] (()+c)
+assert(lookup(2, [(1L, "hi"), (2L, "hello"), (3L, "hey")]), just("hello"))
+assert(lookup(4, [(1L, "hi"), (2L, "hello"), (3L, "hey")]), nothing::maybeChars)
+
+/// Lookup a [a] long
+assert(lookup(2, [1..5]), 1L)
+assert(lookup(6, [1..5]), 5L)
+
+/// Lookup a (()+b) (()+c) where Lookup a b (()+c)
+assert(lookup(2, just([(1L, "hi"), (2L, "hello"), (3L, "hey")])), just("hello"))
+assert(lookup(4, just([(1L, "hi"), (2L, "hello"), (3L, "hey")])), nothing::maybeChars)
+assert(lookup(2, nothing::(()+[(long*[char])])), nothing::maybeChars)
 
 ///////////////////////////
 //    C++ bindings
