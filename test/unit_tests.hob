@@ -3981,6 +3981,50 @@ assert("HeLLo" ~ "hEllO", true)
 assert("hello" ~ "hello", true)
 assert("hello" ~ "helloo", false)
 
+/** lsplit
+
+  find a subsequence `seq` in an array, returns whatever before this seqence and whatever after this sequence
+
+  template <typename T>
+  std::pair<array<T>, array<T>> lsplit(array<T>& src, array<T>& seq) {
+    const auto it = std::search(src.cbegin(), src.cend(), seq.cbegin(), seq.cend());
+    return std::make_pair(array<T>(src.cbegin(), it), array<T>(it + seq.size(), src.cend()));
+  }
+*/
+
+assert(lsplit([1..10], [3..5]), ([1, 2], [6..10]))
+assert(lsplit([1, 2, 4, 5, 6, 7], [3..5]), ([1, 2, 4, 5, 6, 7], []::[int]))
+assert(lsplit([1, 2, 3, 4, 6, 7], [3..5]), ([1, 2, 3, 4, 6, 7], []::[int]))
+
+/** findSubseq
+
+  find where a subseqence `seq` starts in an array, if not, returns the size of the array
+
+  template <typename T>
+  bool findSubseq(array<T>& src, array<T>& seq) {
+    const auto it = std::search(src.cbegin(), src.cend(), seq.cbegin(), seq.cend());
+    return it == src.cend() ? src.size() : std::distance(src.cbegin(), it);
+  }
+*/
+
+assert(findSubseq([1..10], [3..5]), 2L)
+assert(findSubseq([1, 2, 4, 5, 6, 7], [3..5]), 6L)
+assert(findSubseq([1, 2, 3, 4, 6, 7], [3..5]), 6L)
+
+/** findSubseqStep
+
+  find where a subseqence `seq` starts with `seqBegin` starts in an array from `srcBegin`, if not, returns the size of the array
+
+  template <typename T>
+  bool findSubseqStep(array<T>& src, array<T>& seq, long srcBegin, long seqBegin) {
+    const auto it = std::search(src.cbegin() + srcBegin, src.cend(), seq.cbegin() + seqBegin, seq.cend());
+    return it == src.cend() ? src.size() : std::distance(src.cbegin(), it);
+  }
+*/
+
+assert(findSubseqStep([1..10], [3..5], 0L, 0L), 2L)
+assert(findSubseqStep([1, 2, 4, 5, 6, 7], [3..5], 0L, 0L), 6L)
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
