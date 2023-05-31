@@ -4273,6 +4273,9 @@ assert(12S / 4S, 3S)
 
 /// Divide int int int
 assert(12 / 4, 3)
+// div returns signed quotient towards zero
+assert(-12 / 4, -3)
+assert(12 / (-4), -3)
 
 /// Divide long long long
 assert(12L / 4L, 3L)
@@ -4331,6 +4334,402 @@ assert(12 % 5L, 2L)
 
 /// Mod b a b where Convert a b
 assert(12L % 5, 2L)
+
+/** Ord
+
+  compare two values
+*/
+
+/// Ord bool bool
+assert(true < false, false)
+assert(true > false, true)
+assert(true <= false, false)
+assert(true >= false, true)
+assert(false < true, true)
+assert(false > true, false)
+assert(false <= true, true)
+assert(false >= true, false)
+assert(true < true, false)
+assert(true > true, false)
+assert(true <= true, true)
+assert(true >= true, true)
+assert(false < false, false)
+assert(false > false, false)
+assert(false <= false, true)
+assert(false >= false, true)
+
+/// Ord char char
+assert('a' < 'b', true)
+assert('a' > 'b', false)
+assert('a' <= 'b', true)
+assert('a' >= 'b', false)
+assert('a' <= 'a', true)
+assert('a' >= 'a', true)
+assert('b' < 'a', false)
+assert('b' > 'a', true)
+assert('b' <= 'a', false)
+assert('b' >= 'a', true)
+assert('a' < 'a', false)
+assert('a' > 'a', false)
+
+/// Ord byte byte
+assert(0X01 < 0Xff, true)
+assert(0X01 > 0Xff, false)
+assert(0X01 <= 0Xff, true)
+assert(0X01 >= 0Xff, false)
+assert(0X01 <= 0X01, true)
+assert(0X01 >= 0X01, true)
+assert(0Xff < 0X01, false)
+assert(0Xff > 0X01, true)
+assert(0Xff <= 0X01, false)
+assert(0Xff >= 0X01, true)
+assert(0X01 < 0X01, false)
+assert(0X01 > 0X01, false)
+
+/// Ord short short
+assert(1S < 99S, true)
+assert(1S > 99S, false)
+assert(1S <= 99S, true)
+assert(1S >= 99S, false)
+assert(1S <= 1S, true)
+assert(1S >= 1S, true)
+assert(99S < 1S, false)
+assert(99S > 1S, true)
+assert(99S <= 1S, false)
+assert(99S >= 1S, true)
+assert(1S < 1S, false)
+assert(1S > 1S, false)
+
+/// Ord int int
+assert(1 < 99, true)
+assert(1 > 99, false)
+assert(1 <= 99, true)
+assert(1 >= 99, false)
+assert(1 <= 1, true)
+assert(1 >= 1, true)
+assert(99 < 1, false)
+assert(99 > 1, true)
+assert(99 <= 1, false)
+assert(99 >= 1, true)
+assert(1 < 1, false)
+assert(1 > 1, false)
+
+/// Ord long long
+assert(1L < 99L, true)
+assert(1L > 99L, false)
+assert(1L <= 99L, true)
+assert(1L >= 99L, false)
+assert(1L <= 1L, true)
+assert(1L >= 1L, true)
+assert(99L < 1L, false)
+assert(99L > 1L, true)
+assert(99L <= 1L, false)
+assert(99L >= 1L, true)
+assert(1L < 1L, false)
+assert(1L > 1L, false)
+
+/// Ord int128 int128
+assert(1H < 99H, true)
+assert(1H > 99H, false)
+assert(1H <= 99H, true)
+assert(1H >= 99H, false)
+assert(1H <= 1H, true)
+assert(1H >= 1H, true)
+assert(99H < 1H, false)
+assert(99H > 1H, true)
+assert(99H <= 1H, false)
+assert(99H >= 1H, true)
+assert(1H < 1H, false)
+assert(1H > 1H, false)
+
+/// Ord float float
+assert(1.0f < 99.0f, true)
+assert(1.0f > 99.0f, false)
+assert(1.0f <= 99.0f, true)
+assert(1.0f >= 99.0f, false)
+assert(1.0f <= 1.0f, true)
+assert(1.0f >= 1.0f, true)
+assert(99.0f < 1.0f, false)
+assert(99.0f > 1.0f, true)
+assert(99.0f <= 1.0f, false)
+assert(99.0f >= 1.0f, true)
+assert(1.0f < 1.0f, false)
+assert(1.0f > 1.0f, false)
+
+/// Ord double double
+assert(1.0 < 99.0, true)
+assert(1.0 > 99.0, false)
+assert(1.0 <= 99.0, true)
+assert(1.0 >= 99.0, false)
+assert(1.0 <= 1.0, true)
+assert(1.0 >= 1.0, true)
+assert(99.0 < 1.0, false)
+assert(99.0 > 1.0, true)
+assert(99.0 <= 1.0, false)
+assert(99.0 >= 1.0, true)
+assert(1.0 < 1.0, false)
+assert(1.0 > 1.0, false)
+
+/// Ord timespan timespan
+assert(1s < 99s, true)
+assert(1s > 99s, false)
+assert(1s <= 99s, true)
+assert(1s >= 99s, false)
+assert(1s <= 1s, true)
+assert(1s >= 1s, true)
+assert(99s < 1s, false)
+assert(99s > 1s, true)
+assert(99s <= 1s, false)
+assert(99s >= 1s, true)
+assert(1s < 1s, false)
+assert(1s > 1s, false)
+
+/// Ord time time
+do {
+  a = time(now());
+  b = a+1s;
+
+  assert(a < b, true);
+  assert(a > b, false);
+  assert(a <= b, true);
+  assert(a >= b, false);
+  assert(a <= a, true);
+  assert(a >= a, true);
+  assert(b < a, false);
+  assert(b > a, true);
+  assert(b <= a, false);
+  assert(b >= a, true);
+  assert(a < a, false);
+  assert(a > a, false);
+}
+
+/// Ord datetime datetime
+do {
+  a = now();
+  b = a+1s;
+
+  assert(a < b, true);
+  assert(a > b, false);
+  assert(a <= b, true);
+  assert(a >= b, false);
+  assert(a <= a, true);
+  assert(a >= a, true);
+  assert(b < a, false);
+  assert(b > a, true);
+  assert(b <= a, false);
+  assert(b >= a, true);
+  assert(a < a, false);
+  assert(a > a, false);
+}
+
+/// TODO: Ord a@f b where Ord a b
+/// TODO: Ord a@f b where Ord a b
+
+/// Ord (a+b) (c+d) where Ord a c, Ord b d
+// comparing |0=?| to |0=?| or |1=?| to |1=?|, otherwise |1=?| is always larger than |0=?|
+do {
+  fstOne = |0=1|::(int+long);
+  fstTwo = |0=2|::(int+long);
+  sndOne = |1=1L|::(int+long);
+  sndTwo = |1=2L|::(int+long);
+
+  assert(fstOne < fstTwo, true);
+  assert(fstOne > fstTwo, false);
+  assert(fstOne <= fstTwo, true);
+  assert(fstOne >= fstTwo, false);
+
+  assert(fstOne < fstOne, false);
+  assert(fstOne > fstOne, false);
+  assert(fstOne <= fstOne, true);
+  assert(fstOne >= fstOne, true);
+
+  assert(sndOne < sndTwo, true);
+  assert(sndOne > sndTwo, false);
+  assert(sndOne <= sndTwo, true);
+  assert(sndOne >= sndTwo, false);
+
+  assert(sndOne < sndOne, false);
+  assert(sndOne > sndOne, false);
+  assert(sndOne <= sndOne, true);
+  assert(sndOne >= sndOne, true);
+
+  assert(fstOne < sndTwo, true);
+  assert(fstOne > sndTwo, false);
+  assert(fstOne <= sndTwo, true);
+  assert(fstOne >= sndTwo, false);
+
+  assert(fstOne < sndOne, true);
+  assert(fstOne > sndOne, false);
+  assert(fstOne <= sndOne, true);
+  assert(fstOne >= sndOne, false);
+
+  assert(sndOne < fstTwo, false);
+  assert(sndOne > fstTwo, true);
+  assert(sndOne <= fstTwo, false);
+  assert(sndOne >= fstTwo, true);
+
+  assert(sndOne < fstOne, false);
+  assert(sndOne > fstOne, true);
+  assert(sndOne <= fstOne, false);
+  assert(sndOne >= fstOne, true);
+}
+
+/// Ord a (b+c)
+/// Ord (b+c) a
+// besides `maybe`, rules for other sum types are too convoluted to be useful, are they?
+assert(1 < just(2), true)
+assert(1 > just(2), false)
+assert(1 <= just(2), true)
+assert(1 >= just(2), false)
+assert(2 < just(2), false)
+assert(2 > just(2), false)
+assert(2 <= just(2), true)
+assert(2 >= just(2), true)
+// comparing with nothing is always false
+assert(2 < nothing::maybeInt, false)
+assert(2 > nothing::maybeInt, false)
+assert(2 <= nothing::maybeInt, false)
+assert(2 >= nothing::maybeInt, false)
+
+assert(just(2) < 1, false)
+assert(just(2) > 1, true)
+assert(just(2) <= 1, false)
+assert(just(2) >= 1, true)
+assert(just(2) < 2, false)
+assert(just(2) > 2, false)
+assert(just(2) <= 2, true)
+assert(just(2) >= 2, true)
+// comparing with nothing is always false
+assert(nothing::maybeInt < 2, false)
+assert(nothing::maybeInt > 2, false)
+assert(nothing::maybeInt <= 2, false)
+assert(nothing::maybeInt >= 2, false)
+
+/// Ord variant variant
+do {
+  a = |A|::|A, B, C|;
+  b = |C|::|A, B, C|;
+
+  assert(a > b, false);
+  assert(a < b, true);
+  assert(a >= b, false);
+  assert(a <= b, true);
+
+  assert(a > a, false);
+  assert(a < a, false);
+  assert(a >= a, true);
+  assert(a <= a, true);
+}
+
+/** variantCtorIndex
+  
+  get the index of a variant constructor
+*/
+
+assert(variantCtorIndex(|A|::|A, B, C|), 0)
+assert(variantCtorIndex(|B|::|A, B, C|), 1)
+assert(variantCtorIndex(|C|::|A, B, C|), 2)
+
+/** arrCmp
+
+  is `a` smaller (and eq?) than `b`? [`begin`, `end`) must be valid for both arrays
+
+  template <template <typename> Array, typename T, typename U>
+  bool arrCmp(bool allowEq, Array<T>& a, Array<U>& b, long begin, long end) {
+    if (begin == end) {
+      if (a.size() < b.size()) {
+        return true;
+      }
+      if (allowEq) {
+        return a.size() == b.size();
+      }
+      return false;
+    }
+
+    return std::equal(a.cbegin() + begin, a.cbegin() + end, b.cbegin());
+  }
+*/
+
+assert(arrCmp(true, [1..3], [1..3], 0L, 3L), true)
+assert(arrCmp(false, [1..3], [1..3], 0L, 3L), false)
+assert(arrCmp(true, [1..3], [1..4], 0L, 3L), true)
+assert(arrCmp(false, [1..3], [1..4], 0L, 3L), true)
+assert(arrCmp(true, [1..3], [1..2], 0L, 2L), false)
+assert(arrCmp(false, [1..3], [1..2], 0L, 2L), false)
+assert(arrCmp(true, [1..3], [1, 2, 4], 0L, 3L), true)
+assert(arrCmp(false, [1..3], [1, 2, 4], 0L, 3L), true)
+assert(arrCmp(true, [1, 2, 4], [1..3], 0L, 3L), false)
+assert(arrCmp(false, [1, 2, 4], [1..3], 0L, 3L), false)
+
+/// Ord Array Array
+assert([1..3] < [1..3], false)
+assert([1..3] > [1..3], false)
+assert([1..3] <= [1..3], true)
+assert([1..3] >= [1..3], true)
+
+assert([1..3] < [1..4], true)
+assert([1..3] > [1..4], false)
+assert([1..3] <= [1..4], true)
+assert([1..3] >= [1..4], false)
+
+assert([1..4] < [1..3], false)
+assert([1..4] > [1..3], true)
+assert([1..4] <= [1..3], false)
+assert([1..4] >= [1..3], true)
+
+assert([1, 2, 4] < [1..3], false)
+assert([1, 2, 4] > [1..3], true)
+assert([1, 2, 4] <= [1..3], false)
+assert([1, 2, 4] >= [1..3], true)
+
+assert([1..3] < [1, 2, 4], true)
+assert([1..3] > [1, 2, 4], false)
+assert([1..3] <= [1, 2, 4], true)
+assert([1..3] >= [1, 2, 4], false)
+
+/// Ord record record
+assert({a=3} < {a=3}, false)
+assert({a=3} > {a=3}, false)
+assert({a=3} <= {a=3}, true)
+assert({a=3} >= {a=3}, true)
+
+assert({a=1} < {a=3}, true)
+assert({a=1} > {a=3}, false)
+assert({a=1} <= {a=3}, true)
+assert({a=1} >= {a=3}, false)
+
+assert({a=3} < {a=1}, false)
+assert({a=3} > {a=1}, true)
+assert({a=3} <= {a=1}, false)
+assert({a=3} >= {a=1}, true)
+
+/// Ord tuple tuple
+assert(('x', 3) < ('x', 3), false)
+assert(('x', 3) > ('x', 3), false)
+assert(('x', 3) <= ('x', 3), true)
+assert(('x', 3) >= ('x', 3), true)
+
+assert(('x', 1) < ('x', 3), true)
+assert(('x', 1) > ('x', 3), false)
+assert(('x', 1) <= ('x', 3), true)
+assert(('x', 1) >= ('x', 3), false)
+
+assert(('x', 3) < ('x', 1), false)
+assert(('x', 3) > ('x', 1), true)
+assert(('x', 3) <= ('x', 1), false)
+assert(('x', 3) >= ('x', 1), true)
+
+/// Ord a b where Convert a b
+assert(1 < 3L, true)
+assert(1 > 3L, false)
+assert(1 <= 3L, true)
+assert(1 > 3L, false)
+
+/// Ord a b where Convert b a
+assert(3L < 1, false)
+assert(3L > 1, true)
+assert(3L <= 1, false)
+assert(3L >= 1, true)
 
 ///////////////////////////
 //    C++ bindings
