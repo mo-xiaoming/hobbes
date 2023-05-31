@@ -4025,6 +4025,313 @@ assert(findSubseq([1, 2, 3, 4, 6, 7], [3..5]), 6L)
 assert(findSubseqStep([1..10], [3..5], 0L, 0L), 2L)
 assert(findSubseqStep([1, 2, 4, 5, 6, 7], [3..5], 0L, 0L), 6L)
 
+/** HasDef
+
+  def: default value of this type
+*/
+
+/// HasDef ()
+assert(def::(), ())
+
+/// HasDef a where HasZero a
+assert(def::long, 0L)
+
+/// HasDef [a]
+assert(def::[int], []::[int])
+
+/// HasDef (l+r) where HasDef r
+assert(def::(()+int), just(0))
+
+/** HasZero
+
+  zero: zero value of this type
+*/
+
+/// HasZero byte
+assert(zero::byte, 0X00)
+
+/// HasZero short
+assert(zero::short, 0S)
+
+/// HasZero int
+assert(zero::int, 0)
+
+/// HasZero long
+assert(zero::long, 0L)
+
+/// HasZero int128
+assert(zero::int128, 0H)
+
+/// HasZero float
+assert(zero::float, 0.0f)
+
+/// HasZero double
+assert(zero::double, 0.0)
+
+/// HasZero timespan
+assert(zero::timespan, 0s)
+
+/** HasOne
+
+  one: one value of this type
+*/
+
+/// HasOne byte
+assert(one::byte, 0X01)
+
+/// HasOne short
+assert(one::short, 1S)
+
+/// HasOne int
+assert(one::int, 1)
+
+/// HasOne long
+assert(one::long, 1L)
+
+/// HasOne int128
+assert(one::int128, 1H)
+
+/// HasOne float
+assert(one::float, 1.0f)
+
+/// HasOne double
+assert(one::double, 1.0)
+
+/** Negate
+
+  neg: negate a value
+*/
+
+/// Negate short
+assert(neg(1S), -1S)
+assert(neg(-1S), 1S)
+
+/// Negate int
+assert(neg(1), -1)
+assert(neg(-1), 1)
+
+/// Negate long
+assert(neg(1L), -1L)
+assert(neg(-1L), 1L)
+
+/// Negate int128
+assert(neg(1H), -1H)
+assert(neg(-1H), 1H)
+
+/// Negate float
+assert(neg(1.0f), -1.0f)
+assert(neg(-1.0f), 1.0f)
+
+/// Negate double
+assert(neg(1.0), -1.0)
+assert(neg(-1.0), 1.0)
+
+/// Negate timespan
+assert(neg(1s), -1s)
+assert(neg(-1s), 1s)
+
+/** Add
+
+  +: add two values
+*/
+
+/// Add char char char
+assert('>' + '@', '~')
+
+/// Add byte byte byte
+assert(0X11 + 0X33, 0X44)
+
+/// Add short short short
+assert(1S + 2S, 3S)
+
+/// Add int int int
+assert(1 + 2, 3)
+
+/// Add long long long
+assert(1L + 2L, 3L)
+
+/// Add int128 int128 int128
+assert(1H + 2H, 3H)
+
+/// Add float float float
+assert(1.0f + 2.0f, 3.0f)
+
+/// Add double double double
+assert(1.0 + 2.0, 3.0)
+
+/// Add timespan timespan timespan
+assert(1s + 2s, 3s)
+
+/// TODO: Add time timespan time
+/// TODO: Add timespan time time
+/// TODO: Add datetime timespan datetime
+/// TODO: Add timespan datetime datetime
+
+/// Add a b b where Convert a b
+assert(2 + 3L, 5L)
+
+/// Add b a b where Convert a b
+assert(2L + 3, 5L)
+
+/** Subtract
+
+  -: subtract two values
+*/
+
+/// Subtract char char char
+assert('~' - '@', '>')
+
+/// Subtract byte byte byte
+assert(0X44 - 0X33, 0X11)
+
+/// Subtract short short short
+assert(3S - 1S, 2S)
+
+/// Subtract int int int
+assert(3 - 1, 2)
+
+/// Subtract long long long
+assert(3L - 1L, 2L)
+
+/// Subtract int128 int128 int128
+assert(3H - 1H, 2H)
+
+/// Subtract float float float
+assert(3.0f - 1.0f, 2.0f)
+
+/// Subtract double double double
+assert(3.0 - 1.0, 2.0)
+
+/// Subtract timespan timespan timespan
+assert(3s - 1s, 2s)
+
+/// TODO: Subtract time time timespan
+/// TODO: Subtract time timespan time
+/// TODO: Subtract datetime datetime timespan
+/// TODO: Subtract datetime timespan datetime
+
+/// Subtract a b b where Convert a b
+assert(2 - 3L, -1L)
+
+/// Subtract b a b where Convert a b
+assert(3L -2, 1L)
+
+/** Multiply
+
+  *: multiply two values
+*/
+
+/// Multiply byte byte byte
+assert(0X03 * 0X04, 0X0c)
+
+/// Multiply short short short
+assert(3S * 4S, 12S)
+
+/// Multiply int int int
+assert(3 * 4, 12)
+
+/// Multiply long long long
+assert(3L * 4L, 12L)
+
+/// Multiply int128 int128 int128
+assert(3H * 4H, 12H)
+
+/// Multiply float float float
+assert(3.0f * 4.0f, 12.0f)
+
+/// Multiply double double double
+assert(3.0 * 4.0, 12.0)
+
+/// Multiply int timespan timespan
+assert(3 * 4s, 12s)
+
+/// Multiply timespan int timespan
+assert(3s * 4, 12s)
+
+/// Multiply long timespan timespan
+assert(3L * 4s, 12s)
+
+/// Multiply timespan long timespan
+assert(4s * 3L, 12s)
+
+/// Multiply a b b where Convert a b
+assert(4 * 3L, 12L)
+
+/// Multiply b a b where Convert a b
+assert(4L * 3, 12L)
+
+/** Divide
+
+  /: divide two values
+*/
+
+/// Divide byte byte byte
+assert(0X0c / 0X04, 0X03)
+
+/// Divide short short short
+assert(12S / 4S, 3S)
+
+/// Divide int int int
+assert(12 / 4, 3)
+
+/// Divide long long long
+assert(12L / 4L, 3L)
+
+/// Divide int128 int128 int128
+assert(12H / 4H, 3H)
+
+/// Divide float float float
+assert(12.0f / 4.0f, 3.0f)
+
+/// Divide double double double
+assert(12.0 / 4.0, 3.0)
+
+// TODO: what's the meaning of following operations?
+/// Divide timespan timespan timespan
+/// Divide time timespan time
+/// Divide datetime timespan datetime
+
+/// Divide a b b where Convert a b
+assert(12 / 3L, 4L)
+
+/// Divide b a b where Convert a b
+assert(12L / 3, 4L)
+
+/** Mod
+  
+  %: mod two values
+*/  
+
+// TODO: what's the meaning of following operations?
+/// Mod char char char
+
+/// Mod byte byte byte
+assert(0X0c % 0X05, 0X02)
+
+/// Mod short short short
+assert(12S % 5S, 2S)
+
+/// Mod int int int
+assert(12 % 5, 2)
+
+/// Mod long long long
+assert(12L % 5L, 2L)
+
+/// Mod int128 int128 int128
+assert(12H % 5H, 2H)
+
+/// Mod float float float
+assert(12.0f % 5.0f, 2.0f)
+
+/// Mod double double double
+assert(12.0 % 5.0, 2.0)
+
+/// Mod a b b where Convert a b
+assert(12 % 5L, 2L)
+
+/// Mod b a b where Convert a b
+assert(12L % 5, 2L)
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
