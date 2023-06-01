@@ -4731,6 +4731,330 @@ assert(3L > 1, true)
 assert(3L <= 1, false)
 assert(3L >= 1, true)
 
+/** tableColumnWidth
+
+  get the max width of columns
+
+  long tableColumnWidth(array<array<char>>& columns) {
+    return std::max_element(columns.cbegin(), columns.cend(), [](array<char>& a, array<char>& b) {
+      return a.size() < b.size();
+    })->size();
+  }
+*/
+
+assert(tableColumnWidth(["hello", "hi"]), 5L)
+
+/** rightJustify
+
+  right justify a string
+
+  array<char> rightJustify(array<char>& str, long width) {
+    array<char> result(width, ' ');
+    std::copy(result.begin(), result.begin() + str.size(), str.begin());
+    return result;
+  }
+*/
+
+assert(rightJustify("hello", 10L), "     hello")
+
+/** formatColumn
+
+  format columns to the same width
+
+  array<array<char>> formatColumn(array<array<char>>& columns) {
+    const auto maxColumnWidth = std::max_element(columns.cbegin(), columns.cend(), [](array<char>& a, array<char>& b) {
+      return a.size() < b.size();
+    })->size();
+    array<array<char>> result;
+    std::transform(columns.cbegin(), columns.cend(), std::back_inserter(result), [maxColumnWidth](array<char>& column) {
+      return rightJustify(column, maxColumnWidth);
+    });
+    return result;
+  }
+*/
+
+assert(formatColumn(["hey", "hello", "hi"]), ["  hey", "hello", "   hi"])
+
+/** formatNamedColumn
+
+  format columns to the same width, leading with a name and a separator
+
+  array<array<char>> formatNamedColumn(array<char>& name, array<array<char>>& columns) {
+    const auto maxColumnWidth = std::max(std::max_element(columns.cbegin(), columns.cend(), [](array<char>& a, array<char>& b) {
+      return a.size() < b.size();
+    })->size(), name.size());
+    array<array<char>> result;
+    result.push_back(rightJustify(name, maxColumnWidth));
+    result.push_back(std::string(maxColumnWidth, '-'));
+    std::transform(columns.cbegin(), columns.cend(), std::back_inserter(result), [maxColumnWidth](array<char>& column) {
+      return rightJustify(column, maxColumnWidth);
+    });
+    return result;
+  }
+*/
+
+assert(formatNamedColumn("name", ["hello", "hi", "hey"]), [" name", "-----", "hello", "   hi", "  hey"])
+
+/** formatTableColumns
+
+  format columns of each row to the same width separatable, leading with names and separators if names are not empty
+
+  array<array<char>> formatTableColumn(array<array<char>>& names, array<array<array<char>>>& rows) {
+    array<array<char>> result;
+    if (names.empty()) {
+      std::transform(rows.cbegin(), rows.cend(), std::back_inserter(result), [](array<array<char>>& row) {
+        return formatColumn(row);
+      });
+    } else {
+      std::transform(names.cbegin(), names.cend(), rows.cbegin(), std::back_inserter(result), [](array<char>& name, array<array<char>>& row) {
+        return formatNamedColumn(name, row);
+      });
+    }
+    return result;
+  }
+*/
+
+assert(formatTableColumns([], [["hello", "hi", "hey"], ["one", "two", "zero"]]), [["hello", "   hi", "  hey"], [" one", " two", "zero"]])
+assert(formatTableColumns(["abc", "012345"], [["hello", "hi", "hey"], ["one", "two", "zero"]]), [["  abc", "-----", "hello", "   hi", "  hey"], ["012345", "------", "   one", "   two", "  zero"]])
+
+/** printTableRows
+
+  print table with a footer
+
+  void printTableRows(array<array<array<char>>>& rows, long colBegin, long rowBegin, array<char>& footer) {
+    assert(colBegin == 0);
+    for (; rowBegin < rows.size(); ++rowBegin) {
+      for (const auto& column : rows[rowBegin]) {
+        std::cout << column << ' ';
+      }
+      std::cout << '\n';
+    }
+    std::cout << footer << '\n';
+  }
+*/
+
+do {
+  captureStdout();
+  printTableRows([["r1c1", "r2c1"], ["r1c2", "r2c2"], ["r1c3", "r2c3"]], 0L, 0L, "footer");
+  assert(releaseStdout(), "r1c1 r1c2 r1c3\nr2c1 r2c2 r2c3\nfooter");
+}
+
+/** showTableRows
+
+  like `printTableRows`, expect for returning a list of strings
+*/
+
+assert(toArray(showTableRows([["r1c1", "r2c1"], ["r1c2", "r2c2"], ["r1c3", "r2c3"]], [0L..2L], 0L, "footer")), ["r1c1 r1c2 r1c3", "r2c1 r2c2 r2c3", "footer"])
+
+/** printTable
+
+  print table with each column right justified
+*/
+
+do {
+  captureStdout();
+  printTable([(123, 4), (5, 16), (7, 8)]);
+  assert(releaseStdout(), "123  4\n  5 16\n  7  8\n");
+}
+do {
+  captureStdout();
+  printTable([{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}]);
+  assert(releaseStdout(), "a   b\n- ---\n3 3.7\n4 4.7\n5 5.7\n");
+}
+
+/** showTable
+
+  like `printTable`, but returns a string
+*/
+
+assert(showTable([(123, 4), (5, 16), (7, 8)]), "123  4\n  5 16\n  7  8\n")
+assert(showTable([{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}]), "a   b\n- ---\n3 3.7\n4 4.7\n5 5.7\n")
+
+/** printTableWithTruncation
+
+  like `printTable`, but limits rows
+*/
+
+do {
+  captureStdout();
+  printTableWithTruncation([(123, 4), (5, 16), (7, 1008)], 2L);
+  assert(releaseStdout(), "123  4\n  5 16\n...\n");
+}
+do {
+  captureStdout();
+  printTableWithTruncation([{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}], 2L);
+  assert(releaseStdout(), "a   b\n- ---\n3 3.7\n4 4.7\n...\n");
+}
+
+/** showTableWithTruncation
+
+  like `printTableWithTruncation`, but returns a string
+*/
+
+assert(showTableWithTruncation([(123, 4), (5, 16), (7, 1008)], 2L), "123  4\n  5 16\n...")
+assert(showTableWithTruncation([{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}], 2L), "a   b\n- ---\n3 3.7\n4 4.7\n...")
+
+/** PrintFRows
+
+  printFRows: print tuple in label: value pairs, the first parameter is the number of extra spaces after label name
+*/
+
+/// PrintFRows record
+do {
+  captureStdout();
+  printFRows(1L, {a=3, b=true});
+  assert(releaseStdout(), "a : 3\nb : true\n");
+}
+
+/** MaxFieldNameLen
+
+  maxFieldNameLen: get the max length of field names
+*/
+
+/// MaxFieldNameLen record
+assert(maxFieldNameLen({abc=3, b=true}), 3L)
+
+/** PrintFlipped
+
+  printFlipped: print tuple in label: value pairs, labels are properly right justified
+*/
+
+/// PrintFlipped record
+do {
+  captureStdout();
+  printFlipped({abc=3, x=true});
+  assert(releaseStdout(), "abc : 3\nx   : true\n");
+}
+
+/// PrintFlipped [record]
+do {
+  captureStdout();
+  printFlipped([{abc=3, x=true}, {abc=4, x=false}]);
+  assert(releaseStdout(), "abc : [3, 4]\nx   : [true, false]\n");
+}
+
+/** RecordFormat
+
+  recordHeader: list of "label" names
+  recordColumns: list of arrays of columns
+*/
+
+/// RecordFormat record
+assert(toArray((recordHeader::(RecordFormat {a:int, b:bool})=>[char]->(^x.(()+([char]*x))))("")), ["a", "b"])
+assert(toArray(recordColumns([{a=3, b=true}, {a=4, b=false}])), [["3", "4"], ["true", "false"]])
+
+/// RecordFormat (()+record)
+assert(toArray((recordHeader::(RecordFormat (()+{a:int, b:bool}))=>[char]->(^x.(()+([char]*x))))("")), ["a", "b"])
+assert(toArray(recordColumns([just({a=3, b=true}), nothing, just({a=4, b=false})])), [["3", "", "4"], ["true", "", "false"]])
+
+/// TODO: RecordFormat tuple
+
+/** MatrixFormat
+
+  matrixColumns: array of array of columns
+*/
+
+/// MatrixFormat [tuple]
+do {
+  a = [(3, 4, 5), (6, 7, 8)];
+  assert(toArray(matrixColumns(a)), [["3", "6"], ["4", "7"], ["5", "8"]]);
+}
+
+/// MatrixFormat [(()+tuple)]
+do {
+  a = [just((3, 4, 5)), nothing, just((6, 7, 8))];
+  assert(toArray(matrixColumns(a)), [["3", "", "6"], ["4", "", "7"], ["5", "", "8"]]);
+}
+
+/** TableFormat
+
+  tableRowCount: number of rows
+  tableHeader: array of column names
+  tableColumns: array of array of columns
+  taleColumnsTrunc: array of array of columns, truncated
+*/
+
+/// TableFormat [record]
+do {
+  a = [{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}];
+  assert(tableRowCount(a), 3);
+  assert(tableHeader(a, ""), ["a", "b"]);
+  assert(tableColumns(a), [["3", "4", "5"], ["3.7", "4.7", "5.7"]]);
+  assert(tableColumnsTrunc(a, 2L), [["3", "4"], ["3.7", "4.7"]]);
+}
+
+/// TableFormat [(()+record)]
+do {
+  a = [just({a=3, b=3.7}), nothing, just({a=4, b=4.7}), just({a=5, b=5.7})];
+  assert(tableRowCount(a), 4);
+  assert(tableHeader(a, ""), ["a", "b"]);
+  assert(tableColumns(a), [["3", "", "4", "5"], ["3.7", "", "4.7", "5.7"]]);
+  assert(tableColumnsTrunc(a, 2L), [["3", ""], ["3.7", ""]]);
+}
+
+/// Table [(record, ...)]
+do {
+  a = [({a0=3, b0=3.7}, {a1=4, b1=4.7}, {a2=5, b2=5.7}), ({a0=13, b0=13.7}, {a1=14, b1=14.7}, {a2=15, b2=15.7})];
+  assert(tableRowCount(a), 2);
+  assert(tableHeader(a, ""), ["a0", "b0", "a1", "b1", "a2", "b2"]);
+  assert(tableColumns(a), [["3", "13"], ["3.7", "13.7"], ["4", "14"], ["4.7", "14.7"], ["5", "15"], ["5.7", "15.7"]]);
+  assert(tableColumnsTrunc(a, 1L), [["3"], ["3.7"], ["4"], ["4.7"], ["5"], ["5.7"]]);
+}
+
+/// Table [(()+(record, ...))]
+// this falls into MatrixFormat, is this expected
+// following is not what you'll get
+//do {
+//  a = [just(({a0=3, b0=3.7}, {a1=4, b1=4.7}, {a2=5, b2=5.7})), nothing, just(({a0=13, b0=13.7}, {a1=14, b1=14.7}, {a2=15, b2=15.7}))];
+//  assert(tableRowCount(a), 3);
+//  assert(tableHeader(a, ""), ["a0", "b0", "a1", "b1", "a2", "b2"]);
+//  assert(tableColumns(a), [["3", "", "13"], ["3.7", "", "13.7"], ["4", "", "14"], ["4.7", "", "14.7"], ["5", "", "15"], ["5.7", "15.7"]]);
+//  assert(tableColumnsTrunc(a, 1L), [["3"], ["3.7"], ["4"], ["4.7"], ["5"], ["5.7"]]);
+//}
+
+/// Table [tuple]
+do {
+  a = [(3, 4, 5), (6, 7, 8)];
+  assert(tableRowCount(a), 2);
+  assert(tableHeader(a, ""), []::[[char]]);
+  assert(tableColumns(a), [["3", "6"], ["4", "7"], ["5", "8"]]);
+  assert(tableColumnsTrunc(a, 1L), [["3"], ["4"], ["5"]]);
+}
+
+/// Table [(()+tuple)]
+// this falls into MatrixFormat, is this expected
+// following is not what you'll get
+//do {
+//  a = [just((3, 4, 5)), nothing, just((6, 7, 8))];
+//  assert(tableRowCount(a), 3);
+//  assert(tableHeader(a, ""), []::[[char]]);
+//  assert(tableColumns(a), [["3", "", "6"], ["4", "", "7"], ["5", "", "8"]]);
+//  assert(tableColumnsTrunc(a, 1L), [["3"], ["4"], ["5"]]);
+//}
+
+/** printCSV
+*/
+
+do {
+  captureStdout();
+  printCSV([{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}]);
+  assert(releaseStdout(), "\"a\",\"b\"\n\"3\",\"3.7\"\n\"4\",\"4.7\"\n\"5\",\"5.7\"\n");
+}
+
+/** PrintableAsTable
+
+  printAsTable
+*/
+
+/// PrintableAsTable a where TableXXX a
+// truncate at 20 rows
+do {
+  a = [{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}];
+  captureStdout();
+  printAsTable(a);
+  assert(releaseStdout(), "a   b\n- ---\n3 3.7\n4 4.7\n5 5.7\n");
+}
+
 ///////////////////////////
 //    C++ bindings
 ///////////////////////////
