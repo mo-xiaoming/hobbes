@@ -5041,6 +5041,402 @@ do {
   assert(releaseStdout(), "\"a\",\"b\"\n\"3\",\"3.7\"\n\"4\",\"4.7\"\n\"5\",\"5.7\"\n");
 }
 
+/** ShowT
+
+  showtup: show tuple as string
+*/
+
+assert(showtup((3, 4.5)), ["3", "4.5"])
+
+/** ShowR
+
+  showrec: show record as string
+*/
+
+assert(showrec({a=3, b=4.5}), ["a=3", "b=4.5"])
+
+/** ShowVarValue
+  
+  showVarValue: show variant value as string with a leading "="
+*/
+
+assert(showVarValue(()), "")
+assert(showVarValue(3), "=3")
+
+/** Show
+
+  show: convert a value to string
+*/
+
+/// Show ()
+assert(show(()), "")
+
+/// Show bool
+assert(show(true), "true")
+assert(show(false), "false")
+
+/// Show char
+assert(show('a'), "'a'")
+
+/// Show byte
+assert(show(0X00), "0X00")
+assert(show(0Xff), "0Xff")
+assert(show(0XFF), "0Xff")
+
+/// Show short
+assert(show(0S), "0S")
+assert(show(1S), "1S")
+assert(show(-1S), "-1S")
+
+/// Show int
+assert(show(0), "0")
+assert(show(1), "1")
+assert(show(-1), "-1")
+
+/// Show long
+assert(show(0L), "0")
+assert(show(1L), "1")
+assert(show(-1L), "-1")
+
+/// Show int128
+assert(show(0H), "0")
+assert(show(1H), "1")
+assert(show(-1H), "-1")
+
+/// Show float
+assert(show(0.0f), "0f")
+assert(show(3.0f), "3f")
+assert(show(3.1f), "3.1f")
+assert(show(3.12345678f), "3.12346f")
+assert(show(13.12345678f), "13.1235f")
+assert(show(123456789.0f), "1.23457e+08f")
+assert(show(-3.0f), "-3f")
+assert(show(-3.1f), "-3.1f")
+assert(show(-3.12345678f), "-3.12346f")
+assert(show(-13.12345678f), "-13.1235f")
+assert(show(-123456789.0f), "-1.23457e+08f")
+do {
+  org = floatFormatConfig.floatPrecision;
+  floatFormatConfig.floatPrecision <- 4;
+  assert(show(0.0f), "0f");
+  assert(show(3.0f), "3f");
+  assert(show(3.1f), "3.1f");
+  assert(show(3.12345678f), "3.123f");
+  assert(show(13.12345678f), "13.12f");
+  assert(show(123456789.0f), "1.235e+08f");
+  assert(show(-3.0f), "-3f");
+  assert(show(-3.1f), "-3.1f");
+  assert(show(-3.12345678f), "-3.123f");
+  assert(show(-13.12345678f), "-13.12f");
+  assert(show(-123456789.0f), "-1.235e+08f");
+  floatFormatConfig.floatPrecision <- org;
+}
+
+/// Show double
+assert(show(0.0), "0")
+assert(show(3.0), "3")
+assert(show(3.1), "3.1")
+assert(show(3.12345678), "3.12346")
+assert(show(13.12345678), "13.1235")
+assert(show(123456789.0), "1.23457e+08")
+assert(show(-3.0), "-3")
+assert(show(-3.1), "-3.1")
+assert(show(-3.12345678), "-3.12346")
+assert(show(-13.12345678), "-13.1235")
+assert(show(-123456789.0), "-1.23457e+08")
+do {
+  org = floatFormatConfig.doublePrecision;
+  floatFormatConfig.doublePrecision <- 4;
+  assert(show(0.0), "0.0000");
+  assert(show(3.0), "3.0000");
+  assert(show(3.1), "3.1000");
+  assert(show(3.12345678), "3.1235");
+  assert(show(13.12345678), "13.1235");
+  assert(show(123456789.0), "123456789.0000");
+  assert(show(-3.0), "-3.0000");
+  assert(show(-3.1), "-3.1000");
+  assert(show(-3.12345678), "-3.1235");
+  assert(show(-13.12345678), "-13.1235");
+  assert(show(-123456789.0), "-123456789.0000");
+  floatFormatConfig.doublePrecision <- org;
+}
+
+/// Show [byte]
+assert(show([0X01, 0X02]), "0x0102")
+
+/// Show [char]
+assert(show("hello"), "\"hello\"")
+assert(show(['a', 'b', 'c']), "\"abc\"")
+
+/// Show <std.string>
+assert(show(aStdString), "\"hello world\"")
+
+/// Show timespan
+assert(show(3s), "3s")
+assert(show(1h3s), "1h3s")
+assert(show(1h61m3s), "2h1m3s")
+assert(show(-1h61m3s), "-2h1m3s")
+
+/// TODO: Show time
+/// TODO: Show datetime
+
+/// Show tuple
+assert(show((3, 4.5)), "(3, 4.5)")
+
+/// Show record
+assert(show({a=3, b=4.5}), "{a=3, b=4.5}")
+
+/// Show variant
+assert(show(|B|::|A, B, C|), "|B|")
+assert(show(|B=3|::|A, B:int, C|), "|B=3|")
+
+/// Show penum
+assert(show(|B|::((penum char |A('a'), B('b'), C('c')|))), "|B|")
+assert(penumShow(|B|::((penum char |A('a'), B('b'), C('c')|))), "|B|")
+
+/// Show Array char
+assert(show("hello"), "\"hello\"")
+
+/// Show Array byte
+assert(show([0X01, 0X02]), "0x0102")
+
+/// Show [a]
+assert(show([1, 2, 3]), "[1, 2, 3]")
+
+/// Show [:a|n:]
+do {
+  a = newPrimZ()::[:char|5:];
+  saacopy(a, "hello", 5L);
+  assert(show(a), "\"hello\"");
+}
+do {
+  a = newPrimZ()::[:byte|2:];
+  saacopy(a, [0X01, 0X02], 5L);
+  assert(show(a), "0x0102");
+}
+do {
+  a = newPrimZ()::[:int|2:];
+  saacopy(a, [3, 4], 2L);
+  // it seems `Show b where Array b a, Show a` hijacks `showFA`
+  //assert(show(a), "[:3, 4:]");
+  assert(show(a), "[3, 4]");
+}
+
+/// Show list
+assert(show(cons(5, cons(4, cons(3, nil())))), "5:4:3:[]")
+
+/// TODO: Show a@f
+
+/** ShowFixedArrOf
+
+  showFA: show fix sized array
+*/
+
+/// ShowFixedArrOf char n
+do {
+  a = newPrimZ()::[:char|42:];
+  saacopy(a, "hello", 5L);
+  // starting index must be zero, otherwise those leading values will be garbage
+  assert(showFA(a, 0L, 4L), "\"hell\"");
+}
+
+/// ShowFixedArrOf byte n
+do {
+  a = newPrimZ()::[:byte|2:];
+  saacopy(a, [0X01, 0X02], 2L);
+  assert(showFA(a, 0L, 2L), "0x0102");
+}
+
+/// ShowFixedArrOf a n where Show a
+do {
+  a = newPrimZ()::[:int|2:];
+  saacopy(a, [3, 4], 2L);
+  assert(showFA(a, 0L, 2L), "[:3, 4:]");
+}
+
+/** fixedCAToStr
+
+  copy fix sized array to dyn sized array
+*/
+
+do {
+  a = newPrimZ()::[:char|42:];
+  saacopy(a, "hello", 5L);
+  assert(fixedCAToStr(a, 0L, 5L, newArray(5L)), "hello");
+}
+
+/** showSARange
+
+  helper function for show byte array
+*/
+
+do {
+  a = newPrimZ()::[:char|42:];
+  saacopy(a, "hello", 5L);
+  assert(showSARange(show, a, 0L, 5L, newArray(5L)), ["'h'", "'e'", "'l'", "'l'", "'o'"]);
+}
+
+/** Print
+
+  print: write to console
+*/
+
+/// Print ()
+do {
+  captureStdout();
+  print(());
+  assert(releaseStdout(), "");
+}
+
+/// Print [byte]
+do {
+  captureStdout();
+  print([0X01, 0X02]);
+  assert(releaseStdout(), "0x0102");
+}
+
+/// Print [char]
+do {
+  captureStdout();
+  print("hello");
+  assert(releaseStdout(), "\"hello\"");
+}
+
+/// Print cs where Array cs char
+do {
+  captureStdout();
+  print(['h', 'e', 'l', 'l', 'o']);
+  assert(releaseStdout(), "\"hello\"");
+}
+
+/// Print bs where Array bs byte
+do {
+  captureStdout();
+  print([0X01, 0X02]);
+  assert(releaseStdout(), "0x0102");
+}
+
+/// Print as
+do {
+  captureStdout();
+  print([3.5, 3.0]);
+  assert(releaseStdout(), "[3.5, 3]");
+}
+
+/// Print list
+do {
+  captureStdout();
+  print(cons(5, cons(4, cons(3, nil()))));
+  assert(releaseStdout(), "5:4:3:[]");
+}
+
+/// Print record
+do {
+  captureStdout();
+  print({a=3, b=false});
+  assert(releaseStdout(), "{a=3, b=false}");
+}
+
+/// Print tuple
+do {
+  captureStdout();
+  print((3, false));
+  assert(releaseStdout(), "(3, false)");
+}
+
+/// Print (()+a)
+do {
+  captureStdout();
+  print(just(3));
+  assert(releaseStdout(), "3");
+
+  captureStdout();
+  print(nothing::maybeInt);
+  assert(releaseStdout(), "");
+}
+
+/// Print variant
+do {
+  captureStdout();
+  print(|B|::|A, B, C|);
+  assert(releaseStdout(), "|B|");
+
+  captureStdout();
+  print(|B=3|::|A, B:int, C|);
+  assert(releaseStdout(), "|B=3|");
+}
+
+/// TODO: Print a~b
+/// TODO: Show a~b
+/// TODO: Print a@f
+
+/// Print bitvec
+do {
+  c = newBitvec(10L);
+  captureStdout();
+  print(c);
+  assert(releaseStdout(), "0000000000");
+
+  bvSet(c, 1L, true);
+  captureStdout();
+  print(c);
+  assert(releaseStdout(), "0100000000");
+}
+
+/** println
+
+  print something and end it with a new line
+*/
+
+do {
+  captureStdout();
+  println(0XBB);
+  assert(releaseStdout(), "0Xbb\n");
+}
+
+/** putStrLn
+
+  print string and end it with a new line
+*/
+
+do {
+  captureStdout();
+  println("hello");
+  assert(releaseStdout(), "\"hello\"\n");
+}
+
+/** PrintR
+
+  printrec: print a record
+*/
+
+do {
+  captureStdout();
+  printrec(true, {a=3, b=false});
+  assert(releaseStdout(), "a=3, b=false");
+}
+
+/** PrintT
+
+  printtup: print a tuple
+*/
+
+do {
+  captureStdout();
+  printtup(true, (3, false));
+  assert(releaseStdout(), "3, false");
+}
+/** printArray
+
+  print array from an index to end, helper function
+*/
+
+do {
+  captureStdout();
+  printArray([1..5], 2L);
+  assert(releaseStdout(), ", 3, 4, 5");
+}
+
 /** PrintableAsTable
 
   printAsTable
@@ -5054,6 +5450,30 @@ do {
   printAsTable(a);
   assert(releaseStdout(), "a   b\n- ---\n3 3.7\n4 4.7\n5 5.7\n");
 }
+
+/** printTableConfig.maxRows
+
+  max number of rows to print, used by `printAsTable`
+*/
+
+do {
+  a = [{a=3, b=3.7}, {a=4, b=4.7}, {a=5, b=5.7}];
+  captureStdout();
+  org = printTableConfig.maxRows;
+  printTableConfig.maxRows <- 2L;
+  printAsTable(a);
+  printTableConfig.maxRows <- org;
+  assert(releaseStdout(), "a   b\n- ---\n3 3.7\n4 4.7\n...\n");
+}
+
+/** Format
+
+  format: format a string? How?
+*/
+
+assert(format("hello"), "hello")
+assert(format(just(3)), "3")
+assert(format(nothing::maybeInt), "")
 
 ///////////////////////////
 //    C++ bindings
@@ -5598,8 +6018,6 @@ do {
 
 // TODO: how can applyCFn be called directly?
 assert(apply(aCFn, 'c'), 'd')
-
-assert(penumShow(|B|::((penum char |A('a'), B('b'), C('c')|))), "|B|")
 
 assert(stdstrsize(aStdString), length("hello world"))
 assert(stdstrelem(aStdString, 0L), 'h')
