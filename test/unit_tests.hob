@@ -2748,6 +2748,59 @@ assert(bsearch([1, 2, 4, 5], id, 3), 4L)
 
 assert(bsearch(["hi", "aloha", "hello"], \x.tl2i(length(x)), 5), 1L)
 
+// TODO: runLongDFA
+// TODO: runRegexDFA
+// TODO: nextRegexDFAState
+
+/** packCArrLong
+
+  pack an Array of chars to long
+*/
+
+assert(packCArrLong("hello", 0L), 7522537965566820352L) // 0x68656c6c6f000000
+
+/** packCArrInt
+
+  pack an Array of chars to int
+*/
+
+assert(packCArrInt("hello", 0L), 1751477356) // 0x68656c6c: hell
+
+/** packCArrShort
+
+  pack an Array of chars to short
+*/
+
+assert(packCArrShort("hello", 0L), 26725S) // 0x6865: he
+
+/** packCArrChar
+
+  pack an Array of chars to char, actually, it is indexing
+*/
+
+assert(packCArrChar("hello", 0L), 'h')
+assert(packCArrChar("hello", 1L), 'e')
+
+/** packLong
+
+  pack 8 chars to long
+*/
+
+assert(packLong('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), 7017280452245743464L) // 0x6162636465666768
+
+/** packInt
+
+  pack 4 chars to int
+*/
+
+assert(packInt('a', 'b', 'c', 'd'), 1633837924) // 0x61626364
+
+/** packShort
+
+  pack 2 chars to short
+*/
+assert(packShort('a', 'b'), 24930S) // 0x6162
+
 /** toArray
 
   convert a list to array
@@ -3299,6 +3352,23 @@ assert(4 in (\x.x%2==0)::(int->bool), true)
 /// Set a (()+(Set a t))
 assert(3 in just([3, 4]), true)
 assert(42 in just([3, 4]), false)
+
+/** MFlatten
+
+  mflatten: flatten a nested array
+*/
+
+/// MFlatten [[a]] [a]
+assert(mflatten([[1, 2], [3, 4, 5]]), [1..5])
+
+/// MFlatten [a] [a]
+assert(mflatten([1..5]), [1..5])
+
+/// MFlatten (l+(l+r)) (l+r)
+assert(mflatten(just(just(3))), just(3))
+assert(mflatten(nothing::(()+maybeInt)), nothing::maybeInt)
+
+/// TODO: MFlatten xs a where Array xs x, MFlatten [x] a
 
 /** lmap
 
@@ -6021,10 +6091,6 @@ assert(apply(aCFn, 'c'), 'd')
 
 assert(stdstrsize(aStdString), length("hello world"))
 assert(stdstrelem(aStdString, 0L), 'h')
-
-assert(packLong('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), 7017280452245743464L) // 0x6162636465666768
-assert(packInt('a', 'b', 'c', 'd'), 1633837924) // 0x61626364
-assert(packShort('a', 'b'), 24930S) // 0x6162
 
 assert(cptrrefby(aCStr, 0L), 'h')
 
